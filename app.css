@@ -294,3 +294,31 @@ tr.avg td{background:var(--surface-2);font-weight:600}
 .modalbg{position:fixed;inset:0;background:rgba(5,15,20,.45);z-index:50}
 .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:51;background:var(--surface);border-radius:12px;padding:24px;width:min(460px,calc(100% - 32px));display:grid;gap:14px;box-shadow:var(--shadow);max-height:calc(100vh - 48px);overflow-y:auto}
 .modal h2{font-size:1.25rem}
+
+/* ---- liens rapides en haut de page ---- */
+.quick{display:flex;align-items:stretch;gap:2px;margin-right:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.quick::-webkit-scrollbar{display:none}
+.quick a{display:grid;justify-items:center;align-content:center;gap:3px;min-width:58px;padding:4px 6px;border-radius:8px;text-decoration:none;color:var(--muted);font-size:.68rem;line-height:1.1}
+.quick a:hover{background:var(--hover);color:var(--ink)}
+.quick .qi{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--q);background:var(--surface-2)}
+.quick .qi svg.i{width:19px;height:19px}
+.quick .qp{font-family:var(--body);font-size:1rem;font-weight:700;color:inherit}
+.quick a.main .qi{background:var(--q);color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.quick a.main .ql{color:var(--ink);font-weight:600}
+@media (max-width:760px){.quick a:not(.main){display:none}.quick a{min-width:48px}}
+
+/* ---- code du cours ---- */
+.codebig{background:none;border:0;padding:0;cursor:pointer;text-align:left;font-family:var(--mono);font-size:1.45rem;color:var(--accent);letter-spacing:.06em}
+.codebig:hover{text-decoration:underline}
+.codehuge{font-family:var(--mono);font-size:clamp(2.4rem,9vw,4rem);text-align:center;color:var(--accent);letter-spacing:.08em;padding:12px 0;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+
+/* ---- liens de la classe ---- */
+.classlinks{display:grid;gap:4px}
+.classlinks a{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;text-decoration:none;color:var(--ink);font-weight:500;min-width:0}
+.classlinks a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.classlinks a:hover{background:var(--hover)}
+.classlinks svg.i{width:18px;height:18px;color:var(--accent);flex:none}
+.linkedit{display:grid;gap:8px}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) auto;gap:6px;align-items:center}
+.lrow input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+@media (max-width:520px){.lrow{grid-template-columns:minmax(0,1fr) auto}.lrow input[data-k="url"]{grid-column:1}}
