@@ -19,7 +19,7 @@ window.PHYSIQUEPRO = {
     { nom: "PIX",      url: "https://app.pix.fr/connexion",  icone: "pix",    couleur: "#5B3FD6" },
     { nom: "Lycée",    url: "https://www.lycee-verdun.edu.lb/", icone: "ecole", couleur: "#116482" },
     { nom: "Outlook",  url: "https://outlook.office.com",     icone: "mail",   couleur: "#0F6CBD" },
-    { nom: "OneDrive", url: "https://glfl-my.sharepoint.com/my", icone: "nuage", couleur: "#0364B8" }
+    { nom: "OneDrive", url: "https://glfl-my.sharepoint.com/_layouts/15/MySite.aspx?MySiteRedirect=AllDocuments", icone: "nuage", couleur: "#0364B8" }
   ],
 
   outils: [
