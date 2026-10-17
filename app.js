@@ -2266,28 +2266,36 @@ async function importerZip(files){
   if (!window.JSZip) { await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
   I.busy = true; I.log = []; render();
   const log = m => { I.log.push(m); const z = document.querySelector(".implog"); if (z) z.insertAdjacentHTML("beforeend", "<div>" + esc(m) + "</div>"); else render(); };
+  /* index des fichiers du zip : nom → [{entrée, cours}] (le cours vient du dossier Classroom « Ter. G1… », « 1ere G3… ») */
   const index = new Map(), cle = n => sansAccent(String(n).split("/").pop().replace(/\.[a-z0-9]{2,5}$/i, "")).replace(/[^a-z0-9]+/g, "");
-  for (const f of files) { const z = await window.JSZip.loadAsync(f); z.forEach((p, e) => { if (!e.dir) index.set(cle(p), e); }); }
+  for (const f of files) { const z = await window.JSZip.loadAsync(f); z.forEach((p, e) => { if (e.dir) return;
+    let cid = ""; for (const seg of p.split("/").slice(0, -1)) { cid = coursAuto(seg); if (cid) break; }
+    const k = cle(p); if (!index.has(k)) index.set(k, []); index.get(k).push({ e, cid, p }); }); }
   log(index.size + " fichiers trouvés dans le zip.");
+  const choisir = (label, cid) => { const l = index.get(cle(label)); if (!l) return null; return l.find(x => x.cid === cid) || (l.length === 1 ? l[0] : null); };
+  const doublon = label => { const l = index.get(cle(label)); return l && new Set(l.map(x => x.cid)).size > 1; };
   for (const c of S.classes) await chargerClasse(c.id, true);
   const lots = [...S.devoirs.map(d => ({ table: "devoirs", o: d })), ...S.classes.flatMap(c => (S.cache[c.id] || { supports: [] }).supports.map(s => ({ table: "supports", o: s })))]
-    .filter(x => (x.o.ressources || []).some(r => r.cr));
-  let n = 0;
+    .filter(x => (x.o.ressources || []).some(r => r.cr || (r.od && doublon(r.label))));
+  let n = 0, corr = 0;
   for (const lot of lots) {
     const res = []; let chg = false;
     for (const r of lot.o.ressources) {
-      const e = r.cr && index.get(cle(r.label));
-      if (!e) { res.push(r); continue; }
+      const aRefaire = r.od && doublon(r.label), x = (r.cr || aRefaire) ? choisir(r.label, lot.o.classe_id) : null;
+      if (!x || (aRefaire && r.od.src === x.p)) { res.push(r); continue; }
       try {
-        const blob = await e.async("blob"), nom = e.name.split("/").pop();
+        const blob = await x.e.async("blob"), nom = x.e.name.split("/").pop();
         let nouv;
-        if (odActif()) { const o = await odEnvoyer([...dossierTravail(lot.o.classe_id, lot.o.theme_id, lot.o.titre), nom], blob); nouv = ressourceOD(o, nom); }
+        if (odActif()) { const o = await odEnvoyer([...dossierTravail(lot.o.classe_id, lot.o.theme_id, lot.o.titre), nom], blob); nouv = ressourceOD(o, nom); nouv.od.src = x.p; }
         else { const path = lot.o.classe_id + "/" + Date.now() + "-" + safeName(nom); const up = await sb.storage.from("documents").upload(path, blob); if (up.error) throw up.error; nouv = { type: extType(nom), label: nom, path }; }
-        res.push(nouv); chg = true; n++; log("✓ " + nom + " → " + lot.o.titre);
+        if (aRefaire && r.od.id) { try { await graph("/me/drive/items/" + r.od.id, { method: "DELETE" }); } catch (_) {} corr++; log("↻ corrigé : " + nom + " → " + lot.o.titre); }
+        else { n++; log("✓ " + nom + " → " + lot.o.titre); }
+        res.push(nouv); chg = true;
       } catch (er) { res.push(r); log("✗ " + r.label + " : " + (er.message || er)); }
     }
     if (chg) await sb.from(lot.table).update({ ressources: res }).eq("id", lot.o.id);
   }
+  if (corr) log(corr + " fichier" + (corr > 1 ? "s" : "") + " portant le même nom dans plusieurs cours ont été remplacés par la version du bon cours.");
   S.cache = {}; await rafraichir(); I.busy = false; log(n + " fichier" + (n > 1 ? "s" : "") + " copiés. Les liens Drive restants n'ont pas été trouvés dans le zip."); render();
 }
 /* ---------- rendu ---------- */
