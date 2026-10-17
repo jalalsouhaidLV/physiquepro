@@ -470,7 +470,7 @@ tr.avg td{background:var(--surface-2);font-weight:600}
 .homepanel{background:var(--surface);border-radius:24px;padding:20px 24px 28px;display:grid;gap:16px}
 .homepanel .homehead h1{font-size:1.4rem;font-weight:400}
 .homepanel .linkbtn{font-size:.92rem}
-.cards{gap:16px;grid-template-columns:repeat(auto-fill,minmax(222px,1fr))}
+.cards{gap:16px;grid-template-columns:repeat(auto-fill,minmax(196px,1fr))}
 .ccard{border-radius:12px;min-height:296px}
 .ccard .banner{height:100px}
 .ccard .banner h2{font-size:1.4rem;font-weight:400;max-width:78%}
