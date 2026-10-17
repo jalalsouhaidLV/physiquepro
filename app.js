@@ -2208,11 +2208,11 @@ function vignetteOD(id){
   vignEnCours.add(id);
   graph("/me/drive/items/" + encodeURIComponent(id) + "/thumbnails?select=medium", {}, false).then(j => {
     const u = j && j.value && j.value[0] && j.value[0].medium && j.value[0].medium.url;
-    if (!u) return;
+    if (!u) { setTimeout(() => vignEnCours.delete(id), 120000); return; }
     MINI[k] = u;
     try { const c = JSON.parse(localStorage.getItem("pp_vign") || "{}"); c[id] = { u, t: Date.now() }; const ks = Object.keys(c); if (ks.length > 400) ks.slice(0, 100).forEach(x => delete c[x]); localStorage.setItem("pp_vign", JSON.stringify(c)); } catch (_) {}
     clearTimeout(vignetteOD.t); vignetteOD.t = setTimeout(render, 150);
-  }).catch(e => { if (/interaction|login|consent|popup|InteractionRequired/i.test(String(e && (e.errorCode || e.message) || e))) vignErreur = true; });
+  }).catch(e => { setTimeout(() => vignEnCours.delete(id), 120000); if (/interaction|login|consent|popup|InteractionRequired/i.test(String(e && (e.errorCode || e.message) || e))) vignErreur = true; });
 }
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
