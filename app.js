@@ -1344,6 +1344,9 @@ async function modalOk(){
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
       if (m.action === "retirer") { const { error } = await sb.from("inscriptions").delete().eq("classe_id", m.classe).in("email", m.emails); if (error) throw error; m.emails.forEach(x => S.pick.delete(x)); return done(m.emails.length > 1 ? "Élèves retirés du cours" : "Élève retiré du cours", m.classe); }
       if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
+      if (m.action === "supprcompte") { const { error } = await sb.rpc("pp_supprimer_compte", { p_email: m.email }); if (error) throw error;
+        S.comptes = (S.comptes || []).filter(p => p.email !== m.email); S.toutesInscriptions = (S.toutesInscriptions || []).filter(x => x.email !== m.email);
+        return done(m.nom + " a été supprimé"); }
       if (m.action === "retirertout") { const { error } = await sb.from("inscriptions").delete().eq("email", m.email); if (error) throw error; return done(m.nom + " a été retiré de tous les cours"); }
       if (m.action === "purge") { const n = await purgerFichiers(); S.fich = null; S.modal = null; await chargerFichiers(true); toast(n + " fichier" + (n > 1 ? "s supprimés" : " supprimé")); render(); return; }
       if (m.action === "supprannonce") { const { error } = await sb.from("annonces").delete().eq("id", m.id); if (error) throw error; return done("Annonce supprimée", m.classe); }
@@ -1498,7 +1501,8 @@ function admEleves(){
         <td><div class="dd kebab"><button class="ib sm" data-act="menu" data-m="ae${esc(e.email)}" aria-label="Options">${icon("more")}</button>${S.menu === "ae" + e.email ? `<div class="dd-menu">
           <a href="#" data-act="renomeleve" data-e="${esc(e.email)}" data-n="${esc(e.nom)}">${icon("edit")} Modifier le nom</a>
           <a href="${esc(outlookLink([e.email], "", ""))}" target="_blank" rel="noopener">${icon("mail")} Envoyer un e-mail</a>
-          ${e.classes.size ? `<a href="#" data-act="retirertout" data-e="${esc(e.email)}" data-n="${esc(e.nom)}" style="color:var(--bad)">${icon("trash")} Retirer de tous les cours</a>` : ""}</div>` : ""}</div></td></tr>`).join("")}
+          ${e.classes.size ? `<a href="#" data-act="retirertout" data-e="${esc(e.email)}" data-n="${esc(e.nom)}" style="color:var(--bad)">${icon("trash")} Retirer de tous les cours</a>` : ""}
+          <a href="#" data-act="supprcompte" data-e="${esc(e.email)}" data-n="${esc(e.nom)}" style="color:var(--bad)">${icon("trash")} Supprimer l'élève${e.compte ? " et son compte" : ""}</a></div>` : ""}</div></td></tr>`).join("")}
     </tbody></table></div>` : `<div class="emptystate"><b>${tous.length ? "Aucun élève ne correspond." : "Aucun élève pour l'instant."}</b><span>${tous.length ? "Change la recherche ou le filtre." : "Ajoute tes listes de classe avec « Ajouter des élèves », ou donne le code du cours aux élèves."}</span></div>`}`;
 }
 
@@ -2450,6 +2454,7 @@ document.addEventListener("click", async e => {
     case "ajouteleves": { e.preventDefault(); S.menu = null; const cid = a.dataset.c || (r.v === "classe" ? r.a : "") || (S.admF && cls(S.admF) ? S.admF : (actives()[0] || {}).id); S.modal = {kind:"ajouteleves", classe:cid, fixe:!!a.dataset.c, texte:""}; render(); return; }
     case "renomeleve": e.preventDefault(); S.menu = null; S.modal = {kind:"renomeleve", email:a.dataset.e, nom:a.dataset.n}; render(); return;
     case "autrescours": e.preventDefault(); S.menu = null; S.modal = {kind:"autrescours", from:a.dataset.c, emails:a.dataset.e ? [a.dataset.e] : [...S.pick]}; render(); return;
+    case "supprcompte": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"supprcompte", email:a.dataset.e, nom:a.dataset.n, ok:"Supprimer", titre:"Supprimer " + a.dataset.n + " ?", texte:"L'élève disparaît de la liste et de tous les cours. Ses travaux rendus, ses notes et ses commentaires privés sont supprimés définitivement. S'il se reconnecte un jour, il repartira d'un compte vide et devra rejoindre un cours avec le code."}; render(); return;
     case "retirertout": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"retirertout", email:a.dataset.e, nom:a.dataset.n, ok:"Retirer", titre:"Retirer " + a.dataset.n + " de tous les cours ?", texte:"L'élève n'aura plus accès à aucun cours. Ses travaux rendus et ses notes sont conservés."}; render(); return;
 
     /* personnes et e-mails */
