@@ -10,7 +10,7 @@ window.PHYSIQUEPRO = {
   prof: {
     nom: "Jalal SOUHAID",
     email: "jalal.souhaid@lycee-verdun.edu.lb",
-    titre: "Professeur de Physique-Chimie · Coordinateur du département de Physique-Chimie"
+    titre: "Professeur de Physique-Chimie au Lycée Franco-Libanais Verdun"
   },
 
   // Icônes en haut de chaque page (nom affiché sous l'icône)

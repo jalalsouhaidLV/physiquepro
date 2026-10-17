@@ -261,8 +261,8 @@ function drawer(r){
   </nav>${S.drawer && window.innerWidth < 1100 ? `<div class="scrim" data-act="drawer"></div>` : ""}`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
-const pageHead = () => `<div class="foot headband"><span><b>PhysiquePro</b> · ${esc(R().prof.nom)} · ${esc(R().prof.titre)}</span>${logos}</div>`;
-const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · ${esc(R().prof.nom)} · ${esc(R().prof.titre)}</span>${logos}</div>`;
+const pageHead = () => `<div class="foot headband"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
+const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
 
