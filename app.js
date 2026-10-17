@@ -43,7 +43,7 @@ const IC = {
   check:'<path d="M5 12l5 5 9-10"/>', tools:'<path d="M14 6a4 4 0 0 0 5 5l-8 8a2 2 0 0 1-3-3z"/><path d="M5 5l4 4"/>',
   links:'<path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"/><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/>',
   devoir:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
-  support:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+  support:'<rect x="6" y="4" width="12" height="16" rx="1.5"/><path d="M10 4v6l2-1.5 2 1.5V4"/>',
   quiz:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8l1 1 2-2M8.5 13l1 1 2-2M13.5 8.5h2M13.5 13.5h2"/>',
   folder:'<path d="M3 7h6l2 2h10v10H3z"/>', grade:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   left:'<path d="M15 6l-6 6 6 6"/>', right:'<path d="M9 6l6 6-6 6"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
@@ -358,16 +358,41 @@ async function titreYoutube(u){
   return null;
 }
 const libelleGenerique = l => !l || /^(youtube|lien|vidéo youtube|chargement…)$/i.test(String(l).trim());
-function carteYoutube(r){
-  const id = ytId(r.url), titre = !libelleGenerique(r.label) ? r.label : YT[id] || "Vidéo YouTube";
-  if (libelleGenerique(r.label) && !YT[id] && !ytEnCours.has(id)) { ytEnCours.add(id); titreYoutube(r.url).then(t => { if (t) render(); }); }
-  return `<a class="ytcard" href="${esc(r.url)}" target="_blank" rel="noopener"><span class="ytimg"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" loading="lazy"><span class="ytplay">▶</span></span><span class="yttxt"><b>${esc(titre)}</b><small>YouTube · vidéo</small></span></a>`;
+/* ---------- pièces jointes : cartes comme dans Google Classroom ---------- */
+const TYPE_RES = { doc:["Microsoft Word","#185ABD","W"], xls:["Microsoft Excel","#107C41","X"], ppt:["Microsoft PowerPoint","#C43E1C","P"], pdf:["PDF","#D93025","PDF"], img:["Image","#1E8E3E","IMG"], vid:["Vidéo","#7B1FA2","▶"], zip:["Archive","#5F6368","ZIP"], txt:["Texte","#5F6368","TXT"] };
+function familleRes(nom){
+  const x = extDe(nom);
+  if (/^(doc|dot|rtf|odt)/.test(x)) return "doc"; if (/^(xls|ods|csv)/.test(x)) return "xls"; if (/^(ppt|pps|odp)/.test(x)) return "ppt";
+  if (x === "pdf") return "pdf"; if (/^(png|jpe?g|gif|webp|bmp|svg|heic)$/.test(x)) return "img"; if (/^(mp4|mov|avi|mkv|webm|mp3|wav|m4a)$/.test(x)) return "vid";
+  if (/^(zip|rar|7z)$/.test(x)) return "zip"; if (/^(txt|md|py|html?|js|css)$/.test(x)) return "txt"; return "";
 }
+const domaineDe = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (_) { return ""; } };
+const MINI = {};          // vignettes déjà trouvées (id → url)
+function vignetteRes(r, fam){
+  const t = TYPE_RES[fam];
+  const glyphe = t ? `<span class="rglyph" style="--g:${t[1]}">${t[2]}</span>` : r.url && domaineDe(r.url) ? `<img class="rfav" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domaineDe(r.url))}&sz=64" alt="" loading="lazy" onerror="this.outerHTML='<span class=rglyph style=--g:#5F6368>URL</span>'">` : `<span class="rglyph" style="--g:#5F6368">${icon("links")}</span>`;
+  let img = "";
+  if (r.od && r.od.id) { const v = MINI["od:" + r.od.id]; if (v) img = v; else vignetteOD(r.od.id); }
+  else if (!r.path && !fam && /^https?:/.test(r.url || "")) img = "https://s.wordpress.com/mshots/v1/" + encodeURIComponent(r.url) + "?w=320&h=240";
+  else if (r.path && fam === "img") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
+  return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('img');this.remove()">` : ""}</span>`;
+}
+function carteRes(r){
+  if (!r.path && ytId(r.url)) {
+    const id = ytId(r.url), titre = !libelleGenerique(r.label) ? r.label : YT[id] || "Vidéo YouTube";
+    if (libelleGenerique(r.label) && !YT[id] && !ytEnCours.has(id)) { ytEnCours.add(id); titreYoutube(r.url).then(t => { if (t) render(); }); }
+    return `<div class="rcard"><a class="rtxt" href="${esc(r.url)}" target="_blank" rel="noopener"><b>${esc(titre)}</b><small>Vidéo YouTube</small></a><a class="rthumb img yt" href="${esc(r.url)}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" loading="lazy"><span class="ytplay">▶</span></a></div>`;
+  }
+  const nom = r.label || r.path || r.url || "", fam = familleRes(r.od || r.path ? nom : (r.label && /\.\w{2,5}$/.test(r.label) ? r.label : ""));
+  const sous = fam ? TYPE_RES[fam][0] : r.url ? String(r.url).replace(/^https?:\/\//, "") : "Fichier";
+  const tip = appOffice(nom) ? `title="Ouvrir dans ${appOffice(nom)} en ligne"` : `title="${esc(nom)}"`;
+  const lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
+  return `<div class="rcard"><a class="rtxt" ${lien} ${tip}><b>${esc(nom)}</b><small>${esc(sous)}</small></a>${r.path ? btnDl(r.bucket || "documents", r.path, r.label) : ""}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
+}
+const carteYoutube = r => carteRes(r);
 function ressources(list){
   if (!list || !list.length) return "";
-  return `<div class="att">${list.map(r => !r.path && ytId(r.url) ? carteYoutube(r) : r.path
-    ? `<span class="attf"><a href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}" title="${appOffice(r.path) ? "Ouvrir dans " + appOffice(r.path) + " en ligne" : "Ouvrir"}"><span class="k">${esc(r.type || "fichier")}</span>${esc(r.label || r.path)}</a>${btnDl(r.bucket || "documents", r.path, r.label)}</span>`
-    : `<a href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener" ${r.od && appOffice(r.label) ? `title="Ouvrir dans ${appOffice(r.label)} en ligne"` : ""}><span class="k">${esc(r.type || "lien")}</span>${esc(r.label || r.url)}</a>`).join("")}</div>`;
+  return `<div class="att rcards">${list.map(carteRes).join("")}</div>`;
 }
 const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.couleur).b})">${bannerArt(c)}${S.prof ? `<a class="btn ghost sm custom" href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Personnaliser</a>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span>${c.description ? `<p class="bdesc">${esc(c.description)}</p>` : ""}</div>`;
 
@@ -2171,6 +2196,23 @@ async function migrerVersOneDrive(maj){
     await sb.from(lot.table).update({ ressources: res }).eq("id", lot.o.id);
   }
   return { n, err };
+}
+
+/* vignette d'un fichier OneDrive (aperçu de la 1re page, comme dans Classroom) — prof uniquement, sans fenêtre */
+const vignEnCours = new Set();
+let vignErreur = false;
+function vignetteOD(id){
+  const k = "od:" + id;
+  if (MINI[k] || vignEnCours.has(id) || vignErreur || !odActif()) return;
+  try { const c = JSON.parse(localStorage.getItem("pp_vign") || "{}"); if (c[id] && c[id].t > Date.now() - 3e6) { MINI[k] = c[id].u; return; } } catch (_) {}
+  vignEnCours.add(id);
+  graph("/me/drive/items/" + encodeURIComponent(id) + "/thumbnails?select=medium", {}, false).then(j => {
+    const u = j && j.value && j.value[0] && j.value[0].medium && j.value[0].medium.url;
+    if (!u) return;
+    MINI[k] = u;
+    try { const c = JSON.parse(localStorage.getItem("pp_vign") || "{}"); c[id] = { u, t: Date.now() }; const ks = Object.keys(c); if (ks.length > 400) ks.slice(0, 100).forEach(x => delete c[x]); localStorage.setItem("pp_vign", JSON.stringify(c)); } catch (_) {}
+    clearTimeout(vignetteOD.t); vignetteOD.t = setTimeout(render, 150);
+  }).catch(e => { if (/interaction|login|consent|popup|InteractionRequired/i.test(String(e && (e.errorCode || e.message) || e))) vignErreur = true; });
 }
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
