@@ -1066,7 +1066,7 @@ function vModal(){
   if (m.kind === "theme") { body = `<h2>${m.id ? "Renommer le thème" : "Ajouter un thème"}</h2><div class="field"><label for="mTitre">Nom du thème</label><input id="mTitre" value="${esc(m.titre || "")}" placeholder="ex. Chapitre 1 · Mouvements"></div>`; ok = m.id ? "Renommer" : "Ajouter"; }
   else if (m.kind === "prog") { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0);
     body = `<h2>Programmer la publication</h2><p class="muted" style="margin:0">Les élèves verront cet élément à partir de cette date.</p><div class="dt2"><input id="mDate" type="date" value="${ymd(d)}" aria-label="Date"><input id="mHeure" type="time" value="08:00" aria-label="Heure"></div>`; ok = "Programmer"; }
-  else if (m.kind === "join") { body = `<h2>Rejoindre un cours</h2><p class="muted" style="margin:0">Demande le code du cours à ton professeur, puis saisis-le ici.</p><div class="field"><label for="mCode">Code du cours</label><input id="mCode" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ex. k7m4pqr" value="${esc(m.code || "")}" style="font-family:var(--mono);font-size:1.2rem;letter-spacing:.08em"></div>`; ok = "Rejoindre"; }
+  else if (m.kind === "join") { body = `<h2>Rejoindre un cours</h2><p class="muted" style="margin:0">Tu es connecté avec <b>${esc(moi())}</b>. Saisis le code du cours donné par ton professeur.</p><div class="field"><label for="mCode">Code du cours</label><input id="mCode" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ex. k7m4pqr" value="${esc(m.code || "")}" style="font-family:var(--mono);font-size:1.2rem;letter-spacing:.08em"></div>`; ok = "Rejoindre"; }
   else if (m.kind === "ajouteleves") { const c = cls(m.classe);
     body = `<h2>Ajouter des élèves${c ? " · " + esc(c.nom) : ""}</h2>
       ${m.fixe ? "" : `<div class="field"><label for="mClasse">Dans le cours</label><select id="mClasse" data-mclasse="1">${actives().map(x => `<option value="${esc(x.id)}" ${x.id === m.classe ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>`}
@@ -1790,7 +1790,10 @@ async function render(){
       if (deja) { go("/classe/" + deja.id); return; }
       if (S.joinVu !== code) { S.joinVu = code; S.modal = {kind:"join", code}; }
       content = vAccueil();
-    } else content = ({agenda:vAgenda, todo:vTodo, outils:vOutils, archives:vArchives})[r.v]?.(r) ?? vAccueil();
+    } else {
+      if (!S.prof && r.v === "accueil" && !actives().length && !S.joinAuto && !S.modal) { S.joinAuto = true; S.modal = {kind:"join"}; }
+      content = ({agenda:vAgenda, todo:vTodo, outils:vOutils, archives:vArchives})[r.v]?.(r) ?? vAccueil();
+    }
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + (S.modal ? vModal() : "");
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };
