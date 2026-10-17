@@ -648,3 +648,10 @@ sup,sub{line-height:0;font-size:.75em}
 .aussi summary{cursor:pointer;color:var(--accent);font-weight:500}
 .agsel{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;color:var(--ink);max-width:100%}
 .weekbar{flex-wrap:wrap}
+.attf{display:inline-flex;align-items:stretch;max-width:100%}
+.attf>a{border-top-right-radius:0!important;border-bottom-right-radius:0!important}
+.dlbtn{border:1px solid var(--line);border-left:0;background:var(--surface);color:var(--muted);border-radius:0 8px 8px 0;padding:0 8px;cursor:pointer;display:grid;place-items:center}
+.dlbtn:hover{color:var(--accent);background:var(--hover)}
+.dlbtn svg.i{width:16px;height:16px}
+.files li .dlbtn{border:0;background:none;padding:2px 6px}
+.vfoot{display:flex;gap:16px;flex-wrap:wrap}

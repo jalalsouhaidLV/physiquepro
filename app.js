@@ -363,7 +363,7 @@ function carteYoutube(r){
 function ressources(list){
   if (!list || !list.length) return "";
   return `<div class="att">${list.map(r => !r.path && ytId(r.url) ? carteYoutube(r) : r.path
-    ? `<a href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"><span class="k">${esc(r.type || "fichier")}</span>${esc(r.label || r.path)}</a>`
+    ? `<span class="attf"><a href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}" title="${appOffice(r.path) ? "Ouvrir dans " + appOffice(r.path) + " en ligne" : "Ouvrir"}"><span class="k">${esc(r.type || "fichier")}</span>${esc(r.label || r.path)}</a>${btnDl(r.bucket || "documents", r.path, r.label)}</span>`
     : `<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="k">${esc(r.type || "lien")}</span>${esc(r.label || r.url)}</a>`).join("")}</div>`;
 }
 const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.couleur).b})">${bannerArt(c)}${S.prof ? `<a class="btn ghost sm custom" href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Personnaliser</a>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span>${c.description ? `<p class="bdesc">${esc(c.description)}</p>` : ""}</div>`;
@@ -603,7 +603,7 @@ function vDevoir(r){
   let work;
   if (isQ) work = travailQuestion(d, c, e, rd, open, Q);
   else if (rd) {
-    work = `<ul class="files">${(rd.fichiers || []).map(f => `<li><a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}">${icon("file")} ${esc(f.nom)}</a></li>`).join("")}${rd.lien ? `<li><a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} ${esc(rd.lien)}</a></li>` : ""}</ul>
+    work = `<ul class="files">${(rd.fichiers || []).map(f => `<li><a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}">${icon("file")} ${esc(f.nom)}</a>${btnDl("rendus", f.chemin, f.nom)}</li>`).join("")}${rd.lien ? `<li><a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} ${esc(rd.lien)}</a></li>` : ""}</ul>
       ${rd.binome_email ? `<p style="margin:0;font-size:.85rem">Rendu en binôme avec <b>${esc(nomDe(c.id, rd.auteur_email === moi() ? rd.binome_email : rd.auteur_email))}</b></p>` : ""}
       <p class="muted" style="margin:0;font-size:.8rem">Rendu le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
       ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}
@@ -770,7 +770,8 @@ function vAgenda(r){
       ${evts.filter(e => sameDay(e.d, d)).sort((a, b) => a.d - b.d).map(e => `<a class="ev" style="--bb:var(${C(e.c.couleur).b})" href="${e.href}">${esc(e.t)}<small>${esc(e.c.nom)} · ${fmtT(e.d)}</small></a>`).join("")}</div>`).join("")}</div></div>${pageFoot()}</div>`;
 }
 function vOutils(){
-  return `<div class="page"><h1 style="font-size:1.6rem">Boîte à outils</h1>${R().outils.map(g => `<section class="theme" style="--c:var(--${esc(g.couleur)})"><div class="themehead"><h2>${esc(g.matiere)}</h2></div>${g.liens.map(([n, d, u]) => `<div class="work"><a class="workrow" href="${esc(u)}" target="_blank" rel="noopener" style="padding:10px 8px;gap:16px"><span class="ico pale">${icon("links", "")}</span><span class="tt">${esc(n)}<br><small class="muted" style="font-weight:400">${esc(d)}</small></span><span class="muted">↗</span></a></div>`).join("")}</section>`).join("")}${pageFoot()}</div>`;
+  if (S.prof && S.outilsEdit) return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">Modifier la boîte à outils</h1></div>${admOutils()}${pageFoot()}</div>`;
+  return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">Boîte à outils</h1>${S.prof ? `<button class="btn ghost sm" data-act="outilsedit">${icon("edit")} Modifier</button>` : ""}</div>${R().outils.map(g => `<section class="theme" style="--c:var(--${esc(g.couleur)})"><div class="themehead"><h2>${esc(g.matiere)}</h2></div>${g.liens.map(([n, d, u]) => `<div class="work"><a class="workrow" href="${esc(u)}" target="_blank" rel="noopener" style="padding:10px 8px;gap:16px"><span class="ico pale">${icon("links", "")}</span><span class="tt">${esc(n)}<br><small class="muted" style="font-weight:400">${esc(d)}</small></span><span class="muted">↗</span></a></div>`).join("")}</section>`).join("")}${pageFoot()}</div>`;
 }
 /* ---------- éditeur plein écran : devoir, documentation, questionnaire ---------- */
 const typeDeLien = (u, mode) => mode === "youtube" || /youtu\.?be/i.test(u) ? "YouTube" : mode === "onedrive" || /sharepoint\.com|onedrive|1drv\.ms/i.test(u) ? "OneDrive" : "Lien";
@@ -1326,6 +1327,7 @@ async function modalOk(){
       }
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
       if (m.action === "retirer") { const { error } = await sb.from("inscriptions").delete().eq("classe_id", m.classe).in("email", m.emails); if (error) throw error; m.emails.forEach(x => S.pick.delete(x)); return done(m.emails.length > 1 ? "Élèves retirés du cours" : "Élève retiré du cours", m.classe); }
+      if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
       if (m.action === "retirertout") { const { error } = await sb.from("inscriptions").delete().eq("email", m.email); if (error) throw error; return done(m.nom + " a été retiré de tous les cours"); }
       if (m.action === "purge") { const n = await purgerFichiers(); S.fich = null; S.modal = null; await chargerFichiers(true); toast(n + " fichier" + (n > 1 ? "s supprimés" : " supprimé")); render(); return; }
       if (m.action === "supprannonce") { const { error } = await sb.from("annonces").delete().eq("id", m.id); if (error) throw error; return done("Annonce supprimée", m.classe); }
@@ -1359,6 +1361,17 @@ function vAdmin(r){
 }
 
 /* ----- onglet Site : identité, liens rapides, boîte à outils ----- */
+function admOutils(){
+  initAdm(); const A = S.adm, H = admHelpers(A);
+  return `<div class="savebar${A.modif ? " on" : ""}"><span>${A.modif ? "Modifications non enregistrées" : "Ajoute, modifie ou supprime des liens, puis enregistre."}</span><span class="spacer"></span>
+      <button class="btn ghost sm" data-act="outilsfin">Terminer</button><button class="btn sm" data-act="admsave" ${A.busy || !A.modif ? "disabled" : ""}>${A.busy ? "Enregistrement…" : "Enregistrer"}</button></div>
+    ${A.err ? `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">${esc(A.err)}</div>` : ""}${admOutilsSection(A, H.inp, H.outilsBtns)}`;
+}
+function admHelpers(A){
+  const inp = (path, ph = "", type = "text", lab = "") => `<input type="${type}" data-ad="${path}" value="${esc(getPath(A, path))}" placeholder="${esc(ph)}" aria-label="${esc(lab || ph)}">`;
+  const outilsBtns = (path, i, n) => `<span class="adbtns">${i > 0 ? `<button class="ib sm" data-act="admv" data-path="${path}" data-i="${i}" data-dir="-1" title="Monter" aria-label="Monter">${icon("up")}</button>` : ""}${i < n - 1 ? `<button class="ib sm" data-act="admv" data-path="${path}" data-i="${i}" data-dir="1" title="Descendre" aria-label="Descendre">${icon("down")}</button>` : ""}<button class="ib sm" data-act="adrm" data-path="${path}" data-i="${i}" title="Supprimer" aria-label="Supprimer">${icon("x")}</button></span>`;
+  return { inp, outilsBtns };
+}
 function admSite(){
   initAdm(); const A = S.adm;
   const inp = (path, ph = "", type = "text", lab = "") => `<input type="${type}" data-ad="${path}" value="${esc(getPath(A, path))}" placeholder="${esc(ph)}" aria-label="${esc(lab || ph)}">`;
@@ -1385,16 +1398,7 @@ function admSite(){
         ${outilsBtns("liensUtiles", i, A.liensUtiles.length)}</div>`).join("")}</div>
       <div><button class="btn ghost sm" data-act="adadd" data-path="liensUtiles" data-tpl="lien">${icon("plus")} Ajouter un lien rapide</button></div>
     </section>
-    <section class="edcard"><h2>${icon("tools")} Boîte à outils</h2>
-      <p class="muted" style="margin:0;font-size:.85rem">Page « Boîte à outils » du menu, visible par les élèves. Un groupe par matière.</p>
-      ${A.outils.map((g, i) => `<div class="adgroup" style="--c:var(--${esc(g.couleur || "pc")})">
-        <div class="adrow grp">${inp("outils." + i + ".matiere", "Nom du groupe (ex. Physique-Chimie)", "text", "Nom du groupe")}
-          <select data-ad="outils.${i}.couleur" aria-label="Couleur du groupe">${COULEURS.map(([v, t]) => `<option value="${v}" ${g.couleur === v ? "selected" : ""}>${t}</option>`).join("")}</select>
-          ${outilsBtns("outils", i, A.outils.length)}</div>
-        ${(g.liens || []).map((x, j) => `<div class="adrow outil">${inp("outils." + i + ".liens." + j + ".0", "Nom de l'outil", "text", "Nom de l'outil")}${inp("outils." + i + ".liens." + j + ".1", "Description courte", "text", "Description")}${inp("outils." + i + ".liens." + j + ".2", "https://…", "url", "Adresse")}<button class="ib sm" data-act="adrm" data-path="outils.${i}.liens" data-i="${j}" title="Supprimer" aria-label="Supprimer l'outil">${icon("x")}</button></div>`).join("")}
-        <div><button class="linkbtn" data-act="adadd" data-path="outils.${i}.liens" data-tpl="outil">${icon("plus")} Ajouter un outil</button></div></div>`).join("")}
-      <div><button class="btn ghost sm" data-act="adadd" data-path="outils" data-tpl="groupe">${icon("plus")} Ajouter un groupe</button></div>
-    </section>
+    ${admOutilsSection(A, inp, outilsBtns)}
     <section class="edcard"><h2>${icon("comment")} Remarques de correction</h2>
       <p class="muted" style="margin:0;font-size:.85rem">Une remarque par ligne. Elles s'insèrent en un clic quand tu notes un travail.</p>
       <textarea data-ad="remarques" rows="7" class="adtext" aria-label="Remarques de correction">${esc(A.remarques)}</textarea></section>
@@ -1414,9 +1418,21 @@ async function admEnregistrer(){
   A.busy = true; render();
   const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() });
   if (error) { A.busy = false; A.err = /reglages/.test(error.message) ? "La base n'est pas encore à jour (script 07 à exécuter dans Supabase)." : "Enregistrement impossible : " + error.message; return render(); }
-  appliquerReglages(data); S.nom = R().prof.nom; S.adm = null; toast("Réglages du site enregistrés"); render();
+  appliquerReglages(data); S.nom = R().prof.nom; S.adm = null; S.outilsEdit = false; toast("Réglages du site enregistrés"); render();
 }
 
+function admOutilsSection(A, inp, outilsBtns){
+  return `<section class="edcard"><h2>${icon("tools")} Boîte à outils</h2>
+      <p class="muted" style="margin:0;font-size:.85rem">Page « Boîte à outils » du menu, visible par les élèves. Un groupe par matière.</p>
+      ${A.outils.map((g, i) => `<div class="adgroup" style="--c:var(--${esc(g.couleur || "pc")})">
+        <div class="adrow grp">${inp("outils." + i + ".matiere", "Nom du groupe (ex. Physique-Chimie)", "text", "Nom du groupe")}
+          <select data-ad="outils.${i}.couleur" aria-label="Couleur du groupe">${COULEURS.map(([v, t]) => `<option value="${v}" ${g.couleur === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+          ${outilsBtns("outils", i, A.outils.length)}</div>
+        ${(g.liens || []).map((x, j) => `<div class="adrow outil">${inp("outils." + i + ".liens." + j + ".0", "Nom de l'outil", "text", "Nom de l'outil")}${inp("outils." + i + ".liens." + j + ".1", "Description courte", "text", "Description")}${inp("outils." + i + ".liens." + j + ".2", "https://…", "url", "Adresse")}<button class="ib sm" data-act="adrm" data-path="outils.${i}.liens" data-i="${j}" title="Supprimer" aria-label="Supprimer l'outil">${icon("x")}</button></div>`).join("")}
+        <div><button class="linkbtn" data-act="adadd" data-path="outils.${i}.liens" data-tpl="outil">${icon("plus")} Ajouter un outil</button></div></div>`).join("")}
+      <div><button class="btn ghost sm" data-act="adadd" data-path="outils" data-tpl="groupe">${icon("plus")} Ajouter un groupe</button></div>
+    </section>`;
+}
 /* ----- onglet Cours ----- */
 function admCours(){
   const list = [...actives(), ...S.classes.filter(c => c.archive)];
@@ -1599,6 +1615,8 @@ function exporterEleves(){
   tousLesEleves().forEach(e => rows.push([e.nom, e.email, [...e.classes].map(id => (act.find(c => c.id === id) || {}).nom || id).join(", "), e.compte ? "connecté" : "jamais connecté"]));
   telecharger("eleves-physiquepro-" + ymd(now()) + ".csv", csv(rows), "text/csv;charset=utf-8");
 }
+
+const confirmerPerte = () => { S.modal = { kind: "confirm", action: "perte", titre: "Quitter sans enregistrer ?", texte: "Tes modifications de la boîte à outils seront perdues.", ok: "Quitter" }; render(); return false; };
 /* ---------- déplacer les cours (glisser-déposer, comme Classroom) ---------- */
 async function enregistrerOrdre(ids){
   if (S.prof) {
@@ -1903,6 +1921,12 @@ function melangeStable(n, graine){
   return a;
 }
 /* ---------- visionneuse des travaux rendus (prof) ---------- */
+/* Word, Excel et PowerPoint s'ouvrent dans Office en ligne (Microsoft 365) */
+const OFFICE = ["doc", "docx", "dot", "dotx", "rtf", "odt", "xls", "xlsx", "xlsm", "csv", "ods", "ppt", "pptx", "pps", "ppsx", "odp"];
+const estOffice = n => OFFICE.includes(String(n || "").split(".").pop().toLowerCase());
+const lienOffice = (nom, url) => estOffice(nom) && !/\.csv$/i.test(nom) ? "https://view.officeapps.live.com/op/view.aspx?src=" + encodeURIComponent(url) : url;
+const appOffice = n => { const x = String(n || "").split(".").pop().toLowerCase(); return /^(doc|dot|rtf|odt)/.test(x) ? "Word" : /^(xls|ods)/.test(x) ? "Excel" : /^(ppt|pps|odp)/.test(x) ? "PowerPoint" : ""; };
+const btnDl = (bucket, path, nom) => `<button class="dlbtn" data-act="dlfile" data-bucket="${esc(bucket)}" data-path="${esc(path)}" data-nom="${esc(nom || "")}" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom || "")}">${icon("down")}</button>`;
 const extDe = n => (String(n || "").split(".").pop() || "").toLowerCase();
 async function urlRendu(path){
   S.vurl = S.vurl || {};
@@ -1944,7 +1968,7 @@ function vViewer(){
     <div class="viewer">
       <div class="vmain">${fs.length > 1 ? `<div class="vtabs">${fs.map((f, j) => `<button class="${j === fi ? "on" : ""}" data-act="vfile" data-i="${j}">${esc(f.nom)}</button>`).join("")}</div>` : ""}
         <div class="vbody">${fs.length ? apercuFichier(fs[fi]) : rd && rd.reponse ? `<div class="reponse" style="max-width:640px;margin:24px">${linkify(rd.reponse)}</div>` : `<div class="vempty">${rd ? "Rendu sans fichier." : "Aucun rendu."}${rd && rd.lien ? `<a class="btn" href="${esc(rd.lien)}" target="_blank" rel="noopener">Ouvrir le lien rendu</a>` : ""}</div>`}</div>
-        ${fs.length && S.vurl && S.vurl[fs[fi].chemin] ? `<div class="vfoot"><a href="${esc(S.vurl[fs[fi].chemin])}" target="_blank" rel="noopener">${icon("expand")} Ouvrir dans un nouvel onglet</a></div>` : ""}</div>
+        ${fs.length && S.vurl && S.vurl[fs[fi].chemin] ? `<div class="vfoot"><a href="${esc(lienOffice(fs[fi].nom, S.vurl[fs[fi].chemin]))}" target="_blank" rel="noopener">${icon("expand")} ${appOffice(fs[fi].nom) ? "Ouvrir dans " + appOffice(fs[fi].nom) + " en ligne" : "Ouvrir dans un nouvel onglet"}</a><a href="#" data-act="dlfile" data-bucket="rendus" data-path="${esc(fs[fi].chemin)}" data-nom="${esc(fs[fi].nom)}">${icon("down")} Télécharger</a></div>` : ""}</div>
       <aside class="vside">${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
         ${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} Lien rendu</a>` : ""}${blocNotation(d, rd, cr)}` : ""}
         ${vCP(d.id, V.email)}</aside></div>`;
@@ -2141,6 +2165,8 @@ document.addEventListener("click", async e => {
     case "adrm": getPath(S.adm, a.dataset.path).splice(Number(a.dataset.i), 1); S.adm.modif = true; render(); return;
     case "admv": { const list = getPath(S.adm, a.dataset.path), i = Number(a.dataset.i), j = i + Number(a.dataset.dir); if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; S.adm.modif = true; render(); return; }
     case "admsave": admEnregistrer(); return;
+    case "outilsedit": S.adm = null; S.outilsEdit = true; render(); return;
+    case "outilsfin": if (S.adm && S.adm.modif && !confirmerPerte()) return; S.outilsEdit = false; S.adm = null; render(); return;
     case "admreset": S.adm = null; render(); return;
     case "admdefaut": S.adm = { prof: { nom: CFG.prof.nom, titre: CFG.prof.titre }, liensUtiles: clone(CFG.liensUtiles), outils: clone(CFG.outils), remarques: R().remarques.join("\n"), busy: false, err: "", modif: true }; render(); return;
     case "admfichiers": S.fich = null; render(); return;
@@ -2183,7 +2209,12 @@ document.addEventListener("click", async e => {
     case "openfile": { e.preventDefault(); const w = window.open("about:blank", "_blank");
       const { data, error } = await sb.storage.from(a.dataset.bucket || "documents").createSignedUrl(a.dataset.path, 3600);
       if (error || !data) { if (w) w.close(); toast("Fichier introuvable ou accès refusé."); return; }
-      if (w) w.location = data.signedUrl; else location.href = data.signedUrl; return; }
+      const cible = lienOffice(a.dataset.path, data.signedUrl);
+      if (w) w.location = cible; else location.href = cible; return; }
+    case "dlfile": { e.preventDefault(); const nom = a.dataset.nom || a.dataset.path.split("/").pop().replace(/^\d+-/, "");
+      const { data, error } = await sb.storage.from(a.dataset.bucket || "documents").createSignedUrl(a.dataset.path, 600, { download: nom });
+      if (error || !data) { toast("Téléchargement impossible."); return; }
+      const l = document.createElement("a"); l.href = data.signedUrl; l.download = nom; document.body.appendChild(l); l.click(); l.remove(); return; }
 
     /* éditeur */
     case "fmt": { e.preventDefault(); const ed = document.getElementById(S.ed ? "edHtml" : "anHtml") || document.getElementById("anHtml"); if (!ed) return; ed.focus(); document.execCommand(a.dataset.cmd, false, null); if (ed.id === "edHtml") S.ed.html = ed.innerHTML; else S.annonce.html = ed.innerHTML; return; }
@@ -2390,6 +2421,7 @@ window.addEventListener("hashchange", () => {
   if (r.v !== "editer") S.ed = null;
   if (!(r.v === "classe" && r.t === "parametres")) S.settings = null;
   if (r.v !== "admin") S.adm = null;
+  S.outilsEdit = false;
   S.viewer = null;
   if (r.v !== "devoir") { S.reponse = ""; S.sel = null; S.ptab = "travaux"; S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; }
   fermerMenus(); S.modal = null; S.open = null; S.compose = false; S.pick = new Set(); S.cSub = ""; S.cBody = ""; S.annonce = null; S.filtreTheme = "";
