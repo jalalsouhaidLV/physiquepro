@@ -332,9 +332,28 @@ function classTabs(c, tab){
       ${S.prof ? `<a class="ib" href="#/classe/${esc(c.id)}/parametres" title="Paramètres du cours" aria-label="Paramètres du cours">${icon("gear")}</a>` : ""}
     </div></div>`;
 }
+/* vidéos YouTube : titre récupéré automatiquement + miniature */
+const ytId = u => { const m = String(u || "").match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/|\/live\/)([\w-]{11})/); return m ? m[1] : null; };
+const YT = {}, ytEnCours = new Set();
+async function titreYoutube(u){
+  const id = ytId(u); if (!id) return null; if (YT[id]) return YT[id];
+  const w = "https://www.youtube.com/watch?v=" + id;
+  for (const api of ["https://www.youtube.com/oembed?format=json&url=", "https://noembed.com/embed?url="]) {
+    try { const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 5000);
+      const r = await fetch(api + encodeURIComponent(w), { signal: ctl.signal }); clearTimeout(t);
+      if (r.ok) { const j = await r.json(); if (j && j.title) return YT[id] = j.title; } } catch (_) {}
+  }
+  return null;
+}
+const libelleGenerique = l => !l || /^(youtube|lien|vidéo youtube|chargement…)$/i.test(String(l).trim());
+function carteYoutube(r){
+  const id = ytId(r.url), titre = !libelleGenerique(r.label) ? r.label : YT[id] || "Vidéo YouTube";
+  if (libelleGenerique(r.label) && !YT[id] && !ytEnCours.has(id)) { ytEnCours.add(id); titreYoutube(r.url).then(t => { if (t) render(); }); }
+  return `<a class="ytcard" href="${esc(r.url)}" target="_blank" rel="noopener"><span class="ytimg"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" loading="lazy"><span class="ytplay">▶</span></span><span class="yttxt"><b>${esc(titre)}</b><small>YouTube · vidéo</small></span></a>`;
+}
 function ressources(list){
   if (!list || !list.length) return "";
-  return `<div class="att">${list.map(r => r.path
+  return `<div class="att">${list.map(r => !r.path && ytId(r.url) ? carteYoutube(r) : r.path
     ? `<a href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"><span class="k">${esc(r.type || "fichier")}</span>${esc(r.label || r.path)}</a>`
     : `<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="k">${esc(r.type || "lien")}</span>${esc(r.label || r.url)}</a>`).join("")}</div>`;
 }
@@ -811,7 +830,7 @@ function vEditer(){
         </div>
         <input type="file" id="edFile" multiple hidden>
         ${lm ? `<div class="linkform"><div class="field"><label for="edLinkUrl">${lmLabel}</label><input id="edLinkUrl" type="url" placeholder="https://…"></div>
-          <div class="field"><label for="edLinkLabel">Nom affiché <span class="muted">(facultatif)</span></label><input id="edLinkLabel" placeholder="ex. Fiche de TP"></div>
+          <div class="field"><label for="edLinkLabel">Nom affiché <span class="muted">(facultatif${lm === "youtube" ? " : le titre de la vidéo s'affiche tout seul" : ""})</span></label><input id="edLinkLabel" placeholder="${lm === "youtube" ? "Laisse vide pour le titre de la vidéo" : "ex. Fiche de TP"}"></div>
           <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="edlinkcancel">Annuler</button><button class="btn sm" data-act="edlinkadd">Ajouter</button></div>
           ${lm === "onedrive" ? `<p class="muted" style="margin:0;font-size:.8rem">Dans OneDrive : clic droit sur le fichier, « Partager », « Copier le lien ». Vérifie que le lien est accessible aux personnes du lycée.</p>` : ""}</div>` : ""}
         ${e.ressources.length ? `<ul class="files">${e.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}</span><button data-act="rmres" data-i="${i}" aria-label="Retirer ${esc(x.label)}">✕</button></li>`).join("")}</ul>` : ""}
@@ -1938,7 +1957,10 @@ document.addEventListener("click", async e => {
     case "edlinkcancel": S.ed.linkMode = null; render(); return;
     case "edlinkadd": { const u = document.getElementById("edLinkUrl").value.trim(), l = document.getElementById("edLinkLabel").value.trim();
       if (!/^https?:\/\//.test(u)) { toast("Colle une adresse qui commence par https://"); return; }
-      const t = typeDeLien(u, S.ed.linkMode); S.ed.ressources.push({ type: t, label: l || (t === "Lien" ? u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : t), url: u }); S.ed.linkMode = null; render(); return; }
+      const t = typeDeLien(u, S.ed.linkMode), res = { type: t, label: l || (t === "Lien" ? u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : t), url: u };
+      if (!l && ytId(u)) { res.type = "YouTube"; res.label = "Chargement…"; }
+      S.ed.ressources.push(res); S.ed.linkMode = null; render();
+      if (!l && ytId(u)) { const titre = await titreYoutube(u); res.label = titre || "Vidéo YouTube"; if (S.ed) render(); } return; }
     case "edupload": document.getElementById("edFile").click(); return;
     case "rmres": { const x = S.ed.ressources.splice(Number(a.dataset.i), 1)[0];
       if (x && x.path) { if (S.ed.uploaded.includes(x.path)) { sb.storage.from("documents").remove([x.path]); S.ed.uploaded = S.ed.uploaded.filter(p => p !== x.path); } else S.ed.toDelete.push(x.path); }
@@ -1964,7 +1986,10 @@ document.addEventListener("click", async e => {
     case "anlinkcancel": S.annonce.linkMode = null; render(); return;
     case "anlinkadd": { const u = document.getElementById("anLinkUrl").value.trim(), l = document.getElementById("anLinkLabel").value.trim();
       if (!/^https?:\/\//.test(u)) { toast("Colle une adresse qui commence par https://"); return; }
-      const t = typeDeLien(u); S.annonce.ressources.push({ type: t, label: l || (t === "Lien" ? u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : t), url: u }); S.annonce.linkMode = null; render(); return; }
+      const t = typeDeLien(u), res = { type: t, label: l || (t === "Lien" ? u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : t), url: u };
+      if (!l && ytId(u)) { res.type = "YouTube"; res.label = "Chargement…"; }
+      S.annonce.ressources.push(res); S.annonce.linkMode = null; render();
+      if (!l && ytId(u)) { const titre = await titreYoutube(u); res.label = titre || "Vidéo YouTube"; if (S.annonce) render(); } return; }
     case "anupload": S.annonce.html = (document.getElementById("anHtml") || {}).innerHTML || S.annonce.html; document.getElementById("anFile").click(); return;
     case "anrm": { const A2 = S.annonce, x = A2.ressources.splice(Number(a.dataset.i), 1)[0];
       if (x && x.path) { if (A2.uploaded.includes(x.path) || !A2.id) sb.storage.from("documents").remove([x.path]); else (A2.toDelete = A2.toDelete || []).push(x.path); } render(); return; }

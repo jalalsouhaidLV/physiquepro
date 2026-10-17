@@ -593,3 +593,12 @@ section.theme.compact>*:not(.themehead){display:none}
 .mesnotes-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 20px}
 .mesnotes-head .grade{font-size:2rem}
 .work small svg.i{width:14px;height:14px;vertical-align:-2px}
+/* vidéos YouTube */
+.ytcard{display:flex!important;align-items:stretch!important;gap:0!important;padding:0!important;overflow:hidden;width:min(440px,100%);text-decoration:none;color:var(--ink)}
+.ytcard:hover{box-shadow:var(--shadow)}
+.ytimg{position:relative;width:128px;flex:none;background:#000;aspect-ratio:16/9}
+.ytimg img{width:100%;height:100%;object-fit:cover;display:block}
+.ytplay{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:1.1rem;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.yttxt{display:grid;align-content:center;gap:2px;padding:8px 12px;min-width:0}
+.yttxt b{font-weight:500;font-size:.88rem;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.yttxt small{color:var(--muted);font-size:.75rem}
