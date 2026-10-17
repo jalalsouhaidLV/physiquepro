@@ -755,3 +755,5 @@ sup,sub{line-height:0;font-size:.75em}
   .wkhead .crstats div:first-child{border-left:0;padding-left:0}
 }
 .btn.tonal,.wklink{white-space:nowrap}@media (max-width:600px){.btn.tonal{padding:8px 16px}}
+.foot.headband{border-top:0;border-bottom:1px solid var(--line);padding:0 0 14px}
+@media (max-width:600px){.foot.headband{font-size:.72rem;gap:8px}.foot.headband img{max-height:34px}}
