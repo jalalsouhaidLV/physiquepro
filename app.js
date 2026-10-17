@@ -117,11 +117,12 @@ function appliquerReglages(d){
     prof: { nom: (d.prof && d.prof.nom) || CFG.prof.nom, titre: (d.prof && d.prof.titre != null) ? d.prof.titre : CFG.prof.titre, email: CFG.prof.email },
     liensUtiles: Array.isArray(d.liensUtiles) ? d.liensUtiles : CFG.liensUtiles,
     outils: Array.isArray(d.outils) ? d.outils : CFG.outils,
+    onedrive: !!d.onedrive,
     remarques: Array.isArray(d.remarques) ? d.remarques : ["Très bon travail.", "Attention aux unités.", "Chiffres significatifs à revoir.", "Justifie davantage ton raisonnement.", "Schéma incomplet ou non légendé.", "Relis la consigne.", "Bon raisonnement, mais erreur de calcul."]
   };
 }
 const R = () => S.R;
-const reglagesData = () => ({ prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: R().liensUtiles, outils: R().outils, remarques: R().remarques });
+const reglagesData = () => ({ prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: R().liensUtiles, outils: R().outils, remarques: R().remarques, onedrive: R().onedrive });
 
 /* ---------- état ---------- */
 const S = {
@@ -364,7 +365,7 @@ function ressources(list){
   if (!list || !list.length) return "";
   return `<div class="att">${list.map(r => !r.path && ytId(r.url) ? carteYoutube(r) : r.path
     ? `<span class="attf"><a href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}" title="${appOffice(r.path) ? "Ouvrir dans " + appOffice(r.path) + " en ligne" : "Ouvrir"}"><span class="k">${esc(r.type || "fichier")}</span>${esc(r.label || r.path)}</a>${btnDl(r.bucket || "documents", r.path, r.label)}</span>`
-    : `<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="k">${esc(r.type || "lien")}</span>${esc(r.label || r.url)}</a>`).join("")}</div>`;
+    : `<a href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener" ${r.od && appOffice(r.label) ? `title="Ouvrir dans ${appOffice(r.label)} en ligne"` : ""}><span class="k">${esc(r.type || "lien")}</span>${esc(r.label || r.url)}</a>`).join("")}</div>`;
 }
 const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.couleur).b})">${bannerArt(c)}${S.prof ? `<a class="btn ghost sm custom" href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Personnaliser</a>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span>${c.description ? `<p class="bdesc">${esc(c.description)}</p>` : ""}</div>`;
 
@@ -715,6 +716,7 @@ function vDevoirProf(d, c){
       ${autres.length ? `<button class="btn ghost" data-act="mailmissing" data-d="${d.id}">${icon("mail")} Écrire aux ${autres.length} élève${autres.length > 1 ? "s" : ""} qui n'${autres.length > 1 ? "ont" : "a"} pas rendu</button>` : ""}</div>
       ${S.compose ? composeBox(el.filter(e => S.pick.has(e.email))) : ""}
       ${isQ ? syntheseQuestion(d, el) : ""}
+      ${odActif() && !isQ && rendusE.length ? `<div><button class="btn ghost sm" data-act="odrendus" data-d="${d.id}">${icon("nuage")} Copier les travaux rendus dans OneDrive</button></div>` : ""}
       <p style="margin:0">Choisis un élève dans la liste pour ouvrir ${isQ ? "sa réponse" : "son travail"} et le noter.</p>`;
   } else {
     const e = el.find(x => x.email === sel), rd = renduDe(d, sel), cr = correctionDe(rd);
@@ -851,7 +853,7 @@ function vEditer(){
           <div class="field"><label for="edLinkLabel">Nom affiché <span class="muted">(facultatif${lm === "youtube" ? " : le titre de la vidéo s'affiche tout seul" : ""})</span></label><input id="edLinkLabel" placeholder="${lm === "youtube" ? "Laisse vide pour le titre de la vidéo" : "ex. Fiche de TP"}"></div>
           <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="edlinkcancel">Annuler</button><button class="btn sm" data-act="edlinkadd">Ajouter</button></div>
           ${lm === "onedrive" ? `<p class="muted" style="margin:0;font-size:.8rem">Dans OneDrive : clic droit sur le fichier, « Partager », « Copier le lien ». Vérifie que le lien est accessible aux personnes du lycée.</p>` : ""}</div>` : ""}
-        ${e.ressources.length ? `<ul class="files">${e.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}</span><button data-act="rmres" data-i="${i}" aria-label="Retirer ${esc(x.label)}">✕</button></li>`).join("")}</ul>` : ""}
+        ${e.ressources.length ? `<ul class="files">${e.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}${x.pending ? ` <small class="muted">· ira dans OneDrive à l'enregistrement</small>` : x.od ? ` <small class="muted">· OneDrive</small>` : ""}</span><button data-act="rmres" data-i="${i}" aria-label="Retirer ${esc(x.label)}">✕</button></li>`).join("")}</ul>` : ""}
       </section>`}
       ${e.type === "devoir" ? `<section class="edcard"><h3>Grille d'évaluation <span class="muted" style="font-weight:400">(facultatif)</span></h3>
         <p class="muted" style="margin:0;font-size:.85rem">Ajoute des critères notés : la note du devoir sera la somme des critères.</p>
@@ -909,6 +911,14 @@ const accDe = q => String(q.acc || "").split(/[;\n]/).map(x => x.trim()).filter(
 
 async function uploadFichiers(files, cible){
   const classe = cible === "annonce" ? S.annonce.classe : S.ed.classe_id, dest = cible === "annonce" ? S.annonce : S.ed;
+  if (odActif()) {
+    for (const f of files) {
+      if (cible !== "annonce") { dest.ressources.push({ type: extType(f.name), label: f.name, pending: f }); continue; }
+      try { toast("Envoi dans OneDrive : « " + f.name + " »…"); const o = await odEnvoyer([(cls(classe) || {}).nom || classe, "Annonces", ymd(now()), f.name], f); dest.ressources.push(ressourceOD(o, f.name)); toast("« " + f.name + " » rangé dans OneDrive"); }
+      catch (e) { toast("OneDrive : " + (e.message || e) + ". Fichier non ajouté."); }
+    }
+    return render();
+  }
   for (const f of files) {
     if (f.size > 50 * 1024 * 1024) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans OneDrive et ajoute le lien."); continue; }
     toast("Envoi de « " + f.name + " »…");
@@ -958,6 +968,10 @@ async function enregistrer(mode, programme){
   else { row.brouillon = false; if (!e.publie) row.publie_le = now().toISOString(); }
   Object.keys(row).forEach(k => row[k] === undefined && delete row[k]);
   e.busy = true; S.menu = null; render();
+  if (e.ressources.some(x => x.pending)) {
+    try { await envoyerEnAttente(e); } catch (er) { e.busy = false; e.err = "Envoi dans OneDrive impossible : " + (er.message || er) + ". Réessaie, ou désactive OneDrive dans Paramètres › Site."; return render(); }
+    if (row.ressources) row.ressources = e.ressources;
+  }
   const table = e.type === "devoir" || e.type === "question" ? "devoirs" : e.type === "questionnaire" ? "quiz" : "supports";
   const q = e.id ? sb.from(table).update(row).eq("id", e.id).select("id").single() : sb.from(table).insert(row).select("id").single();
   const { data, error } = await q;
@@ -1350,7 +1364,7 @@ const csv = rows => "﻿" + rows.map(r => r.map(v => { v = v == null ? "" : Stri
 
 function initAdm(){
   if (S.adm) return;
-  S.adm = { prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: clone(R().liensUtiles), outils: clone(R().outils), remarques: R().remarques.join("\n"), busy: false, err: "", modif: false };
+  S.adm = { prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: clone(R().liensUtiles), outils: clone(R().outils), remarques: R().remarques.join("\n"), onedrive: R().onedrive, busy: false, err: "", modif: false };
 }
 
 function vAdmin(r){
@@ -1399,6 +1413,12 @@ function admSite(){
       <div><button class="btn ghost sm" data-act="adadd" data-path="liensUtiles" data-tpl="lien">${icon("plus")} Ajouter un lien rapide</button></div>
     </section>
     ${admOutilsSection(A, inp, outilsBtns)}
+    <section class="edcard"><h2>${icon("nuage")} OneDrive</h2>
+      <p class="muted" style="margin:0;font-size:.88rem">Activé, chaque document que tu joins est rangé dans ton OneDrive : <b>${OD_RACINE} › classe › thème › activité</b>, et partagé avec le lycée en lecture. Les élèves l'ouvrent dans Word, Excel ou PowerPoint en ligne. Toi, tu peux le modifier directement. Les travaux rendus par les élèves sont copiés dans <b>… › activité › Travaux rendus</b>.</p>
+      <div class="setrow"><span><b>Connexion à OneDrive</b><small class="muted">${S.odOk ? "Connecté." : "À faire une fois : Microsoft te demande ton accord."}</small></span><button class="btn ghost sm" data-act="odconnect">${icon("nuage")} ${S.odOk ? "Vérifier" : "Connecter OneDrive"}</button></div>
+      <label class="switch"><span><b>Ranger mes documents dans OneDrive</b><small class="muted">Les nouveaux documents joints vont dans OneDrive au lieu du stockage de PhysiquePro.</small></span><input type="checkbox" data-ad="onedrive" ${A.onedrive ? "checked" : ""}><i aria-hidden="true"></i></label>
+      <div class="setrow"><span><b>Documents déjà publiés</b><small class="muted">Copie dans OneDrive les documents importés avant l'activation, puis met à jour les liens.</small></span><button class="btn ghost sm" data-act="odmigrer" ${S.odBusy ? "disabled" : ""}>${S.odBusy ? "Copie en cours… " + (S.odN || 0) : "Ranger dans OneDrive"}</button></div>
+    </section>
     <section class="edcard"><h2>${icon("comment")} Remarques de correction</h2>
       <p class="muted" style="margin:0;font-size:.85rem">Une remarque par ligne. Elles s'insèrent en un clic quand tu notes un travail.</p>
       <textarea data-ad="remarques" rows="7" class="adtext" aria-label="Remarques de correction">${esc(A.remarques)}</textarea></section>
@@ -1414,7 +1434,7 @@ async function admEnregistrer(){
   if (liens.some(l => !l.nom || !/^https?:\/\//.test(l.url))) { A.err = "Chaque lien rapide doit avoir un nom et une adresse qui commence par https://"; return render(); }
   if (outils.some(g => !g.matiere)) { A.err = "Chaque groupe de la boîte à outils doit avoir un nom."; return render(); }
   if (outils.some(g => g.liens.some(x => !x[0] || !/^https?:\/\//.test(x[2])))) { A.err = "Chaque outil doit avoir un nom et une adresse qui commence par https://"; return render(); }
-  const data = { prof: { nom: A.prof.nom.trim(), titre: (A.prof.titre || "").trim() }, liensUtiles: liens, outils, remarques: String(A.remarques || "").split("\n").map(x => x.trim()).filter(Boolean) };
+  const data = { prof: { nom: A.prof.nom.trim(), titre: (A.prof.titre || "").trim() }, liensUtiles: liens, outils, remarques: String(A.remarques || "").split("\n").map(x => x.trim()).filter(Boolean), onedrive: !!A.onedrive };
   A.busy = true; render();
   const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() });
   if (error) { A.busy = false; A.err = /reglages/.test(error.message) ? "La base n'est pas encore à jour (script 07 à exécuter dans Supabase)." : "Enregistrement impossible : " + error.message; return render(); }
@@ -2027,6 +2047,125 @@ async function publierAussi(k, cibles, row, bonnes){
   }
   return ok;
 }
+/* ---------- OneDrive (Microsoft Graph) : documents rangés par classe, thème et activité ---------- */
+const OD_RACINE = "ONEDRIVE SITE PHYSIQUEPRO";
+const MSAL_CFG = { auth: { clientId: "f52213ef-d098-49cc-ac22-944c23bcab61", authority: "https://login.microsoftonline.com/4bd4c77d-938d-4bd2-99ae-3ca7e4de49e6",
+  redirectUri: location.origin + location.pathname.replace(/[^/]*$/, "") + "auth.html" }, cache: { cacheLocation: "localStorage" } };
+let msalApp = null;
+const odActif = () => S.prof && !!(R().onedrive);
+async function msalInit(){
+  if (msalApp) return msalApp;
+  if (!window.msal) throw new Error("la bibliothèque Microsoft n'a pas pu être chargée");
+  msalApp = new window.msal.PublicClientApplication(MSAL_CFG); await msalApp.initialize(); return msalApp;
+}
+async function jetonGraph(interactif){
+  const app = await msalInit(), req = { scopes: ["Files.ReadWrite"], loginHint: moi() };
+  const compte = app.getAllAccounts().find(a => (a.username || "").toLowerCase() === moi());
+  try {
+    if (compte) return (await app.acquireTokenSilent({ ...req, account: compte })).accessToken;
+    return (await app.ssoSilent(req)).accessToken;
+  } catch (e) {
+    if (!interactif) throw e;
+    return (await app.acquireTokenPopup(req)).accessToken;
+  }
+}
+async function graph(chemin, opt = {}, interactif = true){
+  const t = await jetonGraph(interactif);
+  const r = await fetch(chemin.startsWith("http") ? chemin : "https://graph.microsoft.com/v1.0" + chemin, { ...opt, headers: { Authorization: "Bearer " + t, ...(opt.headers || {}) } });
+  if (!r.ok) { let m = r.status + ""; try { const j = await r.json(); m = (j.error && j.error.message) || m; } catch (_) {} throw new Error(m); }
+  return r.status === 204 ? null : r.json();
+}
+const nomOD = s => String(s || "").replace(/[\\/:*?"<>|#%]+/g, " ").replace(/\s+/g, " ").trim().replace(/^\.+|\.+$/g, "").slice(0, 120) || "Sans titre";
+const cheminOD = parts => parts.map(nomOD).map(encodeURIComponent).join("/");
+/* envoie un fichier dans le OneDrive du prof et renvoie {id, web, partage} */
+async function odEnvoyer(parts, fichier){
+  const ch = cheminOD([OD_RACINE, ...parts]);
+  let item;
+  if (fichier.size <= 4 * 1024 * 1024) item = await graph("/me/drive/root:/" + ch + ":/content?@microsoft.graph.conflictBehavior=rename", { method: "PUT", body: fichier });
+  else {
+    const ses = await graph("/me/drive/root:/" + ch + ":/createUploadSession", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) });
+    const pas = 320 * 1024 * 16;
+    for (let deb = 0; deb < fichier.size; deb += pas) {
+      const fin = Math.min(deb + pas, fichier.size), r = await fetch(ses.uploadUrl, { method: "PUT", headers: { "Content-Range": `bytes ${deb}-${fin - 1}/${fichier.size}` }, body: fichier.slice(deb, fin) });
+      if (!r.ok && r.status !== 202) throw new Error("envoi interrompu (" + r.status + ")");
+      if (fin === fichier.size) item = await r.json();
+    }
+  }
+  const lien = await graph("/me/drive/items/" + item.id + "/createLink", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "view", scope: "organization" }) });
+  return { id: item.id, web: item.webUrl, partage: lien.link.webUrl, nom: item.name };
+}
+const ressourceOD = (r, label) => ({ type: extType(r.nom), label: label || r.nom, url: r.partage, od: { id: r.id, web: r.web } });
+/* dossier d'un travail : classe / thème / titre */
+function dossierTravail(classeId, themeId, titre){
+  const c = cls(classeId), data = S.cache[classeId] || { themes: [] }, th = data.themes.find(t => String(t.id) === String(themeId));
+  return [c ? c.nom : classeId, th ? th.titre : "Sans thème", titre || "Sans titre"];
+}
+
+/* connexion OneDrive (consentement une seule fois) */
+async function connecterOneDrive(){
+  try {
+    await jetonGraph(true);
+    const me = await graph("/me/drive/root:/" + encodeURIComponent(OD_RACINE));
+    S.odOk = true; toast("OneDrive connecté : dossier « " + me.name + " » trouvé"); return true;
+  } catch (e) {
+    S.odOk = false;
+    toast(/AADSTS65001|consent|admin/i.test(e.message || "") ? "Microsoft demande l'accord d'un administrateur du lycée pour OneDrive." : "Connexion OneDrive impossible : " + (e.message || e));
+    return false;
+  }
+}
+
+/* envoi des fichiers en attente de l'éditeur, au moment d'enregistrer */
+async function envoyerEnAttente(e){
+  const att = e.ressources.filter(x => x.pending); if (!att.length) return;
+  const parts = dossierTravail(e.classe_id, e.theme_id, e.titre.trim());
+  for (const x of att) {
+    toast("Envoi dans OneDrive : « " + x.label + " »…");
+    const r = await odEnvoyer([...parts, x.pending.name], x.pending);
+    const i = e.ressources.indexOf(x); e.ressources[i] = ressourceOD(r, x.label);
+  }
+}
+
+/* copie des travaux rendus dans le OneDrive du prof : …/Titre/Travaux rendus/Élève - fichier */
+async function syncRendus(d, silencieux){
+  if (!odActif()) return 0;
+  const rendus = rendusDe(d).filter(r => (r.fichiers || []).length); if (!rendus.length) return 0;
+  const parts = [...dossierTravail(d.classe_id, d.theme_id, d.titre), "Travaux rendus"];
+  let deja = new Set();
+  try { const l = await graph("/me/drive/root:/" + cheminOD([OD_RACINE, ...parts]) + ":/children?$select=name&$top=999", {}, !silencieux); (l.value || []).forEach(x => deja.add(x.name)); } catch (_) {}
+  let n = 0;
+  for (const r of rendus) for (const f of r.fichiers) {
+    const nom = nomOD(nomDe(d.classe_id, r.auteur_email) + " - " + f.nom);
+    if (deja.has(nom)) continue;
+    const { data } = await sb.storage.from("rendus").createSignedUrl(f.chemin, 600); if (!data) continue;
+    const blob = await (await fetch(data.signedUrl)).blob();
+    await odEnvoyer([...parts, nom], blob); n++;
+  }
+  return n;
+}
+
+/* rangement des documents déjà présents dans PhysiquePro vers OneDrive */
+async function migrerVersOneDrive(maj){
+  await chargerFichiers(true);
+  const sups = (S.fich && S.fich.supports) || [], ann = (S.fich && S.fich.annonces) || [];
+  const lots = [
+    ...S.devoirs.map(d => ({ table: "devoirs", o: d, parts: dossierTravail(d.classe_id, d.theme_id, d.titre) })),
+    ...sups.map(s => ({ table: "supports", o: s, parts: dossierTravail(s.classe_id, s.theme_id, s.titre) })),
+    ...ann.map(a => ({ table: "annonces", o: a, parts: [(cls(a.classe_id) || {}).nom || a.classe_id, "Annonces"] }))
+  ].filter(x => (x.o.ressources || []).some(r => r.path));
+  let n = 0, err = 0;
+  for (const lot of lots) {
+    for (const c of S.classes) if (!S.cache[c.id]) await chargerClasse(c.id);
+    const res = [];
+    for (const r of lot.o.ressources) {
+      if (!r.path) { res.push(r); continue; }
+      try { const { data } = await sb.storage.from("documents").createSignedUrl(r.path, 600); const blob = await (await fetch(data.signedUrl)).blob();
+        const nom = r.label || r.path.split("/").pop().replace(/^\d+-/, ""); const o = await odEnvoyer([...lot.parts, nom], blob); res.push(ressourceOD(o, r.label)); n++; maj(n); }
+      catch (e) { res.push(r); err++; }
+    }
+    await sb.from(lot.table).update({ ressources: res }).eq("id", lot.o.id);
+  }
+  return { n, err };
+}
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -2062,6 +2201,7 @@ async function render(){
       if (d) { if (!S.cache[d.classe_id]) app.innerHTML = chargement(r); await chargerClasse(d.classe_id); const em = S.prof ? S.sel : moi(); if (em) await chargerCP(d.id, em); }
       if (id !== renderId) return;
       content = vDevoir(r);
+      if (d && S.prof && odActif() && !(S.syncFait || {})[d.id + ":" + rendusDe(d).length]) { (S.syncFait = S.syncFait || {})[d.id + ":" + rendusDe(d).length] = 1; syncRendus(d, true).then(n => { if (n) toast(n + " travail" + (n > 1 ? "x copiés" : " copié") + " dans OneDrive"); }).catch(() => {}); }
     } else if (r.v === "quiz") {
       const q = S.quiz.find(x => String(x.id) === r.a);
       if (q && S.prof) { await chargerClasse(q.classe_id); await chargerResultatsQuiz(q); }
@@ -2290,6 +2430,13 @@ document.addEventListener("click", async e => {
     case "ptab": S.ptab = a.dataset.t; render(); return;
     case "sel": S.sel = a.dataset.n || null; S.compose = false; render(); return;
     case "symb": S.symb = !S.symb; render(); return;
+    case "odconnect": await connecterOneDrive(); render(); return;
+    case "odmigrer": { if (!S.odOk && !(await connecterOneDrive())) { render(); return; } S.odBusy = true; S.odN = 0; render();
+      try { const r2 = await migrerVersOneDrive(n => { S.odN = n; const b = document.querySelector('[data-act="odmigrer"]'); if (b) b.textContent = "Copie en cours… " + n; }); toast(r2.n + " document" + (r2.n > 1 ? "s rangés" : " rangé") + " dans OneDrive" + (r2.err ? " · " + r2.err + " erreur(s)" : "")); }
+      catch (er) { toast("Rangement impossible : " + (er.message || er)); }
+      S.odBusy = false; S.cache = {}; await rafraichir(); render(); return; }
+    case "odrendus": { const d = S.devoirs.find(x => String(x.id) === a.dataset.d); a.disabled = true; toast("Copie des travaux dans OneDrive…");
+      try { const n = await syncRendus(d, false); toast(n ? n + " fichier" + (n > 1 ? "s copiés" : " copié") + " dans OneDrive" : "Tout est déjà dans OneDrive"); } catch (er) { toast("OneDrive : " + (er.message || er)); } a.disabled = false; return; }
     case "voir": e.preventDefault(); S.viewer = { did: Number(a.dataset.d), email: a.dataset.e, fi: Number(a.dataset.i) || 0 }; render(); return;
     case "vclose": S.viewer = null; render(); return;
     case "vgo": if (a.dataset.e) { S.viewer.email = a.dataset.e; S.viewer.fi = 0; S.sel = a.dataset.e; render(); } return;
