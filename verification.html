@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhysiquePro · Vérification</title>
+<style>
+  :root{--bg:#F1F6F8;--surface:#fff;--ink:#0B1F28;--muted:#536973;--line:#D2E0E5;--accent:#116482;--ok:#1D7F4C;--ok-bg:#E3F3EA;--bad:#C0392B;--bad-bg:#FBE4E1}
+  @media (prefers-color-scheme: dark){:root{--bg:#09161C;--surface:#0F2028;--ink:#E3EEF2;--muted:#8FA8B2;--line:#213B46;--accent:#4FB3D4;--ok:#5BCB8C;--ok-bg:#12301F;--bad:#F07A6C;--bad-bg:#3A1714;color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px 16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px;max-width:560px;width:100%;display:grid;gap:16px}
+  h1{margin:0;font-size:1.35rem}
+  p{margin:0}
+  .muted{color:var(--muted)}
+  .btn{background:var(--accent);color:#fff;border:0;border-radius:22px;padding:11px 20px;font:inherit;font-weight:600;cursor:pointer}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+  ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:var(--bg)}
+  li.ok b{color:var(--ok)} li.bad b{color:var(--bad)}
+  .box{border-radius:10px;padding:14px 16px;display:grid;gap:6px;background:var(--bad-bg);color:var(--bad)}
+  code{font-size:.8rem;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>PhysiquePro · vérification de l'installation</h1>
+  <p class="muted">Cette page vérifie que la connexion Microsoft, la base de données et les règles de sécurité fonctionnent ensemble.</p>
+  <div id="out"><p class="muted">Chargement…</p></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+(async function(){
+  const SUPABASE_URL = "https://zycuykixcjgmdbeoflsb.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_o2Km-g2VoDde3e2aYKKKgA_i2EmGdoD";
+  const out = document.getElementById("out");
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const ici = location.origin + location.pathname;
+
+  if (!window.supabase) { out.innerHTML = `<div class="box"><b>La bibliothèque Supabase n'a pas pu être chargée.</b><span>Vérifie ta connexion Internet puis recharge la page.</span></div>`; return; }
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true } });
+
+  // Erreur renvoyée par Microsoft ou Supabase après la redirection
+  const params = new URLSearchParams(location.search + "&" + location.hash.slice(1));
+  const errDesc = params.get("error_description");
+
+  function bouton(prefixe){
+    out.innerHTML = (prefixe || "") + `<div style="display:grid;gap:10px;margin-top:${prefixe ? "16px" : "0"}">
+      <button class="btn" id="go">Se connecter avec mon compte du lycée</button>
+      <p class="muted" style="font-size:.85rem">Tu passeras par la page Microsoft habituelle, puis tu reviendras ici.</p></div>`;
+    document.getElementById("go").onclick = async () => {
+      const { error } = await sb.auth.signInWithOAuth({ provider: "azure",
+        options: { scopes: "email", redirectTo: ici, queryParams: { prompt: "select_account" } } });
+      if (error) bouton(erreur(error.message));
+    };
+  }
+  const erreur = msg => {
+    let expl = "Erreur inattendue.";
+    if (/Database error saving new user|non autoris/i.test(msg)) expl = "Cette adresse n'est pas autorisée : seules les adresses @lycee-verdun.edu.lb peuvent se connecter.";
+    else if (/email/i.test(msg)) expl = "Microsoft n'a pas transmis l'adresse e-mail. Vérifie la revendication « email » dans Entra (Configuration du jeton).";
+    else if (/provider is not enabled|Unsupported provider/i.test(msg)) expl = "La connexion Azure n'est pas activée dans Supabase.";
+    else if (/redirect/i.test(msg)) expl = "L'adresse de retour n'est pas autorisée. Vérifie « URL Configuration » dans Supabase et la plateforme Web dans Entra.";
+    return `<div class="box"><b>Connexion impossible</b><span>${esc(expl)}</span><code>${esc(msg)}</code><span style="color:var(--ink)">Fais une capture d'écran et envoie-la à Claude.</span></div>`;
+  };
+
+  if (errDesc) { history.replaceState(null, "", ici); bouton(erreur(errDesc)); return; }
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { bouton(); return; }
+  if (location.search || location.hash) history.replaceState(null, "", ici);
+
+  const user = session.user;
+  const lignes = [`<li class="ok"><b>✓</b><span>Connexion Microsoft réussie : <b style="color:var(--ink)">${esc(user.email)}</b></span></li>`];
+
+  const { data: profil, error: e1 } = await sb.from("profiles").select("nom, email, role").eq("id", user.id).maybeSingle();
+  if (e1 || !profil) lignes.push(`<li class="bad"><b>✗</b><span>Profil introuvable dans la base.<br><code>${esc(e1 ? e1.message : "aucune ligne")}</code></span></li>`);
+  else lignes.push(`<li class="ok"><b>✓</b><span>Profil créé : ${esc(profil.nom)} · rôle <b style="color:var(--ink)">${profil.role === "prof" ? "professeur" : "élève"}</b></span></li>`);
+
+  const { data: classes, error: e2 } = await sb.from("classes").select("nom").order("ordre");
+  if (e2) lignes.push(`<li class="bad"><b>✗</b><span>Lecture des classes impossible.<br><code>${esc(e2.message)}</code></span></li>`);
+  else if (!classes.length) lignes.push(`<li class="ok"><b>✓</b><span>Aucune classe visible : c'est normal pour un élève qui n'est encore inscrit dans aucune liste.</span></li>`);
+  else lignes.push(`<li class="ok"><b>✓</b><span>${classes.length} classe${classes.length > 1 ? "s" : ""} visible${classes.length > 1 ? "s" : ""} : ${classes.map(c => esc(c.nom)).join(", ")}</span></li>`);
+
+  const { count, error: e3 } = await sb.from("quiz_solutions").select("*", { count: "exact", head: true });
+  if (profil && profil.role !== "prof") lignes.push(e3 || !count ? `<li class="ok"><b>✓</b><span>Les réponses des quiz sont bien cachées aux élèves.</span></li>` : `<li class="bad"><b>✗</b><span>Un élève peut lire les réponses des quiz.</span></li>`);
+
+  const toutOk = !lignes.some(l => l.includes('class="bad"'));
+  out.innerHTML = `<ul>${lignes.join("")}</ul>
+    <p style="margin-top:14px;font-weight:600;color:var(--${toutOk ? "ok" : "bad"})">${toutOk ? "Tout fonctionne. PhysiquePro est prêt à être construit." : "Un point bloque : envoie une capture d'écran à Claude."}</p>
+    <div style="margin-top:14px"><button class="btn ghost" id="out-btn">Se déconnecter</button></div>`;
+  document.getElementById("out-btn").onclick = async () => { await sb.auth.signOut(); location.replace(ici); };
+})();
+</script>
+</body>
+</html>
