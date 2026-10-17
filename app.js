@@ -323,7 +323,7 @@ function teamsVisible(c){ return c.teams_url && (S.prof || c.teams_visible); }
 
 function classTabs(c, tab){
   const T = []; if (fluxVisible(c)) T.push(["flux", "Flux"]);
-  T.push(["travaux", "Travaux et devoirs"], ["personnes", "Personnes"]); if (S.prof) T.push(["notes", "Notes"]);
+  T.push(["travaux", "Travaux et devoirs"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "Mes notes"]);
   return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}</div>
     <div class="tabicons">
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
@@ -523,12 +523,27 @@ function vNotes(c, data){
     <p class="muted" style="margin:0;font-size:.85rem">Saisis une note directement dans une case : elle reste en <b>brouillon</b> (invisible pour l'élève) jusqu'à ce que tu cliques sur ⋮ → <b>Rendre toutes les notes</b> en haut de la colonne, ou sur « Rendre » dans le devoir.</p>${pageFoot()}</div>`;
 }
 
+/* ---------- Mes notes (élève) ---------- */
+function vMesNotes(c){
+  const lignes = [
+    ...S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon).map(d => { const e = etat(d, moi()); return { date: D(d.publie_le), titre: d.titre, href: "#/devoir/" + d.id, ic: d.type === "question" ? "question" : "devoir",
+      statut: e.t === "Rendu" && d.type === "question" ? "Envoyée" : e.t, k: e.k, note: e.t === "Noté" && e.note != null && d.points != null ? fmtNote(e.note) + "/" + d.points : d.points == null ? "Non noté" : "—", com: e.t === "Noté" && e.c ? e.c.commentaire : "", due: d.date_limite ? dueOf(d).replace("Échéance : ", "") : "" }; }),
+    ...S.quiz.filter(q => q.classe_id === c.id && !q.brouillon && q.mode === "note").map(q => { const r = resultatDe(q, S.user.id), ferme = q.date_limite && D(q.date_limite) <= now();
+      return { date: D(q.publie_le), titre: q.titre, href: "#/quiz/" + q.id, ic: "quiz", statut: r ? "Noté" : ferme ? "Manquant" : "Attribué", k: r ? "ok" : ferme ? "bad" : "", note: r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : "—", com: "", due: q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : "" }; })
+  ].sort((a, b) => b.date - a.date);
+  const moy = c.moyenne_visible ? moyenneEleve(c) : null;
+  return `<div class="page" style="max-width:860px;--c:var(${C(c.couleur).c})">
+    <div class="mesnotes-head"><div class="who2">${avatarP(S.nom, "lg")}<div><b style="font-size:1.2rem">${esc(S.nom)}</b><small class="muted" style="display:block">${esc(moi())}</small></div></div>
+      ${c.moyenne_visible ? `<div class="grade">${moy == null ? "–" : fmtNote(moy)}<small>/20</small></div>` : ""}</div>
+    ${lignes.length ? `<section class="group">${lignes.map(l => `<div class="work"><a class="workrow" href="${l.href}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(l.ic, "")}</span><span class="tt">${esc(l.titre)}<br><small class="muted" style="font-weight:400">${l.due ? esc(l.due) + " · " : ""}<span class="pill ${l.k}">${esc(l.statut)}</span></small>${l.com ? `<small class="muted" style="display:block;font-weight:400">${icon("comment")} ${esc(l.com)}</small>` : ""}</span><span class="dt mono">${esc(l.note)}</span></a></div>`).join("")}</section>`
+      : `<div class="emptystate"><b>Aucun travail pour l'instant.</b><span>Tes devoirs, questions et questionnaires notés apparaîtront ici avec tes notes.</span></div>`}
+    ${pageFoot()}</div>`;
+}
 function vClasse(r, data){
   const c = cls(r.a); if (!c) return `<div class="page"><div class="emptystate"><b>Cours introuvable.</b><a href="#/">Retour à l'accueil</a></div></div>`;
   let tab = ["flux", "travaux", "personnes", "notes"].includes(r.t) ? r.t : (fluxVisible(c) ? "flux" : "travaux");
   if (tab === "flux" && !fluxVisible(c)) tab = "travaux";
-  if (tab === "notes" && !S.prof) tab = "travaux";
-  const inner = tab === "flux" ? vFlux(c, data) : tab === "personnes" ? vPersonnes(c, data) : tab === "notes" ? vNotes(c, data) : vTravaux(c, data);
+  const inner = tab === "flux" ? vFlux(c, data) : tab === "personnes" ? vPersonnes(c, data) : tab === "notes" ? (S.prof ? vNotes(c, data) : vMesNotes(c)) : vTravaux(c, data);
   return classTabs(c, tab) + inner;
 }
 /* ---------- commentaires privés ---------- */
@@ -559,7 +574,7 @@ function vDevoir(r){
     work = `<ul class="files">${(rd.fichiers || []).map(f => `<li><a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}">${icon("file")} ${esc(f.nom)}</a></li>`).join("")}${rd.lien ? `<li><a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} ${esc(rd.lien)}</a></li>` : ""}</ul>
       ${rd.binome_email ? `<p style="margin:0;font-size:.85rem">Rendu en binôme avec <b>${esc(nomDe(c.id, rd.auteur_email === moi() ? rd.binome_email : rd.auteur_email))}</b></p>` : ""}
       <p class="muted" style="margin:0;font-size:.8rem">Rendu le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
-      ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}
+      ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e)}
       ${e.t !== "Noté" && open && rd.auteur === S.user.id ? `<button class="btn ghost" data-act="unsubmit" data-id="${rd.id}">Annuler l'envoi</button>` : ""}`;
   } else if (!open) {
     work = `<p style="margin:0" class="muted">La date limite est passée : le dépôt est fermé. Écris un commentaire privé à ton professeur si besoin.</p>`;
@@ -591,7 +606,7 @@ function vDevoir(r){
 function travailQuestion(d, c, e, rd, open, Q){
   if (rd) return `<div class="reponse">${linkify(rd.reponse || "")}</div>
     <p class="muted" style="margin:0;font-size:.8rem">Envoyée le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
-    ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}
+    ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e)}
     ${e.t !== "Noté" && open && Q.modifier !== false ? `<button class="btn ghost" data-act="unsubmit" data-id="${rd.id}">Modifier ma réponse</button>` : ""}`;
   if (!open) return `<p style="margin:0" class="muted">La date limite est passée : tu ne peux plus répondre.</p>`;
   const champ = Q.format === "choix" ? `<div class="qopts" style="padding:0">${(Q.options || []).map(o => `<label class="opt"><input type="radio" name="repQ" data-act="repchoix" value="${esc(o)}" ${S.reponse === o ? "checked" : ""}> ${esc(o)}</label>`).join("")}</div>`
@@ -612,6 +627,7 @@ function syntheseQuestion(d, el){
   if (Q.format === "choix") return `<div class="synth">${(Q.options || []).map(o => { const n = rs.filter(r => r.reponse === o).length, p = Math.round(n / rs.length * 100); return `<div class="sbar"><span>${esc(o)}</span><span class="jauge"><i style="width:${p}%"></i></span><b>${n}</b></div>`; }).join("")}</div>`;
   return `<div class="synth">${rs.map(r => `<div class="com"><b style="min-width:120px">${esc(nomDe(d.classe_id, r.auteur_email))}</b><span>${linkify(r.reponse || "")}</span></div>`).join("")}</div>`;
 }
+const retourProf = e => e.t === "Noté" && e.c && e.c.commentaire ? `<div class="retour"><b>${icon("comment")} Commentaire de ${esc(R().prof.nom)}</b><div>${linkify(e.c.commentaire)}</div></div>` : "";
 const tailleTxt = b => b > 1e6 ? (b / 1e6).toFixed(1).replace(".", ",") + " Mo" : Math.max(1, Math.round(b / 1e3)) + " Ko";
 const safeName = n => n.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_").slice(-80);
 const nomDe = (cid, email) => ((inscritsDe(cid).find(x => x.email === email) || {}).nom) || nomDepuisEmail(email);
@@ -673,6 +689,7 @@ function vDevoirProf(d, c){
       ${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
         ${isQ ? `<div class="reponse">${linkify(rd.reponse || "")}</div>` : `<div class="att">${(rd.fichiers || []).map(f => `<a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}"><span class="k">${esc((f.nom.split(".").pop() || "").slice(0, 5))}</span>${esc(f.nom)}</a>`).join("")}${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener"><span class="k">lien</span>${esc(rd.lien.replace(/^https?:\/\//, "").slice(0, 40))}</a>` : ""}${!(rd.fichiers || []).length && !rd.lien ? `<span class="muted">Marqué comme terminé, sans fichier joint.</span>` : ""}</div>`}
         ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="number" min="0" max="${d.points}" step="0.25" inputmode="decimal" value="${cr && cr.note != null ? cr.note : ""}"><span class="muted">/${d.points}</span></div>` : ""}
+        <div class="field"><label for="noteCom">Commentaire pour l'élève <span class="muted">(visible quand tu rends le travail)</span></label><textarea id="noteCom" rows="2" placeholder="ex. Bon raisonnement, attention aux unités.">${esc(cr && cr.commentaire || "")}</textarea></div>
         <div id="noteErr" class="err" hidden></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null ? `<button class="btn ghost" data-act="savenote" data-id="${rd.id}" data-pub="0">Enregistrer le brouillon</button>` : ""}<button class="btn" data-act="savenote" data-id="${rd.id}" data-pub="1">${cr && cr.publiee ? "Mettre à jour" : "Rendre"}</button></div>
         <p class="muted" style="margin:0;font-size:.8rem">${rd.binome_email ? "La note s'affiche pour les deux élèves du binôme." : "Seul l'élève voit sa note, une fois rendue."}</p>`
@@ -1983,7 +2000,8 @@ document.addEventListener("click", async e => {
     case "savenote": { const v = (document.getElementById("note") || {}).value, d = S.devoirs.find(x => x.id === (S.rendus.find(y => String(y.id) === a.dataset.id) || {}).devoir_id);
       const n = v === "" || v == null ? null : Number(String(v).replace(",", ".")), pub = a.dataset.pub === "1";
       if (n != null && (isNaN(n) || n < 0 || (d && d.points != null && n > d.points))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "La note doit être comprise entre 0 et " + d.points + "."; return; }
-      const { error } = await sb.from("corrections").upsert({ rendu_id: Number(a.dataset.id), note: n, publiee: pub, modifie_le: now().toISOString() });
+      const com = ((document.getElementById("noteCom") || {}).value || "").trim();
+      const { error } = await sb.from("corrections").upsert({ rendu_id: Number(a.dataset.id), note: n, commentaire: com, publiee: pub, modifie_le: now().toISOString() });
       if (error) { toast("Enregistrement impossible : " + error.message); return; }
       await rafraichir(); render(); toast(pub ? "Travail rendu à l'élève" : "Brouillon enregistré"); return; }
     case "rendretout": { e.preventDefault(); S.menu = null; const d = S.devoirs.find(x => String(x.id) === a.dataset.d);

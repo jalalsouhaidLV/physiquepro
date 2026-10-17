@@ -587,3 +587,9 @@ section.theme.compact>*:not(.themehead){display:none}
 .belllist a{justify-content:flex-start!important;text-align:left}
 .belllist a>span:last-child{flex:1;min-width:0}
 .crsw>span.who2{display:flex;align-items:center;gap:12px}
+.retour{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:6px;padding:8px 12px;display:grid;gap:4px;font-size:.9rem}
+.retour b{display:flex;align-items:center;gap:6px;font-weight:600}
+.retour svg.i{width:16px;height:16px}
+.mesnotes-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 20px}
+.mesnotes-head .grade{font-size:2rem}
+.work small svg.i{width:14px;height:14px;vertical-align:-2px}
