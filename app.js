@@ -224,7 +224,7 @@ function workItem(it){
   } else if (it.k === "devoir") {
     const d = it.d;
     right = S.prof ? `<span class="dt">${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : dueOf(d).replace("Échéance : ", "")}</span>`;
-    detail = `<div class="row muted">Publié le ${fmtShort(it.date)} · ${d.mode === "binome" ? "un rendu par binôme" : "individuel"} · ${pts(d)}</div>${d.consigne ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}
+    detail = `<div class="row muted">Publié le ${fmtShort(it.date)} · ${d.mode === "binome" ? "un rendu par binôme" : "individuel"} · ${pts(d)}</div>${d.consigne ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources)}
       <div class="row">${S.prof ? "" : `<span class="pill ${etat(d, moi()).k}">${etat(d, moi()).t}</span>`}<span style="flex:1"></span><a class="btn ghost sm" href="#/devoir/${d.id}" style="text-decoration:none">${S.prof ? "Voir les travaux" : "Afficher le devoir"}</a></div>`;
   } else {
     const q = it.q;
