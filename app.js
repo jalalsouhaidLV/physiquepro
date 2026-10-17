@@ -26,6 +26,8 @@ const dueTxt = d => {
   return "Échéance : " + fmtD(d) + ", " + fmtT(d);
 };
 const ouvert = d => !d.date_limite || D(d.date_limite) > now();
+const depotOuvert = d => ouvert(d) || !!d.retard_ok;
+const enRetard = (d, r) => !!(r && d.date_limite && D(r.rendu_le) > D(d.date_limite));
 const dueOf = d => d.date_limite ? dueTxt(D(d.date_limite)) : "Aucune date limite";
 const pts = d => d.points == null ? "Non noté" : d.points + " points";
 const pad = n => String(n).padStart(2, "0");
@@ -86,7 +88,7 @@ function rich(html){
   if (!html) return "";
   if (!/[<>]/.test(html) || typeof DOMParser === "undefined") return esc(html).replace(/\n/g, "<br>");
   const root = new DOMParser().parseFromString("<div>" + html + "</div>", "text/html").body.firstChild;
-  const ok = new Set(["B","STRONG","I","EM","U","UL","OL","LI","BR","P","DIV"]);
+  const ok = new Set(["B","STRONG","I","EM","U","UL","OL","LI","BR","P","DIV","SUP","SUB"]);
   [...root.querySelectorAll("*")].reverse().forEach(el => {
     if (["SCRIPT","STYLE","IFRAME","OBJECT"].includes(el.tagName)) el.remove();
     else if (!ok.has(el.tagName)) el.replaceWith(...el.childNodes);
@@ -94,6 +96,10 @@ function rich(html){
   });
   return root.innerHTML;
 }
+/* notation scientifique dans le texte simple : 10^-3, x^{2n}, H_2O, CO_{2} */
+const sci = t => esc(t).replace(/\^\{([^}]{1,12})\}/g, "<sup>$1</sup>").replace(/\^(-?[\w.]{1,6})/g, "<sup>$1</sup>").replace(/_\{([^}]{1,12})\}/g, "<sub>$1</sub>").replace(/([A-Za-z\)])_([0-9]{1,3}|[a-z]{1,3})/g, "$1<sub>$2</sub>");
+const SYMBOLES = ["Δ","√","×","·","÷","±","≈","≠","≤","≥","→","⇌","⟶","°","µ","λ","Ω","π","θ","α","β","γ","ε","ρ","σ","τ","φ","ω","∞","∑","∫","²","³","⁻¹","⁻","⁺","₀","₁","₂","₃","₄","‰","℃","Å"];
+const paletteSymb = () => `<div class="symbs" role="toolbar" aria-label="Symboles scientifiques">${SYMBOLES.map(x => `<button class="sym" data-act="ins" data-s="${x}" data-keepfocus="1" title="Insérer ${x}">${x}</button>`).join("")}<span class="muted" style="font-size:.78rem;padding:0 6px">Astuce : dans les questions, écris 10^-3 ou H_2O</span></div>`;
 const linkify = t => esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
 
 /* ---------- Supabase ---------- */
@@ -110,10 +116,12 @@ function appliquerReglages(d){
   S.R = {
     prof: { nom: (d.prof && d.prof.nom) || CFG.prof.nom, titre: (d.prof && d.prof.titre != null) ? d.prof.titre : CFG.prof.titre, email: CFG.prof.email },
     liensUtiles: Array.isArray(d.liensUtiles) ? d.liensUtiles : CFG.liensUtiles,
-    outils: Array.isArray(d.outils) ? d.outils : CFG.outils
+    outils: Array.isArray(d.outils) ? d.outils : CFG.outils,
+    remarques: Array.isArray(d.remarques) ? d.remarques : ["Très bon travail.", "Attention aux unités.", "Chiffres significatifs à revoir.", "Justifie davantage ton raisonnement.", "Schéma incomplet ou non légendé.", "Relis la consigne.", "Bon raisonnement, mais erreur de calcul."]
   };
 }
 const R = () => S.R;
+const reglagesData = () => ({ prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: R().liensUtiles, outils: R().outils, remarques: R().remarques });
 
 /* ---------- état ---------- */
 const S = {
@@ -180,8 +188,8 @@ const elevesDuDevoir = (d, liste) => d.eleves ? liste.filter(e => d.eleves.inclu
 const inscritsDe = cid => (S.cache[cid] && S.cache[cid].eleves) || (S.toutesInscriptions || []).filter(x => x.classe_id === cid);
 function etat(d, email){
   const r = renduDe(d, email), c = correctionDe(r);
-  if (r && c && c.publiee) return {t:"Noté", k:"ok", note:c.note, r, c};
-  if (r) return {t:"Rendu", k:"info", r, c};
+  if (r && c && c.publiee) return {t:"Noté", k:"ok", note:c.note, r, c, retard:enRetard(d, r)};
+  if (r) return {t:"Rendu", k:"info", r, c, retard:enRetard(d, r)};
   return !ouvert(d) ? {t:"Manquant", k:"bad"} : {t:"Attribué", k:""};
 }
 const resultatDe = (q, uid) => S.resultats.find(x => x.quiz_id === q.id && x.eleve === uid);
@@ -240,6 +248,7 @@ function drawer(r){
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
     <a class="it" href="#/todo" ${cur("todo")}>${icon(S.prof ? "check" : "todo")}<span class="lbl">${S.prof ? "À corriger" : "À faire"}</span></a>
+    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a>` : ""}
     ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
     <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
@@ -327,7 +336,7 @@ function classTabs(c, tab){
   return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}</div>
     <div class="tabicons">
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
-      <a class="ib" href="#/agenda" title="Agenda" aria-label="Agenda">${icon("cal")}</a>
+      <a class="ib" href="#/agenda/${esc(c.id)}" title="Agenda du cours" aria-label="Agenda du cours">${icon("cal")}</a>
       ${c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive du cours">${icon("folder")}</a>` : ""}
       ${S.prof ? `<a class="ib" href="#/classe/${esc(c.id)}/parametres" title="Paramètres du cours" aria-label="Paramètres du cours">${icon("gear")}</a>` : ""}
     </div></div>`;
@@ -393,6 +402,7 @@ function vFlux(c, data){
       <div class="rte"><div id="anHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" data-ph="Annoncez quelque chose à la classe">${rich(A.html)}</div>
       <div class="rtebar">${fmtBar()}</div></div></div>
       ${A.ressources.length ? `<ul class="files">${A.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}</span><button data-act="anrm" data-i="${i}" aria-label="Retirer">✕</button></li>`).join("")}</ul>` : ""}
+      ${S.prof && !A.id && actives().length > 1 ? `<details class="aussi"><summary>Publier aussi dans d'autres cours${(A.aussi || []).length ? " (" + A.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== c.id).map(x => `<label class="check"><input type="checkbox" class="anAussi" value="${esc(x.id)}" ${(A.aussi || []).includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}</details>` : ""}
       ${A.linkMode ? `<div class="linkform"><div class="field"><label for="anLinkUrl">Lien</label><input id="anLinkUrl" type="url" placeholder="https://…"></div><div class="field"><label for="anLinkLabel">Nom affiché <span class="muted">(facultatif)</span></label><input id="anLinkLabel"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="anlinkcancel">Annuler</button><button class="btn sm" data-act="anlinkadd">Ajouter</button></div></div>` : ""}
       <div class="composerfoot"><div style="display:flex;gap:4px">
         <button class="ib" data-act="anlink" title="Ajouter un lien OneDrive, YouTube ou site" aria-label="Ajouter un lien">${icon("links")}</button>
@@ -424,7 +434,8 @@ function vAnnonce(c, a, data){
       ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="cm-${a.id}" placeholder="Ajouter un commentaire pour le cours…" aria-label="Commentaire pour le cours"><button class="ib" data-act="comment" data-id="${a.id}" data-c="${esc(c.id)}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
     </div></section>`;
 }
-const fmtBar = () => [["bold","<b>G</b>","Gras"],["italic","<i>I</i>","Italique"],["underline","<u>S</u>","Souligné"],["insertUnorderedList","•≡","Liste à puces"],["removeFormat","✕","Effacer la mise en forme"]].map(([cmd, l, t]) => `<button class="ib sm" data-act="fmt" data-cmd="${cmd}" title="${t}" aria-label="${t}">${l}</button>`).join("");
+const fmtBar = () => [["bold","<b>G</b>","Gras"],["italic","<i>I</i>","Italique"],["underline","<u>S</u>","Souligné"],["superscript","x²","Exposant"],["subscript","x₂","Indice"],["insertUnorderedList","•≡","Liste à puces"],["removeFormat","✕","Effacer la mise en forme"]].map(([cmd, l, t]) => `<button class="ib sm" data-act="fmt" data-cmd="${cmd}" data-keepfocus="1" title="${t}" aria-label="${t}">${l}</button>`).join("")
+  + `<button class="ib sm" data-act="symb" data-keepfocus="1" title="Symboles scientifiques" aria-label="Symboles scientifiques" aria-pressed="${!!S.symb}">Ω</button>` + (S.symb && !S.ed ? paletteSymb() : "");
 
 /* ---------- Travaux et devoirs ---------- */
 function itemsDuTheme(c, data, themeId){
@@ -457,6 +468,7 @@ function workItem(it){
   const menu = S.prof ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="i${it.id}" aria-label="Options">${icon("more")}</button>${S.menu === "i" + it.id ? `<div class="dd-menu">
       <a href="#/editer/${typ}/${rid}">${icon("edit")} Modifier</a>
       ${draft || prog ? `<a href="#" data-act="publier" data-k="${it.k}" data-id="${rid}">${icon("check")} Publier maintenant</a>` : ""}
+      <a href="#" data-act="dupliquer" data-k="${it.k}" data-id="${rid}">${icon("copy")} Dupliquer</a>
       <a href="#" data-act="reutiliser" data-k="${it.k}" data-id="${rid}">${icon("reuse")} Réutiliser dans un autre cours</a>
       <a href="#" data-act="suppr" data-k="${it.k}" data-id="${rid}" data-titre="${esc(it.titre)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : "";
   return `<div class="work${draft ? " isdraft" : ""}"${S.prof ? ` data-wk="${it.k}:${rid}"` : ""}><div class="workrow"><button data-act="toggle" data-id="${it.id}" aria-expanded="${op}"><span class="ico ${it.k === "support" ? "pale" : ""}">${icon(it.q2 ? "question" : it.k, "")}</span><span class="tt">${esc(it.titre)}</span>${S.prof ? cible : ""}${right}</button>${menu}</div>${op ? `<div class="workd">${detail}</div>` : ""}</div>`;
@@ -531,11 +543,11 @@ function vNotes(c, data){
     if (!r) return `<td class="cell">${ouvert(d) ? "" : `<span class="s" style="color:var(--bad)">Manquant</span>`}</td>`;
     return `<td class="cell"><input class="gin" data-act="note" data-rendu="${r.id}" data-max="${d.points}" value="${cr && cr.note != null ? fmtNote(cr.note) : ""}" placeholder="__" aria-label="Note de ${esc(e.nom)}"><span class="muted">/${d.points}</span><span class="s ${cr && cr.publiee ? "" : "draftnote"}">${cr && cr.note != null ? (cr.publiee ? "" : "Brouillon") : "Rendu"}</span></td>`;
   };
-  const moyEleve = e => { const v = cols.map(col => { if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? noteQuiz(col.o, r) / col.o.points * 20 : null; } const cr = correctionDe(renduDe(col.o, e.email)); return cr && cr.note != null ? cr.note / col.o.points * 20 : null; }).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const moyEleve = e => moyenneDe(c, e.email, uidDe(e.email), false).moy;
   const moyCol = col => { const v = el.map(e => { if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? noteQuiz(col.o, r) : null; } const cr = correctionDe(renduDe(col.o, e.email)); return cr && cr.note != null ? Number(cr.note) : null; }).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
   return `<div class="page wide" style="--c:var(${C(c.couleur).c})"><div class="homehead"><span></span><button class="btn ghost sm" data-act="exportnotes" data-c="${esc(c.id)}">${icon("down")} Exporter les notes (Excel)</button></div><div class="tablewrap"><table class="gradebook">
-    <thead><tr><th class="first"><span class="muted">Élèves (${el.length})</span></th>${cols.map(col => `<th><small class="muted">${col.o.date_limite ? fmtShort(D(col.o.date_limite)) : "Aucune date limite"}</small><a href="${col.k === "d" ? "#/devoir/" + col.o.id : "#/quiz/" + col.o.id}">${esc(col.o.titre)}</a><small class="muted">sur ${col.o.points}</small>
-      ${col.k === "d" ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="g${col.o.id}" aria-label="Options de la colonne">${icon("more")}</button>${S.menu === "g" + col.o.id ? `<div class="dd-menu"><a href="#" data-act="rendretout" data-d="${col.o.id}">${icon("send")} Rendre toutes les notes</a><a href="#/devoir/${col.o.id}">${icon("devoir")} Ouvrir le devoir</a></div>` : ""}</div>` : ""}</th>`).join("")}<th>Moyenne<small class="muted">sur 20</small></th></tr></thead>
+    <thead><tr><th class="first"><span class="muted">Élèves (${el.length})</span></th>${cols.map(col => `<th><small class="muted">${col.o.date_limite ? fmtShort(D(col.o.date_limite)) : "Aucune date limite"}</small><a href="${col.k === "d" ? "#/devoir/" + col.o.id : "#/quiz/" + col.o.id}">${esc(col.o.titre)}</a><small class="muted">sur ${col.o.points}${col.o.categorie ? " · " + esc(col.o.categorie) : ""}</small>
+      ${col.k === "d" ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="g${col.o.id}" aria-label="Options de la colonne">${icon("more")}</button>${S.menu === "g" + col.o.id ? `<div class="dd-menu"><a href="#" data-act="rendretout" data-d="${col.o.id}">${icon("send")} Rendre toutes les notes</a><a href="#/devoir/${col.o.id}">${icon("devoir")} Ouvrir le devoir</a></div>` : ""}</div>` : ""}</th>`).join("")}<th>Moyenne<small class="muted">sur 20${(c.categories || []).length ? " · pondérée" : ""}</small></th></tr></thead>
     <tbody><tr class="avg"><td class="first">${icon("people")} Moyenne de la classe</td>${cols.map(col => `<td class="cell">${fmtNote(moyCol(col) == null ? null : Math.round(moyCol(col) * 10) / 10)}</td>`).join("")}<td class="cell"></td></tr>
     ${el.map(e => `<tr><td class="first"><span class="who2">${avatarP(e.nom, "sm")}${esc(e.nom)}</span></td>${cols.map(col => cell(col, e)).join("")}<td class="cell"><b>${fmtNote(moyEleve(e) == null ? null : Math.round(moyEleve(e) * 10) / 10)}</b></td></tr>`).join("")}
     </tbody></table></div>
@@ -550,10 +562,11 @@ function vMesNotes(c){
     ...S.quiz.filter(q => q.classe_id === c.id && !q.brouillon && q.mode === "note").map(q => { const r = resultatDe(q, S.user.id), ferme = q.date_limite && D(q.date_limite) <= now();
       return { date: D(q.publie_le), titre: q.titre, href: "#/quiz/" + q.id, ic: "quiz", statut: r ? "Noté" : ferme ? "Manquant" : "Attribué", k: r ? "ok" : ferme ? "bad" : "", note: r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : "—", com: "", due: q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : "" }; })
   ].sort((a, b) => b.date - a.date);
-  const moy = c.moyenne_visible ? moyenneEleve(c) : null;
+  const moy = c.moyenne_visible ? moyenneEleve(c) : null, md = c.moyenne_visible ? moyenneDe(c, moi(), S.user.id, true) : { parCat: [] };
   return `<div class="page" style="max-width:860px;--c:var(${C(c.couleur).c})">
     <div class="mesnotes-head"><div class="who2">${avatarP(S.nom, "lg")}<div><b style="font-size:1.2rem">${esc(S.nom)}</b><small class="muted" style="display:block">${esc(moi())}</small></div></div>
       ${c.moyenne_visible ? `<div class="grade">${moy == null ? "–" : fmtNote(moy)}<small>/20</small></div>` : ""}</div>
+    ${md.parCat.length ? `<div class="chips">${md.parCat.map(x => `<span class="chip static">${esc(x.nom)} · coef ${fmtNote(x.coef)} : <b>${fmtNote(arrondi1(x.moy))}</b>/20</span>`).join("")}</div>` : ""}
     ${lignes.length ? `<section class="group">${lignes.map(l => `<div class="work"><a class="workrow" href="${l.href}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(l.ic, "")}</span><span class="tt">${esc(l.titre)}<br><small class="muted" style="font-weight:400">${l.due ? esc(l.due) + " · " : ""}<span class="pill ${l.k}">${esc(l.statut)}</span></small>${l.com ? `<small class="muted" style="display:block;font-weight:400">${icon("comment")} ${esc(l.com)}</small>` : ""}</span><span class="dt mono">${esc(l.note)}</span></a></div>`).join("")}</section>`
       : `<div class="emptystate"><b>Aucun travail pour l'instant.</b><span>Tes devoirs, questions et questionnaires notés apparaîtront ici avec tes notes.</span></div>`}
     ${pageFoot()}</div>`;
@@ -586,14 +599,14 @@ function vDevoir(r){
   if (!d) return `<div class="page"><div class="emptystate"><b>Devoir introuvable.</b><a href="#/">Retour à l'accueil</a></div></div>`;
   const c = cls(d.classe_id), k = C(c && c.couleur);
   if (S.prof) return vDevoirProf(d, c);
-  const e = etat(d, moi()), rd = e.r, open = ouvert(d), isQ = d.type === "question", Q = d.question || {};
+  const e = etat(d, moi()), rd = e.r, open = depotOuvert(d), isQ = d.type === "question", Q = d.question || {};
   let work;
   if (isQ) work = travailQuestion(d, c, e, rd, open, Q);
   else if (rd) {
     work = `<ul class="files">${(rd.fichiers || []).map(f => `<li><a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}">${icon("file")} ${esc(f.nom)}</a></li>`).join("")}${rd.lien ? `<li><a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} ${esc(rd.lien)}</a></li>` : ""}</ul>
       ${rd.binome_email ? `<p style="margin:0;font-size:.85rem">Rendu en binôme avec <b>${esc(nomDe(c.id, rd.auteur_email === moi() ? rd.binome_email : rd.auteur_email))}</b></p>` : ""}
       <p class="muted" style="margin:0;font-size:.8rem">Rendu le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
-      ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e)}
+      ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}
       ${e.t !== "Noté" && open && rd.auteur === S.user.id ? `<button class="btn ghost" data-act="unsubmit" data-id="${rd.id}">Annuler l'envoi</button>` : ""}`;
   } else if (!open) {
     work = `<p style="margin:0" class="muted">La date limite est passée : le dépôt est fermé. Écris un commentaire privé à ton professeur si besoin.</p>`;
@@ -604,6 +617,7 @@ function vDevoir(r){
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
       <input type="file" id="fileIn" multiple hidden>
+      ${!ouvert(d) ? `<p class="notice" style="margin:0;font-size:.85rem">La date limite est passée : ton travail sera marqué <b>en retard</b>.</p>` : ""}
       <div id="depErr" class="err" hidden></div>
       <button class="btn" data-act="submit" data-id="${d.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi en cours…" : (S.files.length || S.lien ? "Rendre" : "Marquer comme terminé")}</button>
       <p class="muted" style="margin:0;font-size:.78rem">50 Mo maximum par fichier${d.formats ? " · " + esc(d.formats) : ""}</p>`;
@@ -618,14 +632,14 @@ function vDevoir(r){
       ${isQ ? reponsesClasse(d, c, rd, Q) : ""}
     </div>
     <aside style="display:grid;gap:16px;align-content:start">
-      <div class="yourwork"><header><h2>${isQ ? "Votre réponse" : "Votre travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}</span></header>${work}</div>
+      <div class="yourwork"><header><h2>${isQ ? "Votre réponse" : "Votre travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
       ${vCP(d.id, moi())}
     </aside></div>${pageFoot()}</div>`;
 }
 function travailQuestion(d, c, e, rd, open, Q){
   if (rd) return `<div class="reponse">${linkify(rd.reponse || "")}</div>
     <p class="muted" style="margin:0;font-size:.8rem">Envoyée le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
-    ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e)}
+    ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}
     ${e.t !== "Noté" && open && Q.modifier !== false ? `<button class="btn ghost" data-act="unsubmit" data-id="${rd.id}">Modifier ma réponse</button>` : ""}`;
   if (!open) return `<p style="margin:0" class="muted">La date limite est passée : tu ne peux plus répondre.</p>`;
   const champ = Q.format === "choix" ? `<div class="qopts" style="padding:0">${(Q.options || []).map(o => `<label class="opt"><input type="radio" name="repQ" data-act="repchoix" value="${esc(o)}" ${S.reponse === o ? "checked" : ""}> ${esc(o)}</label>`).join("")}</div>`
@@ -646,14 +660,14 @@ function syntheseQuestion(d, el){
   if (Q.format === "choix") return `<div class="synth">${(Q.options || []).map(o => { const n = rs.filter(r => r.reponse === o).length, p = Math.round(n / rs.length * 100); return `<div class="sbar"><span>${esc(o)}</span><span class="jauge"><i style="width:${p}%"></i></span><b>${n}</b></div>`; }).join("")}</div>`;
   return `<div class="synth">${rs.map(r => `<div class="com"><b style="min-width:120px">${esc(nomDe(d.classe_id, r.auteur_email))}</b><span>${linkify(r.reponse || "")}</span></div>`).join("")}</div>`;
 }
-const retourProf = e => e.t === "Noté" && e.c && e.c.commentaire ? `<div class="retour"><b>${icon("comment")} Commentaire de ${esc(R().prof.nom)}</b><div>${linkify(e.c.commentaire)}</div></div>` : "";
+const retourProf = (e, d) => (e.t === "Noté" && d ? grilleEleve(d, e.c) : "") + (e.t === "Noté" && e.c && e.c.commentaire ? `<div class="retour"><b>${icon("comment")} Commentaire de ${esc(R().prof.nom)}</b><div>${linkify(e.c.commentaire)}</div></div>` : "");
 const tailleTxt = b => b > 1e6 ? (b / 1e6).toFixed(1).replace(".", ",") + " Mo" : Math.max(1, Math.round(b / 1e3)) + " Ko";
 const safeName = n => n.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_").slice(-80);
 const nomDe = (cid, email) => ((inscritsDe(cid).find(x => x.email === email) || {}).nom) || nomDepuisEmail(email);
 
 async function rendreDevoir(d){
   const err = document.getElementById("depErr"), fail = m => { S.sending = false; render().then(() => { const x = document.getElementById("depErr"); if (x) { x.hidden = false; x.textContent = m; } }); };
-  if (!ouvert(d)) return fail("La date limite est passée.");
+  if (!depotOuvert(d)) return fail("La date limite est passée.");
   if (d.type === "question") {
     const rep2 = (S.reponse || "").trim(); if (!rep2) return fail("Écris ou choisis ta réponse avant de rendre.");
     S.sending = true; render();
@@ -692,7 +706,7 @@ function vDevoirProf(d, c){
   }
   const rendusE = el.filter(e => renduDe(d, e.email)), autres = el.filter(e => !renduDe(d, e.email));
   const noteDe = e => { const cr = correctionDe(renduDe(d, e.email)); return cr && cr.note != null ? fmtNote(cr.note) : "__"; };
-  const row = e => { const s = etat(d, e.email), cr = correctionDe(renduDe(d, e.email)); return `<button class="st" data-act="sel" data-n="${esc(e.email)}" aria-current="${sel === e.email}">${avatarP(e.nom, "sm")}<span class="nm">${esc(e.nom)}<small style="color:var(--${s.k === "bad" ? "bad" : s.k === "info" ? "accent" : "muted"})">${cr && cr.note != null && !cr.publiee ? "Brouillon" : s.t}</small></span>${d.points != null ? `<span class="nt">${noteDe(e)}<span class="muted">/${d.points}</span></span>` : ""}</button>`; };
+  const row = e => { const s = etat(d, e.email), cr = correctionDe(renduDe(d, e.email)); return `<button class="st" data-act="sel" data-n="${esc(e.email)}" aria-current="${sel === e.email}">${avatarP(e.nom, "sm")}<span class="nm">${esc(e.nom)}<small style="color:var(--${s.k === "bad" ? "bad" : s.k === "info" ? "accent" : "muted"})">${cr && cr.note != null && !cr.publiee ? "Brouillon" : s.t}${s.retard ? " · en retard" : ""}</small></span>${d.points != null ? `<span class="nt">${noteDe(e)}<span class="muted">/${d.points}</span></span>` : ""}</button>`; };
   let detail;
   if (!sel) {
     detail = `<h2 style="font-size:1.3rem">${esc(d.titre)}</h2>${statsDevoir(d)}
@@ -705,13 +719,10 @@ function vDevoirProf(d, c){
   } else {
     const e = el.find(x => x.email === sel), rd = renduDe(d, sel), cr = correctionDe(rd);
     detail = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:1.35rem">${esc(e.nom)}${rd && rd.binome_email ? ` <span class="muted" style="font-size:.95rem">avec ${esc(nomDe(c.id, rd.auteur_email === sel ? rd.binome_email : rd.auteur_email))}</span>` : ""}</h2><span class="pill ${etat(d, sel).k}">${etat(d, sel).t}</span></div>
-      ${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
-        ${isQ ? `<div class="reponse">${linkify(rd.reponse || "")}</div>` : `<div class="att">${(rd.fichiers || []).map(f => `<a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}"><span class="k">${esc((f.nom.split(".").pop() || "").slice(0, 5))}</span>${esc(f.nom)}</a>`).join("")}${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener"><span class="k">lien</span>${esc(rd.lien.replace(/^https?:\/\//, "").slice(0, 40))}</a>` : ""}${!(rd.fichiers || []).length && !rd.lien ? `<span class="muted">Marqué comme terminé, sans fichier joint.</span>` : ""}</div>`}
-        ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="number" min="0" max="${d.points}" step="0.25" inputmode="decimal" value="${cr && cr.note != null ? cr.note : ""}"><span class="muted">/${d.points}</span></div>` : ""}
-        <div class="field"><label for="noteCom">Commentaire pour l'élève <span class="muted">(visible quand tu rends le travail)</span></label><textarea id="noteCom" rows="2" placeholder="ex. Bon raisonnement, attention aux unités.">${esc(cr && cr.commentaire || "")}</textarea></div>
-        <div id="noteErr" class="err" hidden></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null ? `<button class="btn ghost" data-act="savenote" data-id="${rd.id}" data-pub="0">Enregistrer le brouillon</button>` : ""}<button class="btn" data-act="savenote" data-id="${rd.id}" data-pub="1">${cr && cr.publiee ? "Mettre à jour" : "Rendre"}</button></div>
-        <p class="muted" style="margin:0;font-size:.8rem">${rd.binome_email ? "La note s'affiche pour les deux élèves du binôme." : "Seul l'élève voit sa note, une fois rendue."}</p>`
+      ${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
+        ${isQ ? `<div class="reponse">${linkify(rd.reponse || "")}</div>` : `<div class="att">${(rd.fichiers || []).map((f, fj) => `<a href="#" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="${fj}"><span class="k">${esc((f.nom.split(".").pop() || "").slice(0, 5))}</span>${esc(f.nom)}</a>`).join("")}${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener"><span class="k">lien</span>${esc(rd.lien.replace(/^https?:\/\//, "").slice(0, 40))}</a>` : ""}${!(rd.fichiers || []).length && !rd.lien ? `<span class="muted">Marqué comme terminé, sans fichier joint.</span>` : ""}</div>`}
+        ${(rd.fichiers || []).length ? `<div><button class="btn ghost sm" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="0">${icon("expand")} Ouvrir dans la visionneuse</button></div>` : ""}
+        ${blocNotation(d, rd, cr)}`
       : `<p class="muted" style="margin:0">${ouvert(d) ? "Cet élève n'a pas encore rendu son travail." : "Cet élève n'a rien rendu avant la date limite."}</p>`}
       ${vCP(d.id, sel)}`;
   }
@@ -746,13 +757,15 @@ function vTodo(){
 }
 
 /* ---------- agenda ---------- */
-function vAgenda(){
+function vAgenda(r){
+  const filtre = r && r.a && cls(r.a) ? r.a : "";
   const t = now(), mon = new Date(t); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7) + S.week * 7);
   const days = [...Array(7)].map((_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
   const evts = [...S.devoirs.filter(d => d.date_limite && !d.brouillon).map(d => ({d:D(d.date_limite), t:d.titre, c:cls(d.classe_id), href:"#/devoir/" + d.id})),
-                ...S.quiz.filter(q => q.date_limite && !q.brouillon).map(q => ({d:D(q.date_limite), t:"Questionnaire · " + q.titre, c:cls(q.classe_id), href:"#/quiz/" + q.id}))].filter(e => e.c && !e.c.archive);
+                ...S.quiz.filter(q => q.date_limite && !q.brouillon).map(q => ({d:D(q.date_limite), t:"Questionnaire · " + q.titre, c:cls(q.classe_id), href:"#/quiz/" + q.id}))].filter(e => e.c && !e.c.archive && (!filtre || e.c.id === filtre));
   return `<div class="page wide"><div class="weekbar"><button class="ib" data-act="week" data-w="-1" aria-label="Semaine précédente">${icon("left")}</button><button class="ib" data-act="week" data-w="1" aria-label="Semaine suivante">${icon("right")}</button>
-    <h2>${mon.toLocaleDateString("fr-FR", {day:"numeric", month:"short"})} – ${days[6].toLocaleDateString("fr-FR", {day:"numeric", month:"short", year:"numeric"})}</h2>${S.week ? `<button class="btn ghost sm" data-act="week" data-w="0">Cette semaine</button>` : ""}</div>
+    <h2>${mon.toLocaleDateString("fr-FR", {day:"numeric", month:"short"})} – ${days[6].toLocaleDateString("fr-FR", {day:"numeric", month:"short", year:"numeric"})}</h2>${S.week ? `<button class="btn ghost sm" data-act="week" data-w="0">Cette semaine</button>` : ""}<span class="spacer"></span>
+    <select data-agenda="1" aria-label="Filtrer par cours" class="agsel"><option value="">Tous les cours</option>${actives().map(c => `<option value="${esc(c.id)}" ${c.id === filtre ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></div>
     <div style="overflow-x:auto"><div class="week">${days.map(d => `<div class="day"><div class="dh ${sameDay(d, t) ? "today" : ""}">${d.toLocaleDateString("fr-FR", {weekday:"short"})}<b>${d.getDate()}</b></div>
       ${evts.filter(e => sameDay(e.d, d)).sort((a, b) => a.d - b.d).map(e => `<a class="ev" style="--bb:var(${C(e.c.couleur).b})" href="${e.href}">${esc(e.t)}<small>${esc(e.c.nom)} · ${fmtT(e.d)}</small></a>`).join("")}</div>`).join("")}</div></div>${pageFoot()}</div>`;
 }
@@ -785,8 +798,10 @@ async function initEditeur(r){
     hasDate: rec ? !!rec.date_limite : type !== "documentation", date: ymd(lim), heure: hm(lim), mode: rec ? rec.mode : (type === "questionnaire" ? "note" : "individuel"), formats: rec ? rec.formats || "" : "",
     eleves: rec && rec.eleves ? rec.eleves.slice() : null, montrer: rec ? rec.montrer_correction !== false : true,
     questions: type === "questionnaire" ? (rec ? (rec.questions || []).map((x, i) => { const t = x.t || "choix", b = bonnes[i] ?? null;
-      return { q: x.q, t, o: t === "courte" ? ["", ""] : (x.o || []).slice(), a: t === "courte" ? null : b, acc: t === "courte" && Array.isArray(b) ? b.join(" ; ") : "" }; }) : [{ q: "", t: "choix", o: ["", ""], a: null, acc: "" }]) : [],
+      return { q: x.q, t, img: x.img || null, o: t === "courte" || t === "num" ? ["", ""] : (x.o || []).slice(), a: t === "courte" || t === "num" ? null : b, acc: t === "courte" && Array.isArray(b) ? b.join(" ; ") : "",
+        num: t === "num" && b && typeof b === "object" ? { v: b.v ?? "", tol: b.tol ?? "5" } : { v: "", tol: "5" } }; }) : [{ q: "", t: "choix", o: ["", ""], a: null, acc: "" }]) : [],
     qformat: rec && rec.question ? rec.question.format || "courte" : "courte", qoptions: rec && rec.question && rec.question.options ? rec.question.options.slice() : ["", ""],
+    aussi: [], categorie: rec ? rec.categorie || "" : "", grille: rec && rec.grille ? clone(rec.grille) : [], retard: rec ? !!rec.retard_ok : false, melanger: rec ? !!rec.melanger : false,
     qvoir: rec && rec.question ? !!rec.question.voir : false, qmodif: rec && rec.question ? rec.question.modifier !== false : true,
     aDesResultats: type === "questionnaire" && rec ? S.resultats.some(x => x.quiz_id === rec.id) : false,
     publie: rec ? !rec.brouillon && D(rec.publie_le) <= now() : false, linkMode: null, uploaded: [], toDelete: [], busy: false, err: "" };
@@ -805,9 +820,11 @@ function vEditer(){
   return `<div class="edtop" style="--c:var(${k.c})">
     <button class="ib" data-act="edclose" aria-label="Fermer">${icon("x")}</button>
     <span class="ico">${icon(e.type === "devoir" ? "devoir" : e.type === "questionnaire" ? "quiz" : isQ ? "question" : "support", "")}</span><h1>${label}</h1><span class="spacer"></span>
+    <button class="btn ghost sm" data-act="symb" data-keepfocus="1" aria-pressed="${!!S.symb}" title="Symboles scientifiques">Ω Symboles</button>
     <div class="split dd"><button class="btn" data-act="edsave" data-mode="publish" ${e.busy ? "disabled" : ""}>${e.busy ? "Enregistrement…" : main}</button><button class="btn caret" data-act="menu" data-m="edsave" aria-label="Autres options" ${e.busy ? "disabled" : ""}>▾</button>
       ${S.menu === "edsave" ? `<div class="dd-menu">${e.publie ? "" : `<a href="#" data-act="edprog">Programmer…</a>`}<a href="#" data-act="edsave" data-mode="draft">${e.publie ? "Repasser en brouillon" : "Enregistrer le brouillon"}</a></div>` : ""}</div>
   </div>
+  ${S.symb ? `<div class="symbsticky">${paletteSymb()}</div>` : ""}
   <div class="edgrid" style="--c:var(${k.c})">
     <div class="edmain">
       ${e.err ? `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">${esc(e.err)}</div>` : ""}
@@ -835,16 +852,25 @@ function vEditer(){
           ${lm === "onedrive" ? `<p class="muted" style="margin:0;font-size:.8rem">Dans OneDrive : clic droit sur le fichier, « Partager », « Copier le lien ». Vérifie que le lien est accessible aux personnes du lycée.</p>` : ""}</div>` : ""}
         ${e.ressources.length ? `<ul class="files">${e.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}</span><button data-act="rmres" data-i="${i}" aria-label="Retirer ${esc(x.label)}">✕</button></li>`).join("")}</ul>` : ""}
       </section>`}
+      ${e.type === "devoir" ? `<section class="edcard"><h3>Grille d'évaluation <span class="muted" style="font-weight:400">(facultatif)</span></h3>
+        <p class="muted" style="margin:0;font-size:.85rem">Ajoute des critères notés : la note du devoir sera la somme des critères.</p>
+        ${e.grille.map((g, i) => `<div class="adrow cat"><input data-gr2="${i}" data-k="c" value="${esc(g.c)}" placeholder="Critère (ex. Rédaction, unités)" aria-label="Critère ${i + 1}"><input data-gr2="${i}" data-k="p" type="number" min="0" step="0.5" value="${esc(g.p)}" aria-label="Points du critère ${i + 1}"><button class="ib sm" data-act="rmgr" data-i="${i}" aria-label="Supprimer le critère">${icon("x")}</button></div>`).join("")}
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="linkbtn" data-act="addgr">${icon("plus")} Ajouter un critère</button>${e.grille.length ? `<span class="muted" style="font-size:.85rem">Total : <b>${fmtNote(e.grille.reduce((a, g) => a + (Number(g.p) || 0), 0))}</b> points</span>` : ""}</div></section>` : ""}
     </div>
     <aside class="edside">
       <div class="field"><label for="edClasse">Pour</label><select id="edClasse" data-f="classe_id" ${e.id ? "disabled" : ""}>${actives().map(x => `<option value="${esc(x.id)}" ${x.id === e.classe_id ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>
+      ${!e.id && actives().length > 1 ? `<details class="aussi" ${e.aussi.length ? "open" : ""}><summary>Publier aussi dans d'autres cours${e.aussi.length ? " (" + e.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== e.classe_id).map(x => `<label class="check"><input type="checkbox" class="edAussi" value="${esc(x.id)}" ${e.aussi.includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}<small class="muted">Une copie est créée dans chaque cours coché (sans thème, pour tous les élèves).</small></details>` : ""}
       <div class="field"><label>Attribuer à</label><button class="btn ghost" data-act="cible">${icon("people")} ${nCible == null ? "Tous les élèves" : nCible + " élève" + (nCible > 1 ? "s" : "")}</button></div>
       ${isQ ? `<div class="field"><label for="edQformat">Type de question</label><select id="edQformat" data-f="qformat"><option value="courte" ${e.qformat === "courte" ? "selected" : ""}>Réponse courte</option><option value="choix" ${e.qformat === "choix" ? "selected" : ""}>Choix multiple</option></select></div>` : ""}
-      ${e.type === "devoir" || isQ ? `<div class="field"><label for="edPoints">Points</label><select id="edPoints" data-f="points">${["20","10","100","none"].map(p => `<option value="${p}" ${e.points === p ? "selected" : ""}>${p === "none" ? "Non noté" : p}</option>`).join("")}</select></div>${dateField}` : ""}
+      ${e.type === "devoir" && e.grille.length ? `<div class="field"><label>Points</label><input value="${fmtNote(e.grille.reduce((a, g) => a + (Number(g.p) || 0), 0))} (grille)" disabled></div>${dateField}` : ""}
+      ${(e.type === "devoir" && !e.grille.length) || isQ ? `<div class="field"><label for="edPoints">Points</label><select id="edPoints" data-f="points">${["20","10","100","none"].map(p => `<option value="${p}" ${e.points === p ? "selected" : ""}>${p === "none" ? "Non noté" : p}</option>`).join("")}</select></div>${dateField}` : ""}
       ${e.type === "questionnaire" ? `<div class="field"><label for="edMode">Type</label><select id="edMode" data-f="mode"><option value="note" ${e.mode === "note" ? "selected" : ""}>Noté · une seule tentative</option><option value="entrainement" ${e.mode === "entrainement" ? "selected" : ""}>Entraînement · recommençable</option></select></div>
         ${e.mode === "note" ? `<div class="field"><label for="edPoints">Noté sur</label><select id="edPoints" data-f="points">${["20","10","100"].map(p => `<option value="${p}" ${e.points === p ? "selected" : ""}>${p}</option>`).join("")}</select></div>
         <label class="check"><input type="checkbox" id="edMontrer" ${e.montrer ? "checked" : ""}> Montrer la correction à l'élève après l'envoi</label>` : ""}${dateField}` : ""}
       ${isQ ? `<label class="check"><input type="checkbox" id="edVoir" ${e.qvoir ? "checked" : ""}> Les élèves peuvent voir les réponses de la classe</label><label class="check"><input type="checkbox" id="edModif" ${e.qmodif ? "checked" : ""}> Les élèves peuvent modifier leur réponse</label>` : ""}
+      ${(e.type !== "documentation") && (c && (c.categories || []).length) ? `<div class="field"><label for="edCat">Catégorie de note</label><select id="edCat" data-f="categorie"><option value="">Aucune catégorie</option>${c.categories.map(x => `<option value="${esc(x.nom)}" ${e.categorie === x.nom ? "selected" : ""}>${esc(x.nom)} · coef ${fmtNote(x.coef)}</option>`).join("")}</select></div>` : ""}
+      ${e.type === "devoir" && e.hasDate ? `<label class="check"><input type="checkbox" id="edRetard" ${e.retard ? "checked" : ""}> Accepter les rendus en retard (marqués « en retard »)</label>` : ""}
+      ${e.type === "questionnaire" ? `<label class="check"><input type="checkbox" id="edMelanger" ${e.melanger ? "checked" : ""}> Mélanger l'ordre des questions et des réponses pour chaque élève</label>` : ""}
       <div class="field"><label for="edTheme">Thème</label><select id="edTheme" data-f="theme_id"><option value="">Aucun thème</option>${data.themes.map(t => `<option value="${t.id}" ${String(t.id) === e.theme_id ? "selected" : ""}>${esc(t.titre)}</option>`).join("")}<option value="__new">+ Créer un thème…</option></select></div>
       ${e.type === "devoir" ? `<div class="field"><label for="edMode">Type de rendu</label><select id="edMode" data-f="mode"><option value="individuel" ${e.mode === "individuel" ? "selected" : ""}>Individuel</option><option value="binome" ${e.mode === "binome" ? "selected" : ""}>Un rendu par binôme</option></select></div>
       <div class="field"><label for="edFormats">Formats attendus <span class="muted">(facultatif)</span></label><input id="edFormats" data-f="formats" value="${esc(e.formats)}" placeholder="PDF, photos, Python…"></div>` : ""}
@@ -853,21 +879,30 @@ function vEditer(){
 }
 
 function vQuestionsEditeur(e){
-  const TYPES = [["choix", "Choix unique"], ["cases", "Cases à cocher"], ["courte", "Réponse courte"]];
+  const TYPES = [["choix", "Choix unique"], ["cases", "Cases à cocher"], ["courte", "Réponse courte"], ["num", "Réponse numérique"]];
   return `${e.questions.map((q, i) => { const t = q.t || "choix", bon = j => t === "cases" ? (q.a || []).includes(j) : q.a === j;
     const aide = t === "courte" ? "" : t === "cases" ? ((q.a || []).length ? (q.a || []).length + " bonne(s) réponse(s) cochée(s)" : "Coche toutes les bonnes réponses") : q.a == null ? "Coche la bonne réponse" : "Bonne réponse : option " + (q.a + 1);
     return `<section class="edcard qcard">
       <div class="qhead"><span class="qnum">${i + 1}</span><textarea class="qtext" data-qi="${i}" data-qk="q" rows="2" placeholder="Question" aria-label="Énoncé de la question ${i + 1}">${esc(q.q)}</textarea>
         <select class="qtype" data-qt="${i}" aria-label="Type de la question ${i + 1}">${TYPES.map(([v, l]) => `<option value="${v}" ${t === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-      ${t === "courte" ? `<div class="qopts"><div class="field"><label>Réponses acceptées <span class="muted">(sépare-les par ;)</span></label><input class="qacc" data-qacc="${i}" value="${esc(q.acc || "")}" placeholder="ex. mol ; mole ; moles"></div>
+      ${q.img ? `<div class="qimg"><img src="${esc(S.urls[q.img] || "")}" alt="Image de la question ${i + 1}"><button class="ib sm" data-act="rmqimg" data-qi="${i}" title="Retirer l'image" aria-label="Retirer l'image">${icon("x")}</button></div>` : ""}
+      ${t === "num" ? `<div class="qopts"><div class="two"><div class="field"><label>Valeur attendue</label><input class="qacc" data-qnum="${i}" data-k="v" value="${esc(q.num.v)}" placeholder="ex. 2,4 × 10^-3"></div><div class="field"><label>Tolérance (%)</label><input class="qacc" data-qnum="${i}" data-k="tol" type="number" min="0" step="0.5" value="${esc(q.num.tol)}"></div></div>
+          <span class="muted" style="font-size:.8rem">L'élève peut écrire 0,0024 ou 2,4×10^-3 ou 2,4e-3 ; l'unité écrite après le nombre est ignorée.</span></div>`
+      : t === "courte" ? `<div class="qopts"><div class="field"><label>Réponses acceptées <span class="muted">(sépare-les par ;)</span></label><input class="qacc" data-qacc="${i}" value="${esc(q.acc || "")}" placeholder="ex. mol ; mole ; moles"></div>
           <span class="muted" style="font-size:.8rem">Les majuscules, les accents et les espaces en trop ne comptent pas.</span></div>`
         : `<div class="qopts">${q.o.map((o, j) => `<div class="qopt ${bon(j) ? "good" : ""}"><input type="${t === "cases" ? "checkbox" : "radio"}" name="bonne${i}" data-act="${t === "cases" ? "bonnecase" : "bonne"}" data-qi="${i}" data-oi="${j}" ${bon(j) ? "checked" : ""} aria-label="Bonne réponse : option ${j + 1}" title="Bonne réponse"><input class="otext" data-qi="${i}" data-oi="${j}" value="${esc(o)}" placeholder="Option ${j + 1}" aria-label="Option ${j + 1} de la question ${i + 1}">${q.o.length > 2 ? `<button class="ib sm" data-act="rmopt" data-qi="${i}" data-oi="${j}" aria-label="Supprimer l'option">${icon("x")}</button>` : ""}</div>`).join("")}</div>`}
-      <div class="qfoot">${t === "courte" ? "" : `<button class="linkbtn" data-act="addopt" data-qi="${i}">${icon("plus")} Ajouter une option</button>`}<span class="spacer"></span>
+      <div class="qfoot">${t === "courte" || t === "num" ? "" : `<button class="linkbtn" data-act="addopt" data-qi="${i}">${icon("plus")} Ajouter une option</button>`}<button class="linkbtn" data-act="qimg" data-qi="${i}">${icon("upload")} ${q.img ? "Changer l'image" : "Image"}</button><span class="spacer"></span>
         <span class="muted" style="font-size:.8rem">${aide}</span>
         <button class="ib sm" data-act="dupq" data-qi="${i}" title="Dupliquer" aria-label="Dupliquer la question">${icon("copy")}</button>
         ${e.questions.length > 1 ? `<button class="ib sm" data-act="rmq" data-qi="${i}" title="Supprimer" aria-label="Supprimer la question">${icon("trash")}</button>` : ""}</div>
     </section>`; }).join("")}
-    <div><button class="btn ghost" data-act="addq">${icon("plus")} Ajouter une question</button></div>`;
+    <div><button class="btn ghost" data-act="addq">${icon("plus")} Ajouter une question</button></div><input type="file" id="qimgFile" accept="image/*" hidden>`;
+}
+/* lecture d'un nombre écrit par un élève : 0,0024 · 2,4×10^-3 · 2.4e-3 · « 2,4 mol » */
+function nombre(t){
+  let s = String(t ?? "").toLowerCase().replace(/[\s\u00a0]/g, "").replace(/,/g, ".").replace(/[−–]/g, "-");
+  s = s.replace(/(×|x|\*|·)10\^?/, "e").replace(/[⁻]/g, "-").replace(/[^0-9e.+-].*$/, "");
+  return /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/.test(s) ? Number(s) : null;
 }
 const accDe = q => String(q.acc || "").split(/[;\n]/).map(x => x.trim()).filter(Boolean);
 
@@ -899,6 +934,7 @@ async function enregistrer(mode, programme){
       const q = e.questions[i], t = q.t || "choix";
       if (!q.q.trim()) { e.err = "La question " + (i + 1) + " n'a pas d'énoncé."; return render(); }
       if (t === "courte") { if (!accDe(q).length) { e.err = "Indique au moins une réponse acceptée pour la question " + (i + 1) + "."; return render(); } continue; }
+      if (t === "num") { if (nombre(q.num.v) == null) { e.err = "La valeur attendue de la question " + (i + 1) + " n'est pas un nombre."; return render(); } continue; }
       if (q.o.length < 2 || q.o.some(x => !x.trim())) { e.err = "La question " + (i + 1) + " doit avoir au moins deux options, toutes remplies."; return render(); }
       if (t === "cases" ? !(q.a || []).length : q.a == null) { e.err = (t === "cases" ? "Coche au moins une bonne réponse" : "Coche la bonne réponse") + " de la question " + (i + 1) + "."; return render(); }
     }
@@ -906,11 +942,14 @@ async function enregistrer(mode, programme){
   if (e.type === "question" && e.qformat === "choix" && (e.qoptions.length < 2 || e.qoptions.some(x => !x.trim()))) { e.err = "Donne au moins deux options de réponse, toutes remplies."; return render(); }
   if (e.eleves && !e.eleves.length) { e.err = "Choisis au moins un élève, ou « Tous les élèves »."; return render(); }
   const row = { classe_id: e.classe_id, theme_id: e.theme_id ? Number(e.theme_id) : null, titre: e.titre.trim(), ressources: e.ressources, eleves: e.eleves };
-  if (e.type === "devoir") Object.assign(row, { consigne: e.html, date_limite: limite ? limite.toISOString() : null, mode: e.mode, formats: e.formats.trim(), points: e.points === "none" ? null : Number(e.points) });
-  else if (e.type === "question") Object.assign(row, { type: "question", consigne: e.html, date_limite: limite ? limite.toISOString() : null, mode: "individuel", formats: "", points: e.points === "none" ? null : Number(e.points),
+  const grille = e.grille.map(g => ({ c: String(g.c || "").trim(), p: Number(String(g.p).replace(",", ".")) || 0 })).filter(g => g.c && g.p > 0);
+  if (e.type === "devoir" && e.grille.length && grille.length !== e.grille.length) { e.err = "Chaque critère de la grille doit avoir un nom et des points."; return render(); }
+  if (e.type === "devoir") Object.assign(row, { consigne: e.html, date_limite: limite ? limite.toISOString() : null, mode: e.mode, formats: e.formats.trim(),
+    points: grille.length ? grille.reduce((a, g) => a + g.p, 0) : e.points === "none" ? null : Number(e.points), grille: grille.length ? grille : null, retard_ok: !!(e.retard && limite), categorie: e.categorie || null });
+  else if (e.type === "question") Object.assign(row, { categorie: e.categorie || null, type: "question", consigne: e.html, date_limite: limite ? limite.toISOString() : null, mode: "individuel", formats: "", points: e.points === "none" ? null : Number(e.points),
     question: { format: e.qformat, options: e.qformat === "choix" ? e.qoptions.map(x => x.trim()) : [], voir: e.qvoir, modifier: e.qmodif } });
-  else if (e.type === "questionnaire") Object.assign(row, { consigne: e.html, date_limite: limite ? limite.toISOString() : null, mode: e.mode, points: Number(e.points === "none" ? 20 : e.points), montrer_correction: e.montrer,
-    questions: e.questions.map(q => (q.t || "choix") === "courte" ? { q: q.q.trim(), t: "courte", o: [] } : { q: q.q.trim(), t: q.t || "choix", o: q.o.map(x => x.trim()) }) });
+  else if (e.type === "questionnaire") Object.assign(row, { categorie: e.categorie || null, melanger: !!e.melanger, consigne: e.html, date_limite: limite ? limite.toISOString() : null, mode: e.mode, points: Number(e.points === "none" ? 20 : e.points), montrer_correction: e.montrer,
+    questions: e.questions.map(q => { const t = q.t || "choix", base = (t === "courte" || t === "num") ? { q: q.q.trim(), t, o: [] } : { q: q.q.trim(), t, o: q.o.map(x => x.trim()) }; if (q.img) base.img = q.img; return base; }) });
   else row.description = e.html;
   if (e.type === "questionnaire") delete row.ressources;
   if (mode === "draft") row.brouillon = true;
@@ -922,15 +961,18 @@ async function enregistrer(mode, programme){
   const q = e.id ? sb.from(table).update(row).eq("id", e.id).select("id").single() : sb.from(table).insert(row).select("id").single();
   const { data, error } = await q;
   if (error) { e.busy = false; e.err = "Enregistrement impossible : " + error.message; return render(); }
+  const bonnesQ = e.type === "questionnaire" ? e.questions.map(x => (x.t || "choix") === "courte" ? accDe(x) : x.t === "num" ? { v: String(nombre(x.num.v)), tol: String(Math.max(0, Number(String(x.num.tol).replace(",", ".")) || 0)) } : x.t === "cases" ? (x.a || []).slice().sort((p, q) => p - q) : x.a) : null;
   if (e.type === "questionnaire") {
-    const r2 = await sb.from("quiz_solutions").upsert({ quiz_id: data.id, bonnes: e.questions.map(x => (x.t || "choix") === "courte" ? accDe(x) : x.t === "cases" ? (x.a || []).slice().sort((p, q) => p - q) : x.a) });
+    const r2 = await sb.from("quiz_solutions").upsert({ quiz_id: data.id, bonnes: bonnesQ });
     if (r2.error) { e.busy = false; e.err = "Les bonnes réponses n'ont pas pu être enregistrées : " + r2.error.message; e.id = data.id; return render(); }
   }
   if (e.toDelete.length) await sb.storage.from("documents").remove(e.toDelete);
+  const aussi = e.id ? [] : e.aussi.filter(x => x !== e.classe_id), kk = e.type === "questionnaire" ? "quiz" : e.type === "documentation" ? "support" : "devoir";
   if (mode === "schedule") progAjoute(e.type === "questionnaire" ? "quiz" : e.type === "documentation" ? "support" : "devoir", data.id);
   const classe = e.classe_id, nouveau = !e.id, typ = e.type; S.ed = null;
   await rafraichir(classe);
-  toast(mode === "draft" ? "Brouillon enregistré" : mode === "schedule" ? "Publication programmée" : !nouveau ? "Modifications enregistrées" : ({devoir:"Devoir publié", questionnaire:"Questionnaire publié", documentation:"Documentation publiée", question:"Question publiée"})[typ]);
+  if (aussi.length) { const n = await publierAussi(kk, aussi, row, bonnesQ); await rafraichir(); toast("Aussi publié dans " + n + " autre" + (n > 1 ? "s" : "") + " cours"); }
+  else toast(mode === "draft" ? "Brouillon enregistré" : mode === "schedule" ? "Publication programmée" : !nouveau ? "Modifications enregistrées" : ({devoir:"Devoir publié", questionnaire:"Questionnaire publié", documentation:"Documentation publiée", question:"Question publiée"})[typ]);
   go("/classe/" + classe + "/travaux");
 }
 
@@ -944,6 +986,7 @@ async function publierAnnonce(){
     : await sb.from("annonces").insert({ classe_id: A.classe, auteur_nom: S.nom, texte: A.html, ressources: A.ressources });
   if (error) { A.busy = false; render(); toast("Enregistrement impossible : " + error.message); return; }
   if (A.toDelete && A.toDelete.length) await sb.storage.from("documents").remove(A.toDelete);
+  for (const cid of (!A.id && A.aussi) || []) { await sb.from("annonces").insert({ classe_id: cid, auteur_nom: S.nom, texte: A.html, ressources: await copierRessources(A.ressources, cid) }); delete S.cache[cid]; }
   const c = A.classe, modif = !!A.id; S.annonce = null; delete S.cache[c]; render(); toast(modif ? "Annonce modifiée" : "Annonce publiée");
 }
 /* ---------- questionnaire (QCM) ---------- */
@@ -961,9 +1004,13 @@ function juste(t, rep, bon){
   if (rep == null || bon == null) return false;
   if (t === "cases") return Array.isArray(rep) && Array.isArray(bon) && [...new Set(rep)].sort().join(",") === [...new Set(bon)].sort().join(",");
   if (t === "courte") return Array.isArray(bon) && normTxt(rep) !== "" && bon.some(a => normTxt(a) === normTxt(rep));
+  if (t === "num") { const v = nombre(bon && bon.v), x = nombre(rep), tol = Number(bon && bon.tol) || 0; if (v == null || x == null) return false; return v === 0 ? Math.abs(x) <= tol / 100 : Math.abs(x - v) <= Math.abs(v) * tol / 100; }
   return Number(rep) === Number(bon);
 }
 const typeQ = x => x.t || "choix";
+const TYPE_LIB = { choix: "Choix unique", cases: "Cases à cocher", courte: "Réponse courte", num: "Réponse numérique" };
+const imgQ = x => x.img && S.urls && S.urls[x.img] ? `<img class="qpic" src="${esc(S.urls[x.img])}" alt="Illustration de la question" loading="lazy">` : "";
+const attendue = (t, b) => t === "num" ? (b ? fmtNote(nombre(b.v)) + (Number(b.tol) ? " (± " + fmtNote(b.tol) + " %)" : "") : "") : (b || []).map(esc).join(" ou ");
 function vQuiz(r){
   const q = S.quiz.find(x => String(x.id) === r.a);
   if (!q) return `<div class="page"><div class="emptystate"><b>Questionnaire introuvable.</b><a href="#/">Retour à l'accueil</a></div></div>`;
@@ -985,8 +1032,8 @@ function vQuiz(r){
         : `<div class="notice">Questionnaire d'entraînement : les réponses des élèves ne sont pas enregistrées.</div>`}
       <section class="card">${qs.map((x, i) => { const t = typeQ(x), b = data.bonnes[i], ok = q.mode === "note" && data.res.length ? Math.round(data.res.filter(r2 => r2.reponses && juste(t, r2.reponses[i], b)).length / data.res.length * 100) : null;
         const estBon = j => t === "cases" ? (b || []).includes(j) : b === j;
-        return `<div class="q"><b>${i + 1}. ${esc(x.q)}</b> <span class="pill">${t === "cases" ? "Cases à cocher" : t === "courte" ? "Réponse courte" : "Choix unique"}</span>
-          ${t === "courte" ? `<div class="opt good">${icon("check")} ${(b || []).map(esc).join(" · ")}</div>` : x.o.map((o, j) => `<div class="opt ${estBon(j) ? "good" : ""}">${estBon(j) ? icon("check") : `<span style="width:22px"></span>`} ${esc(o)}</div>`).join("")}
+        return `<div class="q"><b>${i + 1}. ${sci(x.q)}</b> <span class="pill">${TYPE_LIB[t]}</span>${imgQ(x)}
+          ${t === "courte" || t === "num" ? `<div class="opt good">${icon("check")} ${attendue(t, b)}</div>` : x.o.map((o, j) => `<div class="opt ${estBon(j) ? "good" : ""}">${estBon(j) ? icon("check") : `<span style="width:22px"></span>`} ${sci(o)}</div>`).join("")}
           ${ok != null ? `<span class="muted" style="font-size:.82rem">${ok} % de bonnes réponses</span>` : ""}</div>`; }).join("")}</section>${pageFoot()}</div>`;
   }
   const deja = resultatDe(q, S.user.id), res = S.quizRes[q.id], rep = S.quizRep[q.id] || {};
@@ -995,22 +1042,23 @@ function vQuiz(r){
   if (ferme && !res) return `<div class="page" style="--c:var(${k.c})">${head}<section class="yourwork"><header><h2>Questionnaire fermé</h2><span class="pill bad">Date limite passée</span></header></section>${pageFoot()}</div>`;
   const b = res && res.bonnes;
   return `<div class="page" style="--c:var(${k.c})">${head}
-    <section class="card">${qs.map((x, i) => { const t = typeQ(x);
-      if (t === "courte") { const ok = res && b ? juste(t, rep[i], b[i]) : null;
-        return `<div class="q"><b>${i + 1}. ${esc(x.q)}</b><input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="Ta réponse" aria-label="Réponse à la question ${i + 1}" ${res ? "disabled" : ""}>${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${(b[i] || []).map(esc).join(" ou ")}</span>` : ""}</div>`; }
+    <section class="card">${(q.melanger ? melangeStable(qs.length, S.user.id + ":" + q.id) : qs.map((_, i) => i)).map((i, rang) => { const x = qs[i], t = typeQ(x), num = rang + 1;
+      if (t === "courte" || t === "num") { const ok = res && b ? juste(t, rep[i], b[i]) : null;
+        return `<div class="q"><b>${num}. ${sci(x.q)}</b>${imgQ(x)}<input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="${t === "num" ? "Ta réponse (ex. 2,4×10^-3)" : "Ta réponse"}" ${t === "num" ? 'inputmode="decimal"' : ""} aria-label="Réponse à la question ${num}" ${res ? "disabled" : ""}>${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${attendue(t, b[i])}</span>` : ""}</div>`; }
       const coche = j => t === "cases" ? (rep[i] || []).includes(j) : rep[i] === j, bonne = j => t === "cases" ? ((b && b[i]) || []).includes(j) : b && j === b[i];
-      return `<div class="q"><b>${i + 1}. ${esc(x.q)}</b>${t === "cases" ? `<span class="muted" style="font-size:.8rem">Plusieurs réponses possibles</span>` : ""}${x.o.map((o, j) => { let cl = ""; if (res && b) { if (bonne(j)) cl = "good"; else if (coche(j)) cl = "wrong"; }
-        return `<label class="opt ${cl}"><input type="${t === "cases" ? "checkbox" : "radio"}" name="q${i}" data-act="${t === "cases" ? "anscase" : "ans"}" data-q="${q.id}" data-i="${i}" data-j="${j}" ${coche(j) ? "checked" : ""} ${res ? "disabled" : ""}> ${esc(o)}</label>`; }).join("")}</div>`; }).join("")}
+      const ordreO = q.melanger ? melangeStable(x.o.length, S.user.id + ":" + q.id + ":" + i) : x.o.map((_, j) => j);
+      return `<div class="q"><b>${num}. ${sci(x.q)}</b>${imgQ(x)}${t === "cases" ? `<span class="muted" style="font-size:.8rem">Plusieurs réponses possibles</span>` : ""}${ordreO.map(j => { const o = x.o[j]; let cl = ""; if (res && b) { if (bonne(j)) cl = "good"; else if (coche(j)) cl = "wrong"; }
+        return `<label class="opt ${cl}"><input type="${t === "cases" ? "checkbox" : "radio"}" name="q${i}" data-act="${t === "cases" ? "anscase" : "ans"}" data-q="${q.id}" data-i="${i}" data-j="${j}" ${coche(j) ? "checked" : ""} ${res ? "disabled" : ""}> ${sci(o)}</label>`; }).join("")}</div>`; }).join("")}
       <div class="q">${res ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="grade">${res.score}<small>/${res.sur}</small></span>${q.mode === "note" ? `<span>Note : <b>${fmtNote(Math.round(res.score / Math.max(1, res.sur) * q.points * 100) / 100)}/${q.points}</b></span>` : `<button class="btn ghost" data-act="retry" data-q="${q.id}">Recommencer</button>`}${!b ? `<span class="muted">La correction n'est pas affichée pour ce questionnaire.</span>` : ""}</div>`
         : `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-act="valider" data-q="${q.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi…" : "Envoyer"}</button>${q.mode === "note" ? `<span class="muted" style="font-size:.85rem">Une seule tentative : vérifie tes réponses avant d'envoyer.</span>` : ""}</div>`}</div>
     </section>${pageFoot()}</div>`;
 }
 async function envoyerQuiz(qid){
   const q = S.quiz.find(x => x.id === qid), rep = S.quizRep[qid] || {}, n = (q.questions || []).length;
-  const vide = i => { const v = rep[i], t = typeQ(q.questions[i]); return v == null || (t === "cases" && !v.length) || (t === "courte" && !String(v).trim()); };
+  const vide = i => { const v = rep[i], t = typeQ(q.questions[i]); return v == null || (t === "cases" && !v.length) || ((t === "courte" || t === "num") && !String(v).trim()); };
   if ([...Array(n)].some((_, i) => vide(i))) { toast("Réponds à toutes les questions avant d'envoyer."); return; }
   S.sending = true; render();
-  const { data, error } = await sb.rpc("soumettre_quiz", { qid, reponses: [...Array(n)].map((_, i) => { const v = rep[i], t = typeQ(q.questions[i]); return v == null ? null : t === "cases" ? v.slice().sort((a, b2) => a - b2) : t === "courte" ? String(v).trim() : v; }) });
+  const { data, error } = await sb.rpc("soumettre_quiz", { qid, reponses: [...Array(n)].map((_, i) => { const v = rep[i], t = typeQ(q.questions[i]); return v == null ? null : t === "cases" ? v.slice().sort((a, b2) => a - b2) : t === "courte" ? String(v).trim() : t === "num" ? (nombre(v) != null ? String(nombre(v)) : String(v).trim()) : v; }) });
   S.sending = false;
   if (error) { render(); toast(error.message); return; }
   S.quizRes[qid] = data;
@@ -1022,7 +1070,7 @@ function initParametres(c){
   if (S.settings && S.settings.id === c.id) return;
   S.settings = { id:c.id, nom:c.nom || "", description:c.description || "", section:c.section || "", niveau:c.niveau || "", matiere:c.matiere || "", salle:c.salle || "",
     symbole:c.symbole || "", couleur:c.couleur || "pc", illustration:c.illustration || "auto", code_actif:c.code_actif !== false, flux_mode:c.flux_mode || "prof", flux_devoirs:c.flux_devoirs !== false,
-    teams_url:c.teams_url || "", teams_visible:c.teams_visible !== false, dossier_onedrive:c.dossier_onedrive || "", moyenne_visible:!!c.moyenne_visible, busy:false, err:"" };
+    teams_url:c.teams_url || "", teams_visible:c.teams_visible !== false, dossier_onedrive:c.dossier_onedrive || "", moyenne_visible:!!c.moyenne_visible, categories:clone(c.categories || []), busy:false, err:"" };
 }
 function vParametres(c){
   initParametres(c);
@@ -1072,6 +1120,10 @@ function vParametres(c){
       </section>
       <section class="edcard"><h2>Notation</h2>
         ${sw("moyenne_visible", "Montrer la moyenne aux élèves", "Chaque élève voit sa moyenne sur 20 (notes rendues uniquement) sur la page du cours.")}
+        <h3>Catégories de notes et coefficients</h3>
+        <p class="muted" style="margin:0;font-size:.85rem">Ex. TP coef 1, Contrôle coef 2, DM coef 0,5. La moyenne devient pondérée : moyenne de chaque catégorie × son coefficient. Sans catégorie, c'est une moyenne simple. Les travaux sans catégorie comptent avec un coefficient 1.</p>
+        <div class="adlist">${s.categories.map((x, i) => `<div class="adrow cat"><input data-cat="${i}" data-k="nom" value="${esc(x.nom || "")}" placeholder="Nom (ex. Contrôle)" aria-label="Nom de la catégorie ${i + 1}"><input data-cat="${i}" data-k="coef" type="number" min="0" step="0.5" value="${esc(x.coef ?? 1)}" aria-label="Coefficient"><button class="ib sm" data-act="rmcat" data-i="${i}" aria-label="Supprimer la catégorie">${icon("x")}</button></div>`).join("")}</div>
+        <div><button class="btn ghost sm" data-act="addcat">${icon("plus")} Ajouter une catégorie</button></div>
       </section>
       <section class="edcard danger"><h2>Archiver ou supprimer</h2>
         <div class="setrow"><span><b>${c.archive ? "Restaurer le cours" : "Archiver le cours"}</b><small class="muted">${c.archive ? "Le cours réapparaîtra sur l'accueil." : "Le cours disparaît de l'accueil et du menu. Tu pourras le restaurer depuis « Cours archivés »."}</small></span><button class="btn ghost sm" data-act="archiver" data-c="${esc(c.id)}" data-on="${c.archive ? "0" : "1"}">${icon(c.archive ? "restore" : "archive")} ${c.archive ? "Restaurer" : "Archiver"}</button></div>
@@ -1086,15 +1138,13 @@ async function enregistrerParametres(){
   s.busy = true; render();
   const { error } = await sb.from("classes").update({ nom:s.nom.trim(), description:s.description.trim(), section:s.section.trim(), niveau:s.niveau.trim(), matiere:s.matiere.trim(), salle:s.salle.trim(),
     symbole:s.symbole.trim() || s.nom.trim().slice(0, 3), couleur:s.couleur, illustration:s.illustration === "auto" ? null : s.illustration, code_actif:s.code_actif, flux_mode:s.flux_mode, flux_devoirs:s.flux_devoirs,
-    teams_url:s.teams_url.trim() || null, teams_visible:s.teams_visible, dossier_onedrive:s.dossier_onedrive.trim() || null, moyenne_visible:s.moyenne_visible }).eq("id", s.id);
+    teams_url:s.teams_url.trim() || null, teams_visible:s.teams_visible, dossier_onedrive:s.dossier_onedrive.trim() || null, moyenne_visible:s.moyenne_visible,
+    categories:s.categories.map(x => ({ nom: String(x.nom || "").trim(), coef: Math.max(0, Number(String(x.coef).replace(",", ".")) || 0) })).filter(x => x.nom) }).eq("id", s.id);
   if (error) { s.busy = false; s.err = "Enregistrement impossible : " + error.message; return render(); }
   const id = s.id; S.settings = null; await rafraichir(id); toast("Paramètres enregistrés"); go("/classe/" + id);
 }
 function moyenneEleve(c){
-  const notes = [];
-  S.devoirs.filter(d => d.classe_id === c.id && d.points != null).forEach(d => { const e = etat(d, moi()); if (e.t === "Noté" && e.note != null) notes.push(e.note / d.points * 20); });
-  S.quiz.filter(q => q.classe_id === c.id && q.mode === "note").forEach(q => { const r = resultatDe(q, S.user.id); if (r) notes.push(noteQuiz(q, r) / q.points * 20); });
-  return notes.length ? Math.round(notes.reduce((a, b) => a + b, 0) / notes.length * 10) / 10 : null;
+  return arrondi1(moyenneDe(c, moi(), S.user.id, true).moy);
 }
 /* ---------- fenêtres ---------- */
 function vModal(){
@@ -1157,14 +1207,16 @@ async function copierRessources(list, versClasse){
   }
   return out;
 }
-async function reutiliser(k, id, versClasse, themeId = null){
+async function reutiliser(k, id, versClasse, themeId = null, extra = {}){
   if (k === "devoir") { const d = S.devoirs.find(x => String(x.id) === String(id)); const { id: _i, publie_le, theme_id, eleves, ...rest } = d;
-    return sb.from("devoirs").insert({ ...rest, classe_id: versClasse, theme_id: themeId, eleves: null, brouillon: true, ressources: await copierRessources(d.ressources, versClasse) }); }
+    return sb.from("devoirs").insert({ ...rest, classe_id: versClasse, theme_id: themeId, eleves: null, brouillon: true, ressources: await copierRessources(d.ressources, versClasse), ...extra }); }
   if (k === "support") { let s = null; for (const c of S.classes) { const data = S.cache[c.id]; if (data) { s = data.supports.find(x => String(x.id) === String(id)); if (s) break; } }
     const { id: _i, publie_le, theme_id, eleves, ...rest } = s;
-    return sb.from("supports").insert({ ...rest, classe_id: versClasse, theme_id: themeId, eleves: null, brouillon: true, ressources: await copierRessources(s.ressources, versClasse) }); }
+    return sb.from("supports").insert({ ...rest, classe_id: versClasse, theme_id: themeId, eleves: null, brouillon: true, ressources: await copierRessources(s.ressources, versClasse), ...extra }); }
   const q = S.quiz.find(x => String(x.id) === String(id)); const { id: _i, publie_le, theme_id, eleves, ...rest } = q;
-  const ins = await sb.from("quiz").insert({ ...rest, classe_id: versClasse, theme_id: themeId, eleves: null, brouillon: true }).select("id").single();
+  const qs2 = [];
+  for (const x of rest.questions || []) { if (x.img && versClasse !== q.classe_id) { const [cp] = await copierRessources([{ path: x.img }], versClasse); qs2.push({ ...x, img: cp.path }); } else qs2.push(x); }
+  const ins = await sb.from("quiz").insert({ ...rest, questions: qs2, classe_id: versClasse, theme_id: themeId, eleves: null, brouillon: true, ...extra }).select("id").single();
   if (ins.error) return ins;
   const sol = await sb.from("quiz_solutions").select("bonnes").eq("quiz_id", q.id).maybeSingle();
   return sb.from("quiz_solutions").insert({ quiz_id: ins.data.id, bonnes: (sol.data && sol.data.bonnes) || [] });
@@ -1296,7 +1348,7 @@ const csv = rows => "﻿" + rows.map(r => r.map(v => { v = v == null ? "" : Stri
 
 function initAdm(){
   if (S.adm) return;
-  S.adm = { prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: clone(R().liensUtiles), outils: clone(R().outils), busy: false, err: "", modif: false };
+  S.adm = { prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: clone(R().liensUtiles), outils: clone(R().outils), remarques: R().remarques.join("\n"), busy: false, err: "", modif: false };
 }
 
 function vAdmin(r){
@@ -1343,6 +1395,9 @@ function admSite(){
         <div><button class="linkbtn" data-act="adadd" data-path="outils.${i}.liens" data-tpl="outil">${icon("plus")} Ajouter un outil</button></div></div>`).join("")}
       <div><button class="btn ghost sm" data-act="adadd" data-path="outils" data-tpl="groupe">${icon("plus")} Ajouter un groupe</button></div>
     </section>
+    <section class="edcard"><h2>${icon("comment")} Remarques de correction</h2>
+      <p class="muted" style="margin:0;font-size:.85rem">Une remarque par ligne. Elles s'insèrent en un clic quand tu notes un travail.</p>
+      <textarea data-ad="remarques" rows="7" class="adtext" aria-label="Remarques de correction">${esc(A.remarques)}</textarea></section>
     <section class="edcard"><h2>${icon("restore")} Valeurs d'origine</h2>
       <div class="setrow"><span><b>Revenir aux réglages d'origine</b><small class="muted">Remet le nom, les liens rapides et la boîte à outils du fichier config.js. Rien n'est enregistré tant que tu ne cliques pas sur « Enregistrer ».</small></span><button class="btn ghost sm" data-act="admdefaut">Rétablir</button></div>
     </section>`;
@@ -1355,7 +1410,7 @@ async function admEnregistrer(){
   if (liens.some(l => !l.nom || !/^https?:\/\//.test(l.url))) { A.err = "Chaque lien rapide doit avoir un nom et une adresse qui commence par https://"; return render(); }
   if (outils.some(g => !g.matiere)) { A.err = "Chaque groupe de la boîte à outils doit avoir un nom."; return render(); }
   if (outils.some(g => g.liens.some(x => !x[0] || !/^https?:\/\//.test(x[2])))) { A.err = "Chaque outil doit avoir un nom et une adresse qui commence par https://"; return render(); }
-  const data = { prof: { nom: A.prof.nom.trim(), titre: (A.prof.titre || "").trim() }, liensUtiles: liens, outils };
+  const data = { prof: { nom: A.prof.nom.trim(), titre: (A.prof.titre || "").trim() }, liensUtiles: liens, outils, remarques: String(A.remarques || "").split("\n").map(x => x.trim()).filter(Boolean) };
   A.busy = true; render();
   const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() });
   if (error) { A.busy = false; A.err = /reglages/.test(error.message) ? "La base n'est pas encore à jour (script 07 à exécuter dans Supabase)." : "Enregistrement impossible : " + error.message; return render(); }
@@ -1532,9 +1587,9 @@ async function exporterNotes(cid){
   const uidDe = email => Object.keys(S.profils).find(id => S.profils[id] === email);
   const val = (col, e) => { if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? noteQuiz(col.o, r) : null; }
     if (col.o.eleves && !col.o.eleves.includes(e.email)) return null; const cr = correctionDe(renduDe(col.o, e.email)); return cr && cr.note != null ? Number(cr.note) : null; };
-  const rows = [["Élève", "Adresse", ...cols.map(col => col.o.titre + " (/" + col.o.points + ")"), "Moyenne /20"]];
-  el.forEach(e => { const v = cols.map(col => val(col, e)), s = cols.map((col, i) => v[i] == null ? null : v[i] / col.o.points * 20).filter(x => x != null);
-    rows.push([e.nom, e.email, ...v.map(x => x == null ? "" : fmtNote(x)), s.length ? fmtNote(Math.round(s.reduce((a, b) => a + b, 0) / s.length * 100) / 100) : ""]); });
+  const rows = [["Élève", "Adresse", ...cols.map(col => col.o.titre + " (/" + col.o.points + (col.o.categorie ? " · " + col.o.categorie : "") + ")"), (c.categories || []).length ? "Moyenne pondérée /20" : "Moyenne /20"]];
+  el.forEach(e => { const v = cols.map(col => val(col, e)), m = moyenneDe(c, e.email, uidDe(e.email), false).moy;
+    rows.push([e.nom, e.email, ...v.map(x => x == null ? "" : fmtNote(x)), m == null ? "" : fmtNote(Math.round(m * 100) / 100)]); });
   telecharger("notes-" + sansAccent(c.nom).replace(/[^a-z0-9]+/g, "-") + "-" + ymd(now()) + ".csv", csv(rows), "text/csv;charset=utf-8");
   toast("Notes exportées : " + c.nom);
 }
@@ -1770,6 +1825,7 @@ function admProfil(){
       <div class="crrow"><b>Changer de nom</b>${S.prof ? `<div class="two" style="align-items:end"><div class="field"><label for="pfNom">Nom affiché aux élèves</label><input id="pfNom" value="${esc(R().prof.nom)}"></div><div><button class="btn sm" data-act="savenom">Enregistrer</button></div></div>`
         : `<span>Ton nom (${esc(S.nom)}) est indiqué par ton professeur. S'il y a une erreur, écris-lui.</span>`}</div>
       <div class="crrow"><b>Adresse</b><span class="muted">${esc(moi())}</span></div>
+      <div class="crrow"><b>Apparence</b><select data-theme-choice="1" class="agsel" aria-label="Apparence">${[["auto", "Automatique (comme l'appareil)"], ["light", "Clair"], ["dark", "Sombre"]].map(([v, l]) => `<option value="${v}" ${themeChoisi() === v ? "selected" : ""}>${l}</option>`).join("")}</select><small class="muted">Réglage propre à cet appareil.</small></div>
     </section>
     <section class="edcard crcard"><h2 class="crbig">Notifications</h2>
       <h3 class="crsub">Dans PhysiquePro</h3>
@@ -1781,6 +1837,172 @@ function admProfil(){
         ${actives().map(c => `<label class="switch crsw"><span class="who2"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span>${esc(c.nom)}</span><input type="checkbox" data-prefc="${esc(c.id)}" ${off.includes(c.id) ? "" : "checked"}><i aria-hidden="true"></i></label>`).join("")}</details>
     </section>`;
 }
+/* ---------- notation : catégories et coefficients, grilles, remarques ---------- */
+function itemsNotes(c){
+  return [...S.devoirs.filter(d => d.classe_id === c.id && d.points != null && !d.brouillon).map(d => ({ k: "d", o: d })),
+          ...S.quiz.filter(q => q.classe_id === c.id && q.mode === "note" && !q.brouillon).map(q => ({ k: "q", o: q }))];
+}
+function noteSur20(it, email, uid, pub){
+  if (it.k === "q") { const r = uid && resultatDe(it.o, uid); return r ? noteQuiz(it.o, r) / it.o.points * 20 : null; }
+  if (it.o.eleves && !it.o.eleves.includes(email)) return null;
+  const cr = correctionDe(renduDe(it.o, email));
+  if (!cr || cr.note == null || (pub && !cr.publiee)) return null;
+  return cr.note / it.o.points * 20;
+}
+/* moyenne sur 20 : simple sans catégories ; pondérée par catégorie sinon (les travaux sans catégorie comptent avec un coefficient 1) */
+function moyenneDe(c, email, uid, pub){
+  const cats = (c.categories || []).filter(x => x && x.nom), grp = {};
+  itemsNotes(c).forEach(it => { const v = noteSur20(it, email, uid, pub); if (v == null) return;
+    const cat = cats.find(x => x.nom === it.o.categorie), key = cat ? cat.nom : "";
+    (grp[key] = grp[key] || { coef: cat ? Number(cat.coef) || 0 : 1, v: [] }).v.push(v); });
+  const g = Object.entries(grp).map(([nom, x]) => ({ nom: nom || "Sans catégorie", coef: x.coef, moy: x.v.reduce((a, b) => a + b, 0) / x.v.length, n: x.v.length }));
+  if (!cats.length) { const all = Object.values(grp).flatMap(x => x.v); return { moy: all.length ? all.reduce((a, b) => a + b, 0) / all.length : null, parCat: [] }; }
+  const pond = g.filter(x => x.coef > 0), sc = pond.reduce((a, x) => a + x.coef, 0);
+  return { moy: sc ? pond.reduce((a, x) => a + x.coef * x.moy, 0) / sc : null, parCat: g };
+}
+const arrondi1 = x => x == null ? null : Math.round(x * 10) / 10;
+
+/* bloc de notation (page du devoir et visionneuse) */
+function blocNotation(d, rd, cr){
+  const G = d.grille && d.grille.length ? d.grille : null, gv = (cr && cr.grille) || [];
+  const rem = R().remarques || [];
+  return `${G ? `<div class="grille"><b>Grille d'évaluation</b>${G.map((g, i) => `<label class="grow"><span>${esc(g.c)}</span><input id="gr-${i}" data-gr="${i}" type="number" min="0" max="${g.p}" step="0.25" inputmode="decimal" value="${gv[i] != null ? gv[i] : ""}" aria-label="${esc(g.c)}"><span class="muted">/${g.p}</span></label>`).join("")}</div>` : ""}
+    ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="number" min="0" max="${d.points}" step="0.25" inputmode="decimal" value="${cr && cr.note != null ? cr.note : ""}" ${G ? "readonly" : ""}><span class="muted">/${d.points}</span>${G ? `<small class="muted">calculée avec la grille</small>` : ""}</div>` : ""}
+    <div class="field"><label for="noteCom">Commentaire pour l'élève <span class="muted">(visible quand tu rends le travail)</span></label><textarea id="noteCom" rows="2" placeholder="ex. Bon raisonnement, attention aux unités.">${esc(cr && cr.commentaire || "")}</textarea>
+      ${rem.length ? `<div class="chips">${rem.map(t => `<button class="chip" data-act="remarque" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}</div>
+    <div id="noteErr" class="err" hidden></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null ? `<button class="btn ghost" data-act="savenote" data-id="${rd.id}" data-pub="0">Enregistrer le brouillon</button>` : ""}<button class="btn" data-act="savenote" data-id="${rd.id}" data-pub="1">${cr && cr.publiee ? "Mettre à jour" : "Rendre"}</button></div>
+    <p class="muted" style="margin:0;font-size:.8rem">${rd.binome_email ? "La note s'affiche pour les deux élèves du binôme." : "Seul l'élève voit sa note, une fois rendue."}</p>`;
+}
+function grilleEleve(d, c){
+  if (!d.grille || !d.grille.length || !c || !c.grille) return "";
+  return `<div class="grille lue">${d.grille.map((g, i) => `<div class="grow"><span>${esc(g.c)}</span><b class="mono">${c.grille[i] != null ? fmtNote(c.grille[i]) : "–"}</b><span class="muted">/${g.p}</span></div>`).join("")}</div>`;
+}
+
+/* ---------- images des questionnaires ---------- */
+async function urlsSignees(paths){
+  S.urls = S.urls || {};
+  const manque = [...new Set(paths)].filter(p => !S.urls[p]); if (!manque.length) return;
+  try { const { data } = await sb.storage.from("documents").createSignedUrls(manque, 3600); (data || []).forEach(x => { if (x.signedUrl) S.urls[x.path] = x.signedUrl; }); } catch (_) {}
+}
+async function imageQuestion(f){
+  const e = S.ed, i = S.qimgFor; if (!e || i == null || !e.questions[i]) return;
+  if (!/^image\//.test(f.type)) { toast("Choisis une image (photo, capture, schéma)."); return; }
+  if (f.size > 8e6) { toast("Image trop lourde (8 Mo maximum)."); return; }
+  toast("Envoi de l'image…");
+  const path = e.classe_id + "/" + Date.now() + "-quiz-" + safeName(f.name);
+  const { error } = await sb.storage.from("documents").upload(path, f, { upsert: false });
+  if (error) { toast("Envoi impossible : " + error.message); return; }
+  e.uploaded.push(path); e.questions[i].img = path; await urlsSignees([path]); render();
+}
+/* ordre aléatoire mais toujours le même pour un élève donné */
+function melangeStable(n, graine){
+  let h = 2166136261; for (const ch of String(graine)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const a = [...Array(n).keys()], rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; };
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+/* ---------- visionneuse des travaux rendus (prof) ---------- */
+const extDe = n => (String(n || "").split(".").pop() || "").toLowerCase();
+async function urlRendu(path){
+  S.vurl = S.vurl || {};
+  if (S.vurl[path]) return S.vurl[path];
+  const { data } = await sb.storage.from("rendus").createSignedUrl(path, 3600);
+  return S.vurl[path] = data ? data.signedUrl : null;
+}
+function rendusOrdonnes(d){
+  const el = elevesDuDevoir(d, inscritsDe(d.classe_id));
+  return el.filter(e => renduDe(d, e.email));
+}
+async function preparerViewer(){
+  const V = S.viewer, d = S.devoirs.find(x => x.id === V.did); if (!d) { S.viewer = null; return; }
+  await chargerClasse(d.classe_id);
+  const rd = renduDe(d, V.email), f = rd && (rd.fichiers || [])[V.fi || 0];
+  if (f) await urlRendu(f.chemin);
+  await chargerCP(d.id, V.email);
+}
+function apercuFichier(f){
+  const u = S.vurl && S.vurl[f.chemin], x = extDe(f.nom);
+  if (!u) return `<div class="vempty">Fichier introuvable.</div>`;
+  if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "svg"].includes(x)) return `<img class="vimg" src="${esc(u)}" alt="${esc(f.nom)}">`;
+  if (x === "pdf") return `<iframe class="vframe" src="${esc(u)}" title="${esc(f.nom)}"></iframe>`;
+  if (["mp4", "webm", "mov", "m4v"].includes(x)) return `<video class="vimg" src="${esc(u)}" controls></video>`;
+  if (["mp3", "wav", "m4a", "ogg"].includes(x)) return `<audio src="${esc(u)}" controls style="width:min(520px,90%)"></audio>`;
+  if (["doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(x)) return `<iframe class="vframe" src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(u)}" title="${esc(f.nom)}"></iframe>`;
+  if (["txt", "py", "csv", "md", "html", "js", "json"].includes(x)) return `<iframe class="vframe blanc" src="${esc(u)}" title="${esc(f.nom)}"></iframe>`;
+  return `<div class="vempty"><b>${esc(f.nom)}</b><span>Aperçu impossible pour ce type de fichier.</span><a class="btn" href="${esc(u)}" target="_blank" rel="noopener">Télécharger</a></div>`;
+}
+function vViewer(){
+  const V = S.viewer, d = S.devoirs.find(x => x.id === V.did), c = cls(d.classe_id), k = C(c && c.couleur);
+  const liste = rendusOrdonnes(d), i = liste.findIndex(e => e.email === V.email), e = liste[i] || { nom: nomDe(d.classe_id, V.email), email: V.email };
+  const rd = renduDe(d, V.email), cr = correctionDe(rd), fs = (rd && rd.fichiers) || [], fi = Math.min(V.fi || 0, Math.max(0, fs.length - 1));
+  const prec = liste[i - 1], suiv = liste[i + 1];
+  return `<div class="edtop" style="--c:var(${k.c})"><button class="ib" data-act="vclose" aria-label="Fermer">${icon("x")}</button>
+      <div style="min-width:0"><h1 style="font-size:1.15rem">${esc(e.nom)}</h1><small class="muted">${esc(d.titre)} · ${i + 1}/${liste.length} rendus</small></div><span class="spacer"></span>
+      <button class="btn ghost sm" data-act="vgo" data-e="${prec ? esc(prec.email) : ""}" ${prec ? "" : "disabled"} title="Élève précédent (←)">${icon("left")} Précédent</button>
+      <button class="btn ghost sm" data-act="vgo" data-e="${suiv ? esc(suiv.email) : ""}" ${suiv ? "" : "disabled"} title="Élève suivant (→)">Suivant ${icon("right")}</button></div>
+    <div class="viewer">
+      <div class="vmain">${fs.length > 1 ? `<div class="vtabs">${fs.map((f, j) => `<button class="${j === fi ? "on" : ""}" data-act="vfile" data-i="${j}">${esc(f.nom)}</button>`).join("")}</div>` : ""}
+        <div class="vbody">${fs.length ? apercuFichier(fs[fi]) : rd && rd.reponse ? `<div class="reponse" style="max-width:640px;margin:24px">${linkify(rd.reponse)}</div>` : `<div class="vempty">${rd ? "Rendu sans fichier." : "Aucun rendu."}${rd && rd.lien ? `<a class="btn" href="${esc(rd.lien)}" target="_blank" rel="noopener">Ouvrir le lien rendu</a>` : ""}</div>`}</div>
+        ${fs.length && S.vurl && S.vurl[fs[fi].chemin] ? `<div class="vfoot"><a href="${esc(S.vurl[fs[fi].chemin])}" target="_blank" rel="noopener">${icon("expand")} Ouvrir dans un nouvel onglet</a></div>` : ""}</div>
+      <aside class="vside">${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
+        ${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} Lien rendu</a>` : ""}${blocNotation(d, rd, cr)}` : ""}
+        ${vCP(d.id, V.email)}</aside></div>`;
+}
+
+/* ---------- suivi des élèves (prof) ---------- */
+function vSuivi(){
+  const act = actives(); if (!act.length) return `<div class="page"><div class="emptystate"><b>Aucun cours actif.</b></div></div>`;
+  const c = cls(S.suiviC) && !cls(S.suiviC).archive ? cls(S.suiviC) : act[0], el = inscritsDe(c.id);
+  const uidDe = email => Object.keys(S.profils).find(id => S.profils[id] === email);
+  const dv = S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon && D(d.publie_le) <= now());
+  const lignes = el.map(e => { const ds = dv.filter(d => !d.eleves || d.eleves.includes(e.email)), et = ds.map(d => ({ d, s: etat(d, e.email) }));
+    const rendus = et.filter(x => x.s.r), dernier = rendus.map(x => D(x.s.r.rendu_le)).sort((a, b) => b - a)[0];
+    return { e, moy: moyenneDe(c, e.email, uidDe(e.email), false).moy, n: ds.length, rendus: rendus.length, manq: et.filter(x => x.s.t === "Manquant").length, retard: et.filter(x => x.s.retard).length, dernier, et }; })
+    .sort((a, b) => (b.manq - a.manq) || ((a.moy ?? 99) - (b.moy ?? 99)));
+  return `<div class="page wide"><div class="homehead"><h1>Suivi des élèves</h1>
+      <div class="travhead" style="gap:10px"><div class="field filt"><label for="suiviC">Cours</label><select id="suiviC" data-suivi="1">${act.map(x => `<option value="${esc(x.id)}" ${x.id === c.id ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>
+      <button class="btn ghost sm" data-act="exportsuivi" data-c="${esc(c.id)}">${icon("down")} Exporter (Excel)</button></div></div>
+    <p class="muted" style="margin:0;font-size:.85rem">Les élèves avec des travaux manquants apparaissent en premier. Clique sur un élève pour voir le détail.</p>
+    ${lignes.length ? `<div class="tablewrap"><table class="admtable"><thead><tr><th class="first">Élève</th><th>Moyenne /20</th><th>Rendus</th><th>Manquants</th><th>En retard</th><th>Dernier rendu</th></tr></thead><tbody>
+      ${lignes.map(l => `<tr class="suivirow ${l.manq ? "alerte" : ""}" data-act="toggle" data-id="sv${esc(l.e.email)}"><td class="first"><span class="who2">${avatarP(l.e.nom, "sm")}<b>${esc(l.e.nom)}</b></span></td>
+        <td class="mono"><b>${l.moy == null ? "–" : fmtNote(arrondi1(l.moy))}</b></td><td>${l.rendus}/${l.n}</td><td>${l.manq ? `<span class="pill bad">${l.manq}</span>` : "0"}</td><td>${l.retard ? `<span class="pill">${l.retard}</span>` : "0"}</td><td class="muted">${l.dernier ? fmtShort(l.dernier) : "—"}</td></tr>
+        ${S.open === "sv" + l.e.email ? `<tr><td colspan="6" class="suividetail">${l.et.length ? l.et.map(x => `<a href="#/devoir/${x.d.id}"><span class="pill ${x.s.k}">${x.s.t}${x.s.retard ? " · retard" : ""}</span> ${esc(x.d.titre)} ${x.s.t === "Noté" && x.s.note != null ? `<b class="mono">${fmtNote(x.s.note)}/${x.d.points}</b>` : ""}</a>`).join("") : `<span class="muted">Aucun devoir.</span>`}
+          <a href="${esc(outlookLink([l.e.email], "", ""))}" target="_blank" rel="noopener">${icon("mail")} Écrire à l'élève</a></td></tr>` : ""}`).join("")}
+    </tbody></table></div>` : `<div class="emptystate"><b>Aucun élève dans ce cours.</b></div>`}${pageFoot()}</div>`;
+}
+function exporterSuivi(cid){
+  const c = cls(cid), el = inscritsDe(cid), uidDe = email => Object.keys(S.profils).find(id => S.profils[id] === email);
+  const dv = S.devoirs.filter(d => d.classe_id === cid && !d.brouillon && D(d.publie_le) <= now());
+  const rows = [["Élève", "Adresse", "Moyenne /20", "Rendus", "Attribués", "Manquants", "En retard"]];
+  el.forEach(e => { const ds = dv.filter(d => !d.eleves || d.eleves.includes(e.email)), et = ds.map(d => etat(d, e.email)), m = moyenneDe(c, e.email, uidDe(e.email), false).moy;
+    rows.push([e.nom, e.email, m == null ? "" : fmtNote(arrondi1(m)), et.filter(x => x.r).length, ds.length, et.filter(x => x.t === "Manquant").length, et.filter(x => x.retard).length]); });
+  telecharger("suivi-" + sansAccent(c.nom).replace(/[^a-z0-9]+/g, "-") + "-" + ymd(now()) + ".csv", csv(rows), "text/csv;charset=utf-8");
+}
+
+/* ---------- apparence : clair / sombre ---------- */
+function themeChoisi(){ try { return localStorage.getItem("pp_theme") || "auto"; } catch (_) { return "auto"; } }
+function appliquerTheme(v){
+  try { if (v === "auto") localStorage.removeItem("pp_theme"); else localStorage.setItem("pp_theme", v); } catch (_) {}
+  const de = document.documentElement; if (!de || !de.dataset) return;
+  if (v === "auto") delete de.dataset.theme; else de.dataset.theme = v;
+}
+appliquerTheme(themeChoisi());
+
+/* ---------- publier aussi dans d'autres cours ---------- */
+async function publierAussi(k, cibles, row, bonnes){
+  let ok = 0; const table = k === "quiz" ? "quiz" : k === "support" ? "supports" : "devoirs";
+  for (const cid of cibles) {
+    const r2 = { ...row, classe_id: cid, theme_id: null, eleves: null };
+    if (row.ressources) r2.ressources = await copierRessources(row.ressources, cid);
+    if (k === "quiz") { r2.questions = []; for (const x of row.questions || []) { if (x.img) { const [cp] = await copierRessources([{ path: x.img }], cid); r2.questions.push({ ...x, img: cp.path }); } else r2.questions.push(x); } }
+    const ins = await sb.from(table).insert(r2).select("id").single();
+    if (ins.error) continue;
+    if (k === "quiz") { const s2 = await sb.from("quiz_solutions").insert({ quiz_id: ins.data.id, bonnes: bonnes || [] }); if (s2.error) continue; }
+    ok++; delete S.cache[cid];
+  }
+  return ok;
+}
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -1791,9 +2013,15 @@ async function render(){
       if (!S.prof) { go("/"); return; }
       await initEditeur(r); if (id !== renderId) return;
       const foc = document.activeElement && document.activeElement.id;
+      if (S.ed.type === "questionnaire") await urlsSignees(S.ed.questions.map(q => q.img).filter(Boolean)); if (id !== renderId) return;
       app.innerHTML = vEditer();
+      const qf = document.getElementById("qimgFile"); if (qf) qf.onchange = () => { const f = qf.files[0]; qf.value = ""; if (f) imageQuestion(f); };
       const fi = document.getElementById("edFile"); if (fi) fi.onchange = () => { uploadFichiers([...fi.files], "ed"); fi.value = ""; };
       apresRendu(foc); return;
+    }
+    if (S.viewer && S.prof) {
+      await preparerViewer(); if (id !== renderId) return;
+      if (S.viewer) { const foc = document.activeElement && document.activeElement.id; app.innerHTML = vViewer(); apresRendu(foc); return; }
     }
     if (r.v === "classe" && r.t === "parametres") {
       const c = cls(r.a); if (!S.prof || !c) { go("/"); return; }
@@ -1813,8 +2041,12 @@ async function render(){
     } else if (r.v === "quiz") {
       const q = S.quiz.find(x => String(x.id) === r.a);
       if (q && S.prof) { await chargerClasse(q.classe_id); await chargerResultatsQuiz(q); }
+      if (q) await urlsSignees((q.questions || []).map(x => x.img).filter(Boolean));
       if (id !== renderId) return;
       content = vQuiz(r);
+    } else if (r.v === "suivi") {
+      if (!S.prof) { go("/"); return; }
+      content = vSuivi();
     } else if (r.v === "admin") {
       if (!S.prof && r.a !== "profil") { go("/admin/profil"); return; }
       if (admTab(r) === "fichiers" && !S.fich) { app.innerHTML = chargement(r); await chargerFichiers(); if (id !== renderId) return; }
@@ -1859,7 +2091,7 @@ document.addEventListener("click", async e => {
     case "bell": { const o = !S.bell; fermerMenus(); S.bell = o; render(); if (o) chargerNotifs(); return; }
     case "toutlu": { const { data, error } = await sb.rpc("pp_vu"); if (error) { toast("Action impossible : " + error.message); return; } S.profil.vu_le = data || now().toISOString(); await chargerNotifs(); return; }
     case "savenom": { const n = ((document.getElementById("pfNom") || {}).value || "").trim(); if (!n) { toast("Le nom ne peut pas être vide."); return; }
-      const data = { prof: { nom: n, titre: R().prof.titre }, liensUtiles: R().liensUtiles, outils: R().outils };
+      const data = { ...reglagesData(), prof: { nom: n, titre: R().prof.titre } };
       const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() }); if (error) { toast("Enregistrement impossible : " + error.message); return; }
       appliquerReglages(data); S.nom = n; S.adm = null; toast("Nom modifié"); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
@@ -1891,6 +2123,8 @@ document.addEventListener("click", async e => {
     case "addlien": S.modal.liens.push({nom:"", url:""}); render(); return;
     case "rmlien": S.modal.liens.splice(Number(a.dataset.i), 1); render(); return;
     case "savesettings": enregistrerParametres(); return;
+    case "addcat": S.settings.categories.push({ nom: "", coef: 1 }); render(); return;
+    case "rmcat": S.settings.categories.splice(Number(a.dataset.i), 1); render(); return;
     case "copylien": { e.preventDefault(); S.menu = null; const lien = ICI + "#/rejoindre/" + encodeURIComponent(a.dataset.code);
       try { navigator.clipboard.writeText(lien).then(() => toast("Lien d'invitation copié"), () => toast(lien)); } catch (_) { toast(lien); } render(); return; }
     case "deplacer": e.preventDefault(); S.menu = null; deplacerA(a.dataset.c, Number(a.dataset.pos)); return;
@@ -1908,7 +2142,7 @@ document.addEventListener("click", async e => {
     case "admv": { const list = getPath(S.adm, a.dataset.path), i = Number(a.dataset.i), j = i + Number(a.dataset.dir); if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; S.adm.modif = true; render(); return; }
     case "admsave": admEnregistrer(); return;
     case "admreset": S.adm = null; render(); return;
-    case "admdefaut": S.adm = { prof: { nom: CFG.prof.nom, titre: CFG.prof.titre }, liensUtiles: clone(CFG.liensUtiles), outils: clone(CFG.outils), busy: false, err: "", modif: true }; render(); return;
+    case "admdefaut": S.adm = { prof: { nom: CFG.prof.nom, titre: CFG.prof.titre }, liensUtiles: clone(CFG.liensUtiles), outils: clone(CFG.outils), remarques: R().remarques.join("\n"), busy: false, err: "", modif: true }; render(); return;
     case "admfichiers": S.fich = null; render(); return;
     case "purge": S.modal = {kind:"confirm", action:"purge", ok:"Supprimer", titre:"Supprimer les fichiers inutilisés ?", texte:"Ces fichiers ne sont reliés à aucun devoir, documentation, annonce ou travail rendu. Leur suppression est définitive."}; render(); return;
     case "backup": S.backupBusy = true; render(); try { await sauvegarder(); toast("Sauvegarde téléchargée"); } catch (err) { toast("Sauvegarde impossible : " + (err.message || err)); } S.backupBusy = false; render(); return;
@@ -1969,10 +2203,12 @@ document.addEventListener("click", async e => {
     case "edsave": e.preventDefault(); enregistrer(a.dataset.mode); return;
     case "edclose": { const ed = S.ed; if (ed && ed.uploaded.length) sb.storage.from("documents").remove(ed.uploaded); const c = ed ? ed.classe_id : null; S.ed = null; S.modal = null; if (c) go("/classe/" + c + "/travaux"); else history.back(); return; }
     case "cible": S.modal = {kind:"cible", sel: S.ed.eleves ? S.ed.eleves.slice() : null}; render(); return;
-    case "addq": S.ed.questions.push({ q: "", o: ["", ""], a: null }); render(); setTimeout(() => { const t = document.querySelectorAll(".qtext"); if (t.length) t[t.length - 1].focus(); }, 0); return;
+    case "addq": S.ed.questions.push({ q: "", t: "choix", o: ["", ""], a: null, acc: "", img: null, num: { v: "", tol: "5" } }); render(); setTimeout(() => { const t = document.querySelectorAll(".qtext"); if (t.length) t[t.length - 1].focus(); }, 0); return;
     case "rmq": S.ed.questions.splice(Number(a.dataset.qi), 1); render(); return;
-    case "dupq": { const q = S.ed.questions[Number(a.dataset.qi)]; S.ed.questions.splice(Number(a.dataset.qi) + 1, 0, { q: q.q, t: q.t || "choix", o: q.o.slice(), a: Array.isArray(q.a) ? q.a.slice() : q.a, acc: q.acc || "" }); render(); return; }
+    case "dupq": { const q = S.ed.questions[Number(a.dataset.qi)]; S.ed.questions.splice(Number(a.dataset.qi) + 1, 0, { q: q.q, t: q.t || "choix", o: q.o.slice(), a: Array.isArray(q.a) ? q.a.slice() : q.a, acc: q.acc || "", img: q.img || null, num: { ...(q.num || { v: "", tol: "5" }) } }); render(); return; }
     case "addqo": S.ed.qoptions.push(""); render(); return;
+    case "addgr": S.ed.grille.push({ c: "", p: 2 }); render(); return;
+    case "rmgr": S.ed.grille.splice(Number(a.dataset.i), 1); render(); return;
     case "rmqo": S.ed.qoptions.splice(Number(a.dataset.i), 1); render(); return;
     case "addopt": S.ed.questions[Number(a.dataset.qi)].o.push(""); render(); return;
     case "rmopt": { const q = S.ed.questions[Number(a.dataset.qi)], j = Number(a.dataset.oi); q.o.splice(j, 1);
@@ -2022,11 +2258,28 @@ document.addEventListener("click", async e => {
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
     case "sel": S.sel = a.dataset.n || null; S.compose = false; render(); return;
+    case "symb": S.symb = !S.symb; render(); return;
+    case "voir": e.preventDefault(); S.viewer = { did: Number(a.dataset.d), email: a.dataset.e, fi: Number(a.dataset.i) || 0 }; render(); return;
+    case "vclose": S.viewer = null; render(); return;
+    case "vgo": if (a.dataset.e) { S.viewer.email = a.dataset.e; S.viewer.fi = 0; S.sel = a.dataset.e; render(); } return;
+    case "vfile": S.viewer.fi = Number(a.dataset.i); render(); return;
+    case "exportsuivi": exporterSuivi(a.dataset.c); return;
+    case "dupliquer": { e.preventDefault(); S.menu = null; const k = a.dataset.k, id = a.dataset.id;
+      const rec = k === "devoir" ? S.devoirs.find(x => String(x.id) === id) : k === "quiz" ? S.quiz.find(x => String(x.id) === id) : ((S.cache[r.a] || {}).supports || []).find(x => String(x.id) === id);
+      if (!rec) return; const res = await reutiliser(k, id, rec.classe_id, rec.theme_id ?? null, { titre: "Copie de " + rec.titre });
+      if (res.error) { toast("Duplication impossible : " + res.error.message); return; }
+      await rafraichir(rec.classe_id); render(); toast("Copie créée en brouillon"); return; }
+    case "ins": { const el = document.activeElement; if (el && (el.isContentEditable || el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && !["checkbox", "radio", "number", "color", "file"].includes(el.type)))) document.execCommand("insertText", false, a.dataset.s); else toast("Clique d'abord dans un champ de texte."); return; }
+    case "qimg": S.qimgFor = Number(a.dataset.qi); document.getElementById("qimgFile").click(); return;
+    case "rmqimg": { const q = S.ed.questions[Number(a.dataset.qi)]; if (q.img && S.ed.uploaded.includes(q.img)) { sb.storage.from("documents").remove([q.img]); S.ed.uploaded = S.ed.uploaded.filter(p => p !== q.img); } q.img = null; render(); return; }
+    case "remarque": { const t = document.getElementById("noteCom"); if (t) { t.value = (t.value.trim() ? t.value.trim() + " " : "") + a.dataset.t; t.focus(); } return; }
     case "savenote": { const v = (document.getElementById("note") || {}).value, d = S.devoirs.find(x => x.id === (S.rendus.find(y => String(y.id) === a.dataset.id) || {}).devoir_id);
       const n = v === "" || v == null ? null : Number(String(v).replace(",", ".")), pub = a.dataset.pub === "1";
       if (n != null && (isNaN(n) || n < 0 || (d && d.points != null && n > d.points))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "La note doit être comprise entre 0 et " + d.points + "."; return; }
       const com = ((document.getElementById("noteCom") || {}).value || "").trim();
-      const { error } = await sb.from("corrections").upsert({ rendu_id: Number(a.dataset.id), note: n, commentaire: com, publiee: pub, modifie_le: now().toISOString() });
+      const grille = d && d.grille && d.grille.length ? d.grille.map((g, i) => { const x = (document.getElementById("gr-" + i) || {}).value; return x === "" || x == null ? null : Number(String(x).replace(",", ".")); }) : null;
+      if (grille && grille.some((x, i) => x != null && (isNaN(x) || x < 0 || x > d.grille[i].p))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "Une note de critère dépasse son maximum."; return; }
+      const { error } = await sb.from("corrections").upsert({ rendu_id: Number(a.dataset.id), note: n, commentaire: com, grille, publiee: pub, modifie_le: now().toISOString() });
       if (error) { toast("Enregistrement impossible : " + error.message); return; }
       await rafraichir(); render(); toast(pub ? "Travail rendu à l'élève" : "Brouillon enregistré"); return; }
     case "rendretout": { e.preventDefault(); S.menu = null; const d = S.devoirs.find(x => String(x.id) === a.dataset.d);
@@ -2046,6 +2299,7 @@ document.addEventListener("click", async e => {
 });
 
 /* ---------- saisie ---------- */
+document.addEventListener("mousedown", e => { if (e.target.closest && e.target.closest("[data-keepfocus]")) e.preventDefault(); });
 document.addEventListener("input", e => {
   const t = e.target;
   if (t.id === "edHtml" && S.ed) { S.ed.html = t.innerHTML; return; }
@@ -2058,8 +2312,12 @@ document.addEventListener("input", e => {
   if (t.id === "cSub" || t.id === "cBody") { S[t.id] = t.value; const l = document.getElementById("olk"); if (l) l.href = outlookLink([...S.pick], S.cSub, S.cBody); return; }
   if (t.id === "lien") { S.lien = t.value; return; }
   if (t.id === "repQ") { S.reponse = t.value; return; }
+  if (S.settings && t.dataset.cat != null) { S.settings.categories[Number(t.dataset.cat)][t.dataset.k] = t.value; return; }
+  if (t.dataset.gr != null) { const ins = [...document.querySelectorAll("[data-gr]")], vals = ins.map(x => Number(String(x.value).replace(",", "."))).filter(x => !isNaN(x) && String(x) !== ""); const n = document.getElementById("note"); if (n) n.value = ins.some(x => x.value !== "") ? Math.round(ins.reduce((a, x) => a + (Number(String(x.value).replace(",", ".")) || 0), 0) * 100) / 100 : ""; return; }
   if (t.dataset.act === "anstxt") { const id = t.dataset.q; S.quizRep[id] = S.quizRep[id] || {}; S.quizRep[id][Number(t.dataset.i)] = t.value; return; }
+  if (S.ed && t.dataset.gr2 != null) { S.ed.grille[Number(t.dataset.gr2)][t.dataset.k] = t.value; if (t.dataset.k === "p") { const tot = document.querySelector(".edcard .muted b"); } return; }
   if (S.ed && t.dataset.qo != null) { S.ed.qoptions[Number(t.dataset.qo)] = t.value; return; }
+  if (S.ed && t.dataset.qnum != null) { const q = S.ed.questions[Number(t.dataset.qnum)]; q.num = q.num || { v: "", tol: "5" }; q.num[t.dataset.k] = t.value; return; }
   if (S.ed && t.dataset.qacc != null) { S.ed.questions[Number(t.dataset.qacc)].acc = t.value; return; }
   if (S.adm && t.dataset.ad && t.type !== "checkbox" && t.tagName !== "SELECT" && t.type !== "color") { setPath(S.adm, t.dataset.ad, t.value); if (!S.adm.modif) { S.adm.modif = true; const b = document.querySelector(".savebar"); if (b) { b.classList.add("on"); b.firstElementChild.textContent = "Modifications non enregistrées"; const sv = b.querySelector('[data-act="admsave"]'); if (sv) sv.disabled = false; } } return; }
   if (t.dataset.adq) { S.admQ = t.value; render(); return; }
@@ -2086,8 +2344,11 @@ document.addEventListener("change", async e => {
   if (t.dataset.act === "repchoix") { S.reponse = t.value; return; }
   if (t.dataset.act === "anscase") { const id = t.dataset.q, i = Number(t.dataset.i), j = Number(t.dataset.j); S.quizRep[id] = S.quizRep[id] || {}; const cur = new Set(S.quizRep[id][i] || []); t.checked ? cur.add(j) : cur.delete(j); S.quizRep[id][i] = [...cur]; return; }
   if (t.dataset.act === "bonnecase") { const q = S.ed.questions[Number(t.dataset.qi)], j = Number(t.dataset.oi), cur = new Set(Array.isArray(q.a) ? q.a : []); t.checked ? cur.add(j) : cur.delete(j); q.a = [...cur]; render(); return; }
-  if (S.ed && t.dataset.qt != null) { const q = S.ed.questions[Number(t.dataset.qt)]; q.t = t.value; q.a = t.value === "cases" ? (q.a != null && !Array.isArray(q.a) ? [q.a] : Array.isArray(q.a) ? q.a : []) : t.value === "choix" ? (Array.isArray(q.a) ? (q.a[0] ?? null) : q.a) : null; if (q.o.length < 2) q.o = ["", ""]; render(); return; }
+  if (S.ed && t.dataset.qt != null) { const q = S.ed.questions[Number(t.dataset.qt)]; q.t = t.value; q.num = q.num || { v: "", tol: "5" }; q.a = t.value === "cases" ? (q.a != null && !Array.isArray(q.a) ? [q.a] : Array.isArray(q.a) ? q.a : []) : t.value === "choix" ? (Array.isArray(q.a) ? (q.a[0] ?? null) : q.a) : null; if (q.o.length < 2) q.o = ["", ""]; render(); return; }
   if (t.id === "edVoir" && S.ed) { S.ed.qvoir = t.checked; return; }
+  if (t.id === "edRetard" && S.ed) { S.ed.retard = t.checked; return; }
+  if (t.id === "edMelanger" && S.ed) { S.ed.melanger = t.checked; return; }
+  if (S.ed && t.dataset.gr2 != null && t.dataset.k === "p") { render(); return; }
   if (t.id === "edModif" && S.ed) { S.ed.qmodif = t.checked; return; }
   if (t.dataset.act === "inscr") { const on = t.checked, cid = t.dataset.c, email = t.dataset.e; t.disabled = true;
     const { error } = on ? await sb.from("inscriptions").upsert({ classe_id: cid, email, nom: t.dataset.n }, { onConflict: "classe_id,email", ignoreDuplicates: true }) : await sb.from("inscriptions").delete().eq("classe_id", cid).eq("email", email);
@@ -2096,6 +2357,11 @@ document.addEventListener("change", async e => {
   if (S.adm && t.dataset.ad) { setPath(S.adm, t.dataset.ad, t.type === "checkbox" ? t.checked : t.value); S.adm.modif = true; render(); return; }
   if (t.dataset.pref) { const p = { ...prefs() }; p[t.dataset.pref] = t.checked; await sauverPrefs(p); render(); return; }
   if (t.dataset.prefc) { const p = { ...prefs() }, off = new Set(p.cours_off || []); t.checked ? off.delete(t.dataset.prefc) : off.add(t.dataset.prefc); p.cours_off = [...off]; await sauverPrefs(p); return; }
+  if (t.classList && t.classList.contains("edAussi") && S.ed) { const v = t.value; S.ed.aussi = t.checked ? [...new Set([...S.ed.aussi, v])] : S.ed.aussi.filter(x => x !== v); return; }
+  if (t.classList && t.classList.contains("anAussi") && S.annonce) { const v = t.value, l = S.annonce.aussi || []; S.annonce.aussi = t.checked ? [...new Set([...l, v])] : l.filter(x => x !== v); return; }
+  if (t.dataset.suivi) { S.suiviC = t.value; S.open = null; render(); return; }
+  if (t.dataset.agenda != null) { go(t.value ? "/agenda/" + t.value : "/agenda"); return; }
+  if (t.dataset.themeChoice) { appliquerTheme(t.value); toast("Apparence modifiée"); return; }
   if (t.dataset.adf) { S.admF = t.value; render(); return; }
   if (t.dataset.mclasse && S.modal) { S.modal.classe = t.value; const ap = document.getElementById("mApercu"); if (ap) ap.innerHTML = apercuListe(S.modal); return; }
   if (t.id === "edMontrer" && S.ed) { S.ed.montrer = t.checked; return; }
@@ -2113,6 +2379,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id && e.target.id.startsWith("cm-")) { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-act="comment"]'); if (b) b.click(); return; }
   if (e.key === "Enter" && e.target.id === "cpIn") { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-act="cpsend"]'); if (b) b.click(); return; }
   if (e.key === "Enter" && e.target.dataset && e.target.dataset.act === "note") { e.target.blur(); return; }
+  if (S.viewer && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName || "") && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { const b = document.querySelectorAll('[data-act="vgo"]')[e.key === "ArrowLeft" ? 0 : 1]; if (b && !b.disabled) b.click(); return; }
+  if (e.key === "Escape" && S.viewer && !S.modal) { S.viewer = null; render(); return; }
   if (e.key === "Escape" && DG.on) { finDrag(true); return; }
   if (e.key === "Escape" && DT.on) { dtFin(true); return; }
   if (e.key === "Escape") { if (S.modal && !S.modal.busy) { S.modal = null; render(); return; } if (S.dd || S.me || S.menu) { fermerMenus(); render(); return; } if (S.drawer && window.innerWidth < 1100) { S.drawer = false; render(); } }
@@ -2122,6 +2390,7 @@ window.addEventListener("hashchange", () => {
   if (r.v !== "editer") S.ed = null;
   if (!(r.v === "classe" && r.t === "parametres")) S.settings = null;
   if (r.v !== "admin") S.adm = null;
+  S.viewer = null;
   if (r.v !== "devoir") { S.reponse = ""; S.sel = null; S.ptab = "travaux"; S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; }
   fermerMenus(); S.modal = null; S.open = null; S.compose = false; S.pick = new Set(); S.cSub = ""; S.cBody = ""; S.annonce = null; S.filtreTheme = "";
   if (window.innerWidth < 1100) S.drawer = false; window.scrollTo(0, 0); render();

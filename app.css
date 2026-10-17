@@ -602,3 +602,49 @@ section.theme.compact>*:not(.themehead){display:none}
 .yttxt{display:grid;align-content:center;gap:2px;padding:8px 12px;min-width:0}
 .yttxt b{font-weight:500;font-size:.88rem;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .yttxt small{color:var(--muted);font-size:.75rem}
+/* ===== étape 10 ===== */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:16px;padding:4px 10px;font-size:.78rem;cursor:pointer;font:inherit;font-size:.78rem}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.static{cursor:default}
+.grille{display:grid;gap:6px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+.grille .grow{display:grid;grid-template-columns:minmax(0,1fr) 70px auto;gap:8px;align-items:center;font-size:.88rem}
+.grille .grow input{width:70px;border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-family:var(--mono);background:var(--surface)}
+.grille.lue{background:var(--surface)}
+.grille.lue .grow{grid-template-columns:minmax(0,1fr) auto auto}
+.adrow.cat{grid-template-columns:minmax(0,1fr) 90px auto}
+.adtext{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;font:inherit;resize:vertical}
+.symbs{display:flex;flex-wrap:wrap;gap:2px;padding:6px;border-top:1px solid var(--line);background:var(--surface);align-items:center}
+.symbs .sym{position:static;opacity:1;font-family:var(--body);font-size:1rem;font-weight:400;min-width:32px;height:32px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);cursor:pointer;line-height:1}
+.symbs .sym:hover{border-color:var(--accent);color:var(--accent)}
+.symbsticky{position:sticky;top:calc(64px + env(safe-area-inset-top,0px));z-index:19;border-bottom:1px solid var(--line)}
+.symbsticky .symbs{border-top:0;padding:8px 16px}
+.qimg{position:relative;display:inline-block;max-width:min(420px,100%);margin-left:42px}
+.qimg img,.qpic{max-width:min(420px,100%);max-height:280px;border-radius:8px;border:1px solid var(--line);display:block;margin:6px 0}
+.qimg .ib{position:absolute;top:10px;right:4px;background:var(--surface)}
+sup,sub{line-height:0;font-size:.75em}
+/* visionneuse */
+.viewer{display:grid;grid-template-columns:minmax(0,1fr) 380px;height:calc(100vh - 64px)}
+.vmain{display:flex;flex-direction:column;min-width:0;background:#1f2a30}
+.vtabs{display:flex;gap:4px;padding:8px;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--line)}
+.vtabs button{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap;font:inherit;font-size:.82rem;color:var(--ink)}
+.vtabs button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.vbody{flex:1;min-height:0;display:grid;place-items:center;overflow:auto}
+.vimg{max-width:100%;max-height:100%;object-fit:contain}
+.vframe{width:100%;height:100%;border:0;background:#fff}
+.vempty{display:grid;gap:10px;justify-items:center;color:#e6eef2;text-align:center;padding:24px}
+.vfoot{padding:6px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:.82rem}
+.vfoot a{color:var(--accent);display:inline-flex;gap:6px;align-items:center}
+.vside{background:var(--surface);border-left:1px solid var(--line);padding:18px;display:grid;gap:12px;align-content:start;overflow-y:auto}
+@media (max-width:900px){.viewer{grid-template-columns:1fr;height:auto}.vmain{min-height:60vh}}
+/* suivi */
+.suivirow{cursor:pointer}
+.suivirow:hover td{background:var(--hover)}
+.suivirow.alerte td.first{box-shadow:inset 3px 0 0 var(--bad)}
+.suividetail{display:flex;flex-wrap:wrap;gap:8px;white-space:normal!important;background:var(--bg)}
+.suividetail a{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:5px 9px;text-decoration:none;color:var(--ink);background:var(--surface);font-size:.84rem}
+/* divers */
+.aussi{border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:grid;gap:8px;font-size:.88rem}
+.aussi summary{cursor:pointer;color:var(--accent);font-weight:500}
+.agsel{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;color:var(--ink);max-width:100%}
+.weekbar{flex-wrap:wrap}
