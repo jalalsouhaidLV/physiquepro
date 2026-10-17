@@ -473,7 +473,9 @@ function itemsDuTheme(c, data, themeId){
   data.supports.filter(s => (s.theme_id ?? null) === themeId).forEach(s => items.push({k:"support", id:"s" + s.id, titre:s.titre, date:D(s.publie_le), s}));
   S.devoirs.filter(d => d.classe_id === c.id && (d.theme_id ?? null) === themeId).forEach(d => items.push({k:"devoir", q2:d.type === "question", id:"d" + d.id, titre:d.titre, date:D(d.publie_le), d}));
   S.quiz.filter(q => q.classe_id === c.id && (q.theme_id ?? null) === themeId).forEach(q => items.push({k:"quiz", id:"q" + q.id, titre:q.titre, date:D(q.publie_le), q}));
-  return items.sort((a, b) => b.date - a.date);
+  const pos = it => (it.s || it.d || it.q).position;
+  return items.sort((a, b) => { const pa = pos(a), pb = pos(b);
+    if (pa == null && pb == null) return b.date - a.date; if (pa == null) return -1; if (pb == null) return 1; return pa - pb; });
 }
 function workItem(it){
   const op = S.open === it.id, obj = it.s || it.d || it.q, draft = obj.brouillon, prog = !draft && D(obj.publie_le) > now();
@@ -503,6 +505,10 @@ function workItem(it){
   const menu = S.prof ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="i${it.id}" aria-label="Options">${icon("more")}</button>${S.menu === "i" + it.id ? `<div class="dd-menu">
       <a href="#/editer/${typ}/${rid}">${icon("edit")} Modifier</a>
       ${draft || prog ? `<a href="#" data-act="publier" data-k="${it.k}" data-id="${rid}">${icon("check")} Publier maintenant</a>` : ""}
+      <a href="#" data-act="moveitem" data-wk="${it.k}:${rid}" data-to="first">${icon("up")} Placer en premier</a>
+      <a href="#" data-act="moveitem" data-wk="${it.k}:${rid}" data-to="-1">${icon("up")} Monter</a>
+      <a href="#" data-act="moveitem" data-wk="${it.k}:${rid}" data-to="1">${icon("down")} Descendre</a>
+      <a href="#" data-act="moveitem" data-wk="${it.k}:${rid}" data-to="last">${icon("down")} Placer en dernier</a>
       <a href="#" data-act="dupliquer" data-k="${it.k}" data-id="${rid}">${icon("copy")} Dupliquer</a>
       <a href="#" data-act="reutiliser" data-k="${it.k}" data-id="${rid}">${icon("reuse")} Réutiliser dans un autre cours</a>
       <a href="#" data-act="suppr" data-k="${it.k}" data-id="${rid}" data-titre="${esc(it.titre)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : "";
@@ -1766,7 +1772,8 @@ function dtDebut(){
   DT.dx = DT.x0 - r.left; DT.dy = DT.y0 - r.top; g.style.left = r.left + "px"; g.style.top = r.top + "px";
   document.body.appendChild(g); DT.ghost = g; DT.on = true; DT.el.classList.add("dtph"); document.body.classList.add("dragging");
   if (DT.kind === "theme") document.querySelectorAll(".page section.theme").forEach(x => x.classList.add("compact"));
-  DT.depuis = DT.kind === "item" ? DT.el.closest("section.theme").dataset.tid : null; fermerMenus();
+  DT.depuis = DT.kind === "item" ? DT.el.closest("section.theme").dataset.tid : null;
+  DT.avant = DT.kind === "item" ? [...DT.el.closest("section.theme").querySelectorAll(".work[data-wk]")].map(x => x.dataset.wk).join() : null; fermerMenus();
 }
 function dtBouge(x, y){
   DT.ghost.style.left = (x - DT.dx) + "px"; DT.ghost.style.top = (y - DT.dy) + "px";
@@ -1811,11 +1818,20 @@ async function dtFin(annule){
     if (res.some(x => x.error)) toast("L'ordre des thèmes n'a pas pu être enregistré."); else toast("Thèmes réorganisés");
     delete S.cache[cid]; return render();
   }
-  const vers = el.closest("section.theme").dataset.tid;
-  if (vers === depuis) return render();
-  const [k, id] = el.dataset.wk.split(":"), table = k === "devoir" ? "devoirs" : k === "support" ? "supports" : "quiz";
-  const { error } = await sb.from(table).update({ theme_id: vers === "none" ? null : Number(vers) }).eq("id", id);
-  if (error) toast("Déplacement impossible : " + error.message); else toast(vers === "none" ? "Déplacé dans « Aucun thème »" : "Déplacé dans le thème");
+  const sec = el.closest("section.theme"), vers = sec.dataset.tid, wks = [...sec.querySelectorAll(".work[data-wk]")].map(x => x.dataset.wk);
+  if (vers === depuis && wks.join() === DT.avant) return render();
+  return ordonnerItems(cid, vers, wks, vers !== depuis ? el.dataset.wk : null);
+}
+/* enregistre l'ordre des éléments d'un thème (et le changement de thème éventuel) */
+async function ordonnerItems(cid, tid, wks, change){
+  const T = { devoir: "devoirs", support: "supports", quiz: "quiz" }, theme = tid === "none" ? null : Number(tid);
+  const trouve = (k, id) => k === "devoir" ? S.devoirs.find(x => String(x.id) === id) : k === "quiz" ? S.quiz.find(x => String(x.id) === id) : ((S.cache[cid] || {}).supports || []).find(x => String(x.id) === id);
+  wks.forEach((w, n) => { const [k, id] = w.split(":"), o = trouve(k, id); if (o) { o.position = n + 1; if (w === change) o.theme_id = theme; } });
+  render();
+  const res = await Promise.all(wks.map((w, n) => { const [k, id] = w.split(":"), row = { position: n + 1 }; if (w === change) row.theme_id = theme; return sb.from(T[k]).update(row).eq("id", id); }));
+  const err = res.find(x => x.error);
+  if (err) toast(/position/.test(err.error.message) ? "Mise à jour de la base nécessaire (étape 12)." : "Déplacement impossible : " + err.error.message);
+  else toast(change ? (tid === "none" ? "Déplacé dans « Aucun thème »" : "Déplacé dans le thème") : "Ordre enregistré");
   await rafraichir(cid); render();
 }
 document.addEventListener("pointerdown", e => {
@@ -2560,6 +2576,10 @@ document.addEventListener("click", async e => {
       if (i < 0) return render();
       const j = a.dataset.to != null ? Math.min(Number(a.dataset.to), th.length - 1) : i + Number(a.dataset.dir);
       return placerTheme(a.dataset.c, a.dataset.id, j); }
+    case "moveitem": { e.preventDefault(); S.menu = null; const sec = a.closest("section.theme"), wks = [...sec.querySelectorAll(".work[data-wk]")].map(x => x.dataset.wk), i = wks.indexOf(a.dataset.wk);
+      if (i < 0) return render();
+      wks.splice(i, 1); const t = a.dataset.to, j = t === "first" ? 0 : t === "last" ? wks.length : Math.max(0, Math.min(wks.length, i + Number(t)));
+      wks.splice(j, 0, a.dataset.wk); return ordonnerItems(r.a, sec.dataset.tid, wks); }
     case "placertheme": { e.preventDefault(); S.menu = null; await chargerClasse(a.dataset.c); S.modal = {kind:"placertheme", id:a.dataset.id, titre:a.dataset.titre, classe:a.dataset.c}; render(); return; }
     case "suppr": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"suppr", k:a.dataset.k, id:a.dataset.id, classe:r.a, titre:"Supprimer « " + a.dataset.titre + " » ?", texte:a.dataset.k === "devoir" ? "Les travaux rendus par les élèves, leurs notes et les commentaires privés de ce devoir seront aussi supprimés. Cette action est définitive." : a.dataset.k === "quiz" ? "Les réponses des élèves seront aussi supprimées. Cette action est définitive." : "Cette action est définitive."}; render(); return;
     case "publier": { e.preventDefault(); S.menu = null; const table = a.dataset.k === "devoir" ? "devoirs" : a.dataset.k === "support" ? "supports" : "quiz";
