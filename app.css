@@ -757,3 +757,37 @@ sup,sub{line-height:0;font-size:.75em}
 .btn.tonal,.wklink{white-space:nowrap}@media (max-width:600px){.btn.tonal{padding:8px 16px}}
 .foot.headband{border-top:0;border-bottom:1px solid var(--line);padding:0 0 14px}
 @media (max-width:600px){.foot.headband{font-size:.72rem;gap:8px}.foot.headband img{max-height:34px}}
+/* ---- correctifs téléphone (audit) ---- */
+.settings>*,.edcard>*,.edmain>*{min-width:0}
+.edtop h1{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edtop .split>.btn:first-child{white-space:nowrap}
+@media (max-width:600px){
+  .edtop{gap:6px;padding-right:8px}
+  .edtop h1{font-size:1.1rem}
+  .edtop .ico{display:none}
+  .edtop .lbl{display:none}
+  .edtop .btn{padding-inline:12px}
+  .edtop .split>.caret{padding-inline:8px}
+  .edcard{padding:16px}
+  .edcard .two,.settings .two{grid-template-columns:minmax(0,1fr)}
+}
+@media (pointer:coarse){.ib.sm{min-width:36px;min-height:36px}}
+.page>.headband,.page>.foot{grid-column:1/-1}
+.dv>*{grid-template-columns:minmax(0,1fr);min-width:0}
+.dvhead h1{overflow-wrap:anywhere;white-space:normal}
+.yourwork,.yourwork>*{min-width:0}
+.dvbody,.dvbody>*,.workd .att,.post .att{min-width:0;max-width:100%}
+@media (max-width:600px){.dvbody{padding-left:0}}
+/* ---- téléphone : barre du haut, onglets, bandeau (audit) ---- */
+.tabsbar .tabs{min-width:0;scrollbar-width:none}
+.tabsbar .tabs::-webkit-scrollbar{display:none}
+@media (max-width:600px){
+  .tabs a,.tabs button{padding:14px 10px 11px;font-size:.88rem}
+  .topbar .brand b{display:none}
+  .quick{max-width:calc(100vw - 236px)}
+  .quick a{min-width:40px;padding:4px 3px}
+  .quick .ql{display:none}
+  .foot.headband{padding-bottom:10px}
+  .foot.headband .logos,.foot.headband img{display:none}
+  .page{gap:18px}
+}
