@@ -241,3 +241,56 @@ tr.avg td{background:var(--surface-2);font-weight:600}
 .emptystate b{color:var(--ink)}
 .ccard .banner .teacher{max-width:70%}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* ---- étape 2 : création de contenu ---- */
+.workrow{display:flex;align-items:center;gap:4px}
+.workrow>button{display:flex;align-items:center;gap:16px;flex:1;min-width:0;padding:10px 8px;background:none;border:0;cursor:pointer;text-align:left;border-radius:8px;color:inherit}
+.workrow>button:hover{background:var(--hover)}
+.work.isdraft .ico{opacity:.55}
+.dt.draft{font-style:italic;color:var(--muted)}
+.kebab .dd-menu{min-width:220px}
+.dd-menu a{align-items:center}
+.dd-menu a svg.i{width:18px;height:18px;margin-right:4px}
+.dd-menu a small{margin-left:auto}
+.themehead{display:flex;align-items:flex-end;gap:8px;border-bottom:1px solid var(--c);margin-bottom:4px}
+.themehead h2{flex:1;font-size:1.6rem;color:var(--c);padding-bottom:10px;font-weight:500;margin:0}
+.theme>.themehead+*{margin-top:0}
+.createbar{display:flex}
+.createbar .dd-menu{top:calc(100% + 6px)}
+.bigbanner{position:relative}
+.bigbanner .custom{position:absolute;top:16px;right:16px;z-index:2}
+.btn.danger{background:var(--bad);color:#FFFFFF}
+.ib.sm{width:34px;height:34px;border-radius:6px;font-size:.95rem;color:var(--ink)}
+.richtext{line-height:1.6}
+.richtext ul,.richtext ol{margin:.3em 0;padding-left:1.4em}
+.richtext p,.richtext div{margin:0}
+
+/* éditeur plein écran */
+.edtop{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;min-height:64px;padding-block:8px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.edtop h1{font-size:1.4rem;font-weight:500}
+.split{display:flex}
+.split>.btn:first-child{border-radius:22px 0 0 22px}
+.split>.caret{border-radius:0 22px 22px 0;padding:9px 12px;border-left:1px solid rgba(255,255,255,.35)}
+.edgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:calc(100vh - 64px)}
+@media (max-width:860px){.edgrid{grid-template-columns:minmax(0,1fr)}}
+.edmain{padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;display:grid;gap:20px;align-content:start;max-width:900px;width:100%;margin:0 auto}
+.edside{background:var(--surface);border-left:1px solid var(--line);padding:28px max(20px,env(safe-area-inset-right,0px)) 48px 20px;display:grid;gap:18px;align-content:start}
+@media (max-width:860px){.edside{border-left:0;border-top:1px solid var(--line);padding-left:max(16px,env(safe-area-inset-left,0px))}}
+.edcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:grid;gap:16px}
+.edcard h3{font-size:1rem;font-weight:600}
+.edcard .field input{font-size:1.05rem;padding:12px 14px}
+.rte{border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden}
+.rtebody{min-height:130px;padding:12px 14px;outline:none;line-height:1.6}
+.rtebody:empty::before{content:"Ajoute les consignes pour les élèves…";color:var(--muted)}
+.rtebody ul{margin:.3em 0;padding-left:1.4em}
+.rtebar{display:flex;gap:2px;border-top:1px solid var(--line);padding:4px 6px;background:var(--surface)}
+.joindre{display:flex;flex-wrap:wrap;gap:20px;justify-content:center}
+.joindre button{background:none;border:0;cursor:pointer;display:grid;justify-items:center;gap:8px;font-size:.85rem;color:var(--ink)}
+.jic{width:52px;height:52px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;background:var(--surface);font-size:1.1rem}
+.joindre button:hover .jic{border-color:var(--accent);background:var(--accent-soft)}
+.linkform{border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:10px;background:var(--bg)}
+
+/* fenêtres */
+.modalbg{position:fixed;inset:0;background:rgba(5,15,20,.45);z-index:50}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:51;background:var(--surface);border-radius:12px;padding:24px;width:min(460px,calc(100% - 32px));display:grid;gap:14px;box-shadow:var(--shadow);max-height:calc(100vh - 48px);overflow-y:auto}
+.modal h2{font-size:1.25rem}

@@ -24,6 +24,9 @@ const dueTxt = d => {
   const y = new Date(t); y.setDate(t.getDate() + 1); if (sameDay(d, y)) return "Demain, " + fmtT(d);
   return "Échéance : " + fmtD(d) + ", " + fmtT(d);
 };
+const ouvert = d => !d.date_limite || D(d.date_limite) > now();
+const dueOf = d => d.date_limite ? dueTxt(D(d.date_limite)) : "Aucune date limite";
+const pts = d => d.points == null ? "Non noté" : d.points + " points";
 let toastT;
 const toast = m => { const t = document.getElementById("toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); };
 
@@ -38,7 +41,11 @@ const IC = {
   quiz:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14"/><path d="M12 17.5h.01"/>',
   folder:'<path d="M3 7h6l2 2h10v10H3z"/>', grade:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   left:'<path d="M15 6l-6 6 6 6"/>', right:'<path d="M9 6l6 6-6 6"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
-  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>', logout:'<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>'
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>', plus:'<path d="M12 5v14M5 12h14"/>',
+  more:'<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>', theme:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 10v9"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>', trash:'<path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', up:'<path d="M12 19V5M6 11l6-6 6 6"/>', down:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+  upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>', attach:'<path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>', logout:'<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>'
 };
 const icon = (k, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
 const logoSVG = `<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="28" height="28" rx="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M6 20 Q10 6 15 15 T24 10" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/><circle cx="24" cy="10" r="2.4" fill="var(--accent)"/></svg>`;
@@ -60,7 +67,7 @@ const S = {
   drawer: window.innerWidth >= 1100, dd:false, open:null, todoTab:"attribues", week:0,
   pick:new Set(), compose:false, cSub:"", cBody:""
 };
-const route = () => { const h = location.hash.replace(/^#\/?/, "").split("/"); return {v: h[0] || "accueil", a: h[1] || null, t: h[2] || null}; };
+const route = () => { const h = location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent); return {v: h[0] || "accueil", a: h[1] || null, t: h[2] || null, x: h[3] || null}; };
 const go = hash => { location.hash = hash; };
 
 /* ---------- connexion ---------- */
@@ -130,13 +137,13 @@ function etat(d, email){
   const r = renduDe(d, email), c = correctionDe(r);
   if (r && c && c.publiee) return {t:"Noté", k:"ok", note:c.note};
   if (r) return {t:"Rendu", k:"info"};
-  return D(d.date_limite) < now() ? {t:"Manquant", k:"bad"} : {t:"Attribué", k:""};
+  return !ouvert(d) ? {t:"Manquant", k:"bad"} : {t:"Attribué", k:""};
 }
 
 /* ---------- coque ---------- */
 function topbar(r){
   let crumb = "";
-  const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : null;
+  const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : r.v === "editer" && S.ed ? cls(S.ed.classe_id) : null;
   if (c) crumb = `<span class="sep">›</span><span class="cur">${esc(c.nom)}</span>`;
   return `<header class="topbar">
     <button class="ib" data-act="drawer" aria-label="Menu principal">${icon("menu")}</button>
@@ -171,12 +178,12 @@ function vAccueil(){
     let body;
     if (S.prof) {
       const ac = dv.reduce((a, d) => a + aCorriger(d), 0);
-      const next = dv.filter(d => D(d.date_limite) > now()).slice(0, 2);
+      const next = dv.filter(d => d.date_limite && ouvert(d)).slice(0, 2);
       body = `${ac ? `<span><b>${ac}</b> rendu${ac > 1 ? "s" : ""} à corriger</span>` : `<span class="due">Rien à corriger</span>`}
-        ${next.map(d => `<span class="due">${dueTxt(D(d.date_limite))}</span><a href="#/devoir/${d.id}" style="color:var(--ink);text-decoration:none">${esc(d.titre)}</a>`).join("")}`;
+        ${next.map(d => `<span class="due">${dueOf(d)}</span><a href="#/devoir/${d.id}" style="color:var(--ink);text-decoration:none">${esc(d.titre)}</a>`).join("")}`;
     } else {
-      const due = dv.filter(d => D(d.date_limite) > now() && !renduDe(d, moi())).slice(0, 3);
-      body = due.length ? due.map(d => `<span class="due">${dueTxt(D(d.date_limite))}</span><a href="#/devoir/${d.id}" style="color:var(--ink);text-decoration:none">${esc(d.titre)}</a>`).join("") : `<span class="due">Aucun travail à rendre bientôt</span>`;
+      const due = dv.filter(d => ouvert(d) && !d.brouillon && !renduDe(d, moi())).slice(0, 3);
+      body = due.length ? due.map(d => `<span class="due">${dueOf(d)}</span><a href="#/devoir/${d.id}" style="color:var(--ink);text-decoration:none">${esc(d.titre)}</a>`).join("") : `<span class="due">Aucun travail à rendre bientôt</span>`;
     }
     return `<article class="ccard" style="--bb:var(${k.b})">
       <div style="position:relative">
@@ -198,7 +205,9 @@ function classTabs(c, tab){
 }
 function ressources(list){
   if (!list || !list.length) return "";
-  return `<div class="att">${list.map(r => `<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="k">${esc(r.type || "lien")}</span>${esc(r.label || r.url)}</a>`).join("")}</div>`;
+  return `<div class="att">${list.map(r => r.path
+    ? `<a href="#" data-act="openfile" data-path="${esc(r.path)}"><span class="k">${esc(r.type || "fichier")}</span>${esc(r.label || r.path)}</a>`
+    : `<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="k">${esc(r.type || "lien")}</span>${esc(r.label || r.url)}</a>`).join("")}</div>`;
 }
 function itemsDuTheme(c, data, themeId){
   const items = [];
@@ -211,18 +220,26 @@ function workItem(it){
   const op = S.open === it.id; let right = "", detail = "";
   if (it.k === "support") {
     right = `<span class="dt">Publié le ${fmtShort(it.date)}</span>`;
-    detail = `${it.s.description ? `<div>${esc(it.s.description)}</div>` : ""}${ressources(it.s.ressources) || `<span class="muted">Aucun fichier joint.</span>`}`;
+    detail = `${it.s.description ? `<div class="richtext">${rich(it.s.description)}</div>` : ""}${ressources(it.s.ressources) || `<span class="muted">Aucun fichier joint.</span>`}`;
   } else if (it.k === "devoir") {
-    const d = it.d, dl = D(d.date_limite);
-    right = S.prof ? `<span class="dt">${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : dueTxt(dl).replace("Échéance : ", "")}</span>`;
-    detail = `<div class="row muted">Publié le ${fmtShort(it.date)} · ${d.mode === "binome" ? "un rendu par binôme" : "individuel"} · ${d.points} points</div>${d.consigne ? `<div>${esc(d.consigne)}</div>` : ""}
+    const d = it.d;
+    right = S.prof ? `<span class="dt">${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : dueOf(d).replace("Échéance : ", "")}</span>`;
+    detail = `<div class="row muted">Publié le ${fmtShort(it.date)} · ${d.mode === "binome" ? "un rendu par binôme" : "individuel"} · ${pts(d)}</div>${d.consigne ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}
       <div class="row">${S.prof ? "" : `<span class="pill ${etat(d, moi()).k}">${etat(d, moi()).t}</span>`}<span style="flex:1"></span><a class="btn ghost sm" href="#/devoir/${d.id}" style="text-decoration:none">${S.prof ? "Voir les travaux" : "Afficher le devoir"}</a></div>`;
   } else {
     const q = it.q;
     right = `<span class="dt">${q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : "Entraînement"}</span>`;
     detail = `<div class="row muted">${q.mode === "note" ? "Quiz noté, une seule tentative" : "Entraînement, recommençable"}</div>${bientot("Les quiz arrivent à une prochaine étape.")}`;
   }
-  return `<div class="work"><button data-act="toggle" data-id="${it.id}" aria-expanded="${op}"><span class="ico ${it.k === "support" ? "pale" : ""}">${icon(it.k, "")}</span><span class="tt">${esc(it.titre)}</span>${right}</button>${op ? `<div class="workd">${detail}</div>` : ""}</div>`;
+  const obj = it.s || it.d || it.q, draft = obj.brouillon, prog = !draft && D(obj.publie_le) > now();
+  if (S.prof && draft) right = `<span class="dt draft">Brouillon</span>`;
+  else if (S.prof && prog) right = `<span class="dt draft">Programmé · ${fmtShort(D(obj.publie_le))} ${fmtT(D(obj.publie_le))}</span>`;
+  const typ = it.k === "support" ? "documentation" : it.k, rid = it.id.slice(1);
+  const menu = S.prof && it.k !== "quiz" ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="i${it.id}" aria-label="Options">${icon("more")}</button>${S.menu === "i" + it.id ? `<div class="dd-menu">
+      <a href="#/editer/${typ}/${rid}">${icon("edit")} Modifier</a>
+      ${draft || prog ? `<a href="#" data-act="publier" data-k="${it.k}" data-id="${rid}">${icon("check")} Publier maintenant</a>` : ""}
+      <a href="#" data-act="suppr" data-k="${it.k}" data-id="${rid}" data-titre="${esc(it.titre)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : "";
+  return `<div class="work${draft ? " isdraft" : ""}"><div class="workrow"><button data-act="toggle" data-id="${it.id}" aria-expanded="${op}"><span class="ico ${it.k === "support" ? "pale" : ""}">${icon(it.k, "")}</span><span class="tt">${esc(it.titre)}</span>${right}</button>${menu}</div>${op ? `<div class="workd">${detail}</div>` : ""}</div>`;
 }
 function vClasse(r, data){
   const c = cls(r.a); if (!c) return `<div class="page"><div class="emptystate"><b>Classe introuvable.</b><a href="#/">Retour à l'accueil</a></div></div>`;
@@ -240,18 +257,29 @@ function vClasse(r, data){
   } else if (tab === "notes" && S.prof) {
     inner = `<div class="page">${bientot("Le tableau des notes arrive à l'étape 4.")}${pageFoot()}</div>`;
   } else {
-    const up = S.devoirs.filter(d => d.classe_id === c.id && D(d.date_limite) > now() && (S.prof || !renduDe(d, moi()))).slice(0, 3);
-    const groupes = data.themes.map(t => ({titre:t.titre, items:itemsDuTheme(c, data, t.id)}));
-    const sansTheme = itemsDuTheme(c, data, null); if (sansTheme.length) groupes.push({titre:"Autres", items:sansTheme});
+    const up = S.devoirs.filter(d => d.classe_id === c.id && d.date_limite && ouvert(d) && !d.brouillon && (S.prof || !renduDe(d, moi()))).slice(0, 3);
+    const groupes = data.themes.map((t, i) => ({t, i, titre:t.titre, items:itemsDuTheme(c, data, t.id)}));
+    const sansTheme = itemsDuTheme(c, data, null); if (sansTheme.length) groupes.unshift({t:null, titre:"Sans thème", items:sansTheme});
+    const themeMenu = g => !S.prof || !g.t ? "" : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="t${g.t.id}" aria-label="Options du thème">${icon("more")}</button>${S.menu === "t" + g.t.id ? `<div class="dd-menu">
+      <a href="#" data-act="renomtheme" data-id="${g.t.id}" data-titre="${esc(g.t.titre)}">${icon("edit")} Renommer</a>
+      ${g.i > 0 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="-1" data-c="${esc(c.id)}">${icon("up")} Monter</a>` : ""}
+      ${g.i < data.themes.length - 1 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="1" data-c="${esc(c.id)}">${icon("down")} Descendre</a>` : ""}
+      <a href="#" data-act="supprtheme" data-id="${g.t.id}" data-titre="${esc(g.t.titre)}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer le thème</a></div>` : ""}</div>`;
+    const creer = !S.prof ? "" : `<div class="createbar"><div class="dd"><button class="btn" data-act="menu" data-m="create">${icon("plus")} Créer</button>${S.menu === "create" ? `<div class="dd-menu" style="left:0;right:auto">
+      <a href="#/editer/devoir/new/${esc(c.id)}">${icon("devoir")} Devoir</a>
+      <a href="#" data-act="bientot">${icon("quiz")} Questionnaire <small>bientôt</small></a>
+      <a href="#/editer/documentation/new/${esc(c.id)}">${icon("support")} Documentation</a>
+      <hr style="border:0;border-top:1px solid var(--line);margin:4px 0">
+      <a href="#" data-act="newtheme" data-c="${esc(c.id)}">${icon("theme")} Thème</a></div>` : ""}</div></div>`;
     inner = `<div class="page" style="--c:var(${k.c});--bb:var(${k.b})">
-      <div class="banner bigbanner"><span class="sym">${esc(c.symbole)}</span><h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span></div>
+      <div class="banner bigbanner"><span class="sym">${esc(c.symbole)}</span>${S.prof ? `<button class="btn ghost sm custom" data-act="perso" data-c="${esc(c.id)}">${icon("edit")} Personnaliser</button>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span></div>
       <div class="classgrid">
         <aside style="display:grid;gap:16px">
-          <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueTxt(D(d.date_limite)).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" style="color:var(--ink);text-decoration:none;font-weight:500">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à rendre bientôt.</span>`}<a class="linkbtn" href="#/todo" style="text-decoration:none">Tout afficher</a></div>
+          <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueOf(d).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" style="color:var(--ink);text-decoration:none;font-weight:500">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à rendre bientôt.</span>`}<a class="linkbtn" href="#/todo" style="text-decoration:none">Tout afficher</a></div>
           ${c.dossier_onedrive ? `<a class="btn ghost" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" style="text-decoration:none">${icon("folder")} Dossier OneDrive</a>` : ""}
         </aside>
-        <div style="display:grid;gap:32px;min-width:0">${groupes.length && groupes.some(g => g.items.length) ? groupes.map(g => `<section class="theme"><h2>${esc(g.titre)}</h2>${g.items.length ? g.items.map(workItem).join("") : `<p class="empty">Rien pour l'instant.</p>`}</section>`).join("")
-          : `<div class="emptystate"><b>Aucun travail pour l'instant.</b><span>${S.prof ? "La création de thèmes, supports et devoirs arrive à l'étape 2." : "Ton professeur n'a encore rien publié dans cette classe."}</span></div>`}</div>
+        <div style="display:grid;gap:32px;min-width:0">${creer}${groupes.length && (S.prof || groupes.some(g => g.items.length)) ? groupes.filter(g => S.prof || g.items.length).map(g => `<section class="theme"><div class="themehead"><h2>${esc(g.titre)}</h2>${themeMenu(g)}</div>${g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir ou une documentation à ce thème." : "Rien pour l'instant."}</p>`}</section>`).join("")
+          : `<div class="emptystate"><b>Aucun travail pour l'instant.</b><span>${S.prof ? "Commence par créer un thème (par exemple « Chapitre 1 »), puis ajoute des documentations et des devoirs." : "Ton professeur n'a encore rien publié dans cette classe."}</span></div>`}</div>
       </div>${pageFoot()}</div>`;
   }
   return classTabs(c, tab) + inner;
@@ -271,13 +299,13 @@ const outlookLink = (mails, sub, body) => "https://outlook.office.com/mail/deepl
 function vDevoir(r){
   const d = S.devoirs.find(x => String(x.id) === r.a);
   if (!d) return `<div class="page"><div class="emptystate"><b>Devoir introuvable.</b><a href="#/">Retour à l'accueil</a></div></div>`;
-  const c = cls(d.classe_id), k = C(c && c.couleur), dl = D(d.date_limite), e = S.prof ? null : etat(d, moi());
+  const c = cls(d.classe_id), k = C(c && c.couleur), e = S.prof ? null : etat(d, moi());
   return `<div class="page wide" style="--c:var(${k.c})"><div class="dv">
     <div style="display:grid;gap:16px;min-width:0">
       <div class="dvhead"><span class="ico">${icon("devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
         <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(CFG.prof.nom)} · ${fmtShort(D(d.publie_le))} · ${esc(c ? c.nom : "")}</div>
-        <div class="dvmeta"><b>${d.points} points</b><span>${dueTxt(dl)}</span></div></div></div>
-      <div style="padding-left:52px;display:grid;gap:14px">${d.consigne ? `<p style="margin:0;white-space:pre-line">${esc(d.consigne)}</p>` : ""}
+        <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
+      <div style="padding-left:52px;display:grid;gap:14px">${d.consigne ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}
         <p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un seul rendu par binôme : la note s'applique aux deux élèves." : "Travail individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>${ressources(d.ressources)}</div>
     </div>
     <aside><div class="yourwork"><header><h2>${S.prof ? "Travaux des élèves" : "Votre travail"}</h2>${e ? `<span class="pill ${e.k}">${e.t}${e.note != null ? " · " + fmtNote(e.note) + "/20" : ""}</span>` : `<span class="pill info">${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""}</span>`}</header>
@@ -290,7 +318,7 @@ function vTodo(){
   if (S.prof) {
     const parClasse = S.classes.map(c => ({c, ds:S.devoirs.filter(d => d.classe_id === c.id).slice().reverse()})).filter(x => x.ds.length);
     return `<div class="page"><h1 style="font-size:1.6rem">À corriger</h1>${parClasse.length ? `<div class="todo">${parClasse.map(({c, ds}) => `<section class="group" style="--c:var(${C(c.couleur).c})"><header><span style="color:var(--c)">${esc(c.nom)}</span><span class="muted mono">${ds.reduce((a, d) => a + aCorriger(d), 0)} à corriger</span></header>
-      ${ds.map(d => `<div class="work"><a href="#/devoir/${d.id}" style="display:flex;gap:16px;align-items:center;padding:12px 18px;text-decoration:none;color:inherit"><span class="ico">${icon("devoir", "")}</span><span class="tt">${esc(d.titre)}<br><small class="muted" style="font-weight:400">${dueTxt(D(d.date_limite))}</small></span><span class="stats" style="gap:18px"><div><b style="font-size:1.3rem">${aCorriger(d)}</b><small>À noter</small></div><div><b style="font-size:1.3rem">${rendusDe(d).length}</b><small>Rendus</small></div></span></a></div>`).join("")}</section>`).join("")}</div>` : `<div class="emptystate"><b>Aucun devoir pour l'instant.</b><span>Les devoirs que tu créeras apparaîtront ici avec le nombre de copies à corriger.</span></div>`}${pageFoot()}</div>`;
+      ${ds.map(d => `<div class="work"><a href="#/devoir/${d.id}" style="display:flex;gap:16px;align-items:center;padding:12px 18px;text-decoration:none;color:inherit"><span class="ico">${icon("devoir", "")}</span><span class="tt">${esc(d.titre)}<br><small class="muted" style="font-weight:400">${dueOf(d)}</small></span><span class="stats" style="gap:18px"><div><b style="font-size:1.3rem">${aCorriger(d)}</b><small>À noter</small></div><div><b style="font-size:1.3rem">${rendusDe(d).length}</b><small>Rendus</small></div></span></a></div>`).join("")}</section>`).join("")}</div>` : `<div class="emptystate"><b>Aucun devoir pour l'instant.</b><span>Les devoirs que tu créeras apparaîtront ici avec le nombre de copies à corriger.</span></div>`}${pageFoot()}</div>`;
   }
   const groups = {
     attribues: S.devoirs.filter(d => etat(d, moi()).t === "Attribué"),
@@ -299,7 +327,7 @@ function vTodo(){
   };
   const L = {attribues:"Attribués", manquants:"Manquants", termines:"Terminés"}, list = groups[S.todoTab];
   return `<div class="tabs" role="tablist" style="--c:var(--accent)">${Object.keys(L).map(k => `<button role="tab" aria-selected="${S.todoTab === k}" data-act="todotab" data-t="${k}">${L[k]} <span class="muted mono">${groups[k].length}</span></button>`).join("")}</div>
-  <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(d => { const c = cls(d.classe_id), e = etat(d, moi()); return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a href="#/devoir/${d.id}" style="display:flex;gap:16px;align-items:center;padding:12px 18px;text-decoration:none;color:inherit"><span class="ico">${icon("devoir", "")}</span><span class="tt">${esc(d.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${e.t === "Noté" ? `<span class="mono" style="color:var(--ink);font-size:.95rem">${fmtNote(e.note)}/20</span>` : e.t === "Rendu" ? "Rendu" : dueTxt(D(d.date_limite)).replace("Échéance : ", "")}</span></a></div>`; }).join("")
+  <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(d => { const c = cls(d.classe_id), e = etat(d, moi()); return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a href="#/devoir/${d.id}" style="display:flex;gap:16px;align-items:center;padding:12px 18px;text-decoration:none;color:inherit"><span class="ico">${icon("devoir", "")}</span><span class="tt">${esc(d.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${e.t === "Noté" ? `<span class="mono" style="color:var(--ink);font-size:.95rem">${fmtNote(e.note)}/20</span>` : e.t === "Rendu" ? "Rendu" : dueOf(d).replace("Échéance : ", "")}</span></a></div>`; }).join("")
     : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail manquant." : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
 }
 
@@ -307,7 +335,7 @@ function vTodo(){
 function vAgenda(){
   const t = now(), mon = new Date(t); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7) + S.week * 7);
   const days = [...Array(7)].map((_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
-  const evts = [...S.devoirs.map(d => ({d:D(d.date_limite), t:d.titre, c:cls(d.classe_id), href:"#/devoir/" + d.id})),
+  const evts = [...S.devoirs.filter(d => d.date_limite).map(d => ({d:D(d.date_limite), t:d.titre, c:cls(d.classe_id), href:"#/devoir/" + d.id})),
                 ...S.quiz.filter(q => q.date_limite).map(q => ({d:D(q.date_limite), t:"Quiz · " + q.titre, c:cls(q.classe_id), href:"#/classe/" + q.classe_id}))].filter(e => e.c);
   return `<div class="page wide"><div class="weekbar"><button class="ib" data-act="week" data-w="-1" aria-label="Semaine précédente">${icon("left")}</button><button class="ib" data-act="week" data-w="1" aria-label="Semaine suivante">${icon("right")}</button>
     <h2>${mon.toLocaleDateString("fr-FR", {day:"numeric", month:"short"})} – ${days[6].toLocaleDateString("fr-FR", {day:"numeric", month:"short", year:"numeric"})}</h2>${S.week ? `<button class="btn ghost sm" data-act="week" data-w="0">Cette semaine</button>` : ""}</div>
@@ -320,10 +348,208 @@ function vOutils(){
   return `<div class="page"><h1 style="font-size:1.6rem">Boîte à outils</h1>${CFG.outils.map(g => `<section class="theme" style="--c:var(--${esc(g.couleur)})"><h2>${esc(g.matiere)}</h2>${g.liens.map(([n, d, u]) => `<div class="work"><a href="${esc(u)}" target="_blank" rel="noopener" style="display:flex;gap:16px;align-items:center;padding:10px 8px;text-decoration:none;color:inherit;border-radius:8px"><span class="ico pale">${icon("links", "")}</span><span class="tt">${esc(n)}<br><small class="muted" style="font-weight:400">${esc(d)}</small></span><span class="muted">↗</span></a></div>`).join("")}</section>`).join("")}${pageFoot()}</div>`;
 }
 
+/* ---------- texte mis en forme (instructions) ---------- */
+function rich(html){
+  if (!html) return "";
+  if (!/[<>]/.test(html) || typeof DOMParser === "undefined") return esc(html).replace(/\n/g, "<br>");
+  const root = new DOMParser().parseFromString("<div>" + html + "</div>", "text/html").body.firstChild;
+  const ok = new Set(["B","STRONG","I","EM","U","UL","OL","LI","BR","P","DIV"]);
+  [...root.querySelectorAll("*")].reverse().forEach(el => {
+    if (["SCRIPT","STYLE","IFRAME","OBJECT"].includes(el.tagName)) el.remove();
+    else if (!ok.has(el.tagName)) el.replaceWith(...el.childNodes);
+    else [...el.attributes].forEach(a => el.removeAttribute(a.name));
+  });
+  return root.innerHTML;
+}
+
+/* ---------- éditeur (devoir / documentation) ---------- */
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const hm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
+const typeDeLien = (u, mode) => mode === "youtube" || /youtu\.?be/i.test(u) ? "YouTube" : mode === "onedrive" || /sharepoint\.com|onedrive|1drv\.ms/i.test(u) ? "OneDrive" : "Lien";
+const extType = n => { const e = (n.split(".").pop() || "").toUpperCase(); return e.length && e.length <= 5 ? e : "Fichier"; };
+const safeName = n => n.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_").slice(-80);
+
+async function initEditeur(r){
+  const type = r.a === "documentation" ? "documentation" : "devoir", key = location.hash;
+  if (S.ed && S.ed.key === key) return;
+  let rec = null, classe = r.x;
+  if (r.t !== "new") {
+    if (type === "devoir") rec = S.devoirs.find(d => String(d.id) === r.t);
+    else { for (const c of S.classes) { const data = await chargerClasse(c.id); rec = data.supports.find(x => String(x.id) === r.t); if (rec) break; } }
+    if (!rec) throw new Error("Élément introuvable.");
+    classe = rec.classe_id;
+  }
+  if (!cls(classe)) classe = (S.classes[0] || {}).id;
+  await chargerClasse(classe);
+  const lim = rec && rec.date_limite ? D(rec.date_limite) : (() => { const x = new Date(); x.setDate(x.getDate() + 7); x.setHours(23, 59, 0, 0); return x; })();
+  S.ed = { key, type, id: rec ? rec.id : null, classe_id: classe, titre: rec ? rec.titre : "",
+    html: rec ? (type === "devoir" ? rec.consigne : rec.description) || "" : "", ressources: rec ? (rec.ressources || []).slice() : [],
+    theme_id: rec && rec.theme_id ? String(rec.theme_id) : (S.edTheme || ""), points: rec ? (rec.points == null ? "none" : String(rec.points)) : "20",
+    hasDate: rec ? !!rec.date_limite : true, date: ymd(lim), heure: hm(lim), mode: rec ? rec.mode : "individuel", formats: rec ? rec.formats || "" : "",
+    publie: rec ? !rec.brouillon && D(rec.publie_le) <= now() : false, linkMode: null, uploaded: [], toDelete: [], busy: false, err: "" };
+  S.edTheme = null;
+}
+
+function vEditer(){
+  const e = S.ed, c = cls(e.classe_id), k = C(c && c.couleur), data = S.cache[e.classe_id] || {themes:[]};
+  const label = e.type === "devoir" ? "Devoir" : "Documentation";
+  const main = e.publie ? "Enregistrer" : e.type === "devoir" ? "Publier le devoir" : "Publier";
+  const lm = e.linkMode, lmLabel = {onedrive:"Lien de partage OneDrive", youtube:"Lien de la vidéo YouTube", lien:"Adresse du site"}[lm];
+  return `<div class="edtop" style="--c:var(${k.c})">
+    <button class="ib" data-act="edclose" aria-label="Fermer">${icon("x")}</button>
+    <span class="ico">${icon(e.type === "devoir" ? "devoir" : "support", "")}</span><h1>${label}</h1><span class="spacer"></span>
+    <div class="split dd"><button class="btn" data-act="edsave" data-mode="publish" ${e.busy ? "disabled" : ""}>${e.busy ? "Enregistrement…" : main}</button><button class="btn caret" data-act="menu" data-m="edsave" aria-label="Autres options" ${e.busy ? "disabled" : ""}>▾</button>
+      ${S.menu === "edsave" ? `<div class="dd-menu">${e.publie ? "" : `<a href="#" data-act="edprog">Programmer…</a>`}<a href="#" data-act="edsave" data-mode="draft">${e.publie ? "Repasser en brouillon" : "Enregistrer le brouillon"}</a></div>` : ""}</div>
+  </div>
+  <div class="edgrid" style="--c:var(${k.c})">
+    <div class="edmain">
+      ${e.err ? `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">${esc(e.err)}</div>` : ""}
+      <section class="edcard">
+        <div class="field"><label for="edTitre">Titre *</label><input id="edTitre" data-f="titre" value="${esc(e.titre)}" placeholder="${e.type === "devoir" ? "ex. Compte rendu du TP titrage" : "ex. Cours · Les acides et les bases"}"></div>
+        <div class="field"><label>${e.type === "devoir" ? "Instructions" : "Description"} <span class="muted">(facultatif)</span></label>
+          <div class="rte"><div id="edHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true">${rich(e.html)}</div>
+          <div class="rtebar">${[["bold","<b>G</b>","Gras"],["italic","<i>I</i>","Italique"],["underline","<u>S</u>","Souligné"],["insertUnorderedList","•≡","Liste à puces"],["removeFormat","✕","Effacer la mise en forme"]].map(([cmd, l, t]) => `<button class="ib sm" data-act="fmt" data-cmd="${cmd}" title="${t}" aria-label="${t}">${l}</button>`).join("")}</div></div></div>
+      </section>
+      <section class="edcard">
+        <h3>Joindre</h3>
+        <div class="joindre">
+          <button data-act="edlink" data-mode="onedrive"><span class="jic" style="color:#0364B8">${icon("folder")}</span>OneDrive</button>
+          <button data-act="edlink" data-mode="youtube"><span class="jic" style="color:#E62117">▶</span>YouTube</button>
+          <button data-act="edupload"><span class="jic">${icon("upload")}</span>Importer</button>
+          <button data-act="edlink" data-mode="lien"><span class="jic">${icon("links")}</span>Lien</button>
+        </div>
+        <input type="file" id="edFile" multiple hidden>
+        ${lm ? `<div class="linkform"><div class="field"><label for="edLinkUrl">${lmLabel}</label><input id="edLinkUrl" type="url" placeholder="https://…"></div>
+          <div class="field"><label for="edLinkLabel">Nom affiché <span class="muted">(facultatif)</span></label><input id="edLinkLabel" placeholder="ex. Fiche de TP"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="edlinkcancel">Annuler</button><button class="btn sm" data-act="edlinkadd">Ajouter</button></div>
+          ${lm === "onedrive" ? `<p class="muted" style="margin:0;font-size:.8rem">Dans OneDrive : clic droit sur le fichier, « Partager », « Copier le lien ». Vérifie que le lien est accessible aux personnes du lycée.</p>` : ""}</div>` : ""}
+        ${e.ressources.length ? `<ul class="files">${e.ressources.map((x, i) => `<li><span><span class="k mono muted" style="font-size:.7rem;text-transform:uppercase;margin-right:8px">${esc(x.type)}</span>${esc(x.label)}</span><button data-act="rmres" data-i="${i}" aria-label="Retirer ${esc(x.label)}">✕</button></li>`).join("")}</ul>` : ""}
+      </section>
+    </div>
+    <aside class="edside">
+      <div class="field"><label for="edClasse">Pour</label><select id="edClasse" data-f="classe_id" ${e.id ? "disabled" : ""}>${S.classes.map(x => `<option value="${esc(x.id)}" ${x.id === e.classe_id ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>
+      ${e.type === "devoir" ? `
+      <div class="field"><label for="edPoints">Points</label><select id="edPoints" data-f="points">${["20","10","100","none"].map(p => `<option value="${p}" ${e.points === p ? "selected" : ""}>${p === "none" ? "Non noté" : p}</option>`).join("")}</select></div>
+      <div class="field"><label for="edHasDate">Date limite</label><select id="edHasDate" data-f="hasDate"><option value="0" ${e.hasDate ? "" : "selected"}>Aucune date limite</option><option value="1" ${e.hasDate ? "selected" : ""}>Choisir une date</option></select>
+        ${e.hasDate ? `<div style="display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px"><input id="edDate" type="date" data-f="date" value="${e.date}" aria-label="Date"><input id="edHeure" type="time" data-f="heure" value="${e.heure}" aria-label="Heure"></div><span class="muted" style="font-size:.78rem">Le dépôt se fermera automatiquement à cette heure.</span>` : ""}</div>` : ""}
+      <div class="field"><label for="edTheme">Thème</label><select id="edTheme" data-f="theme_id"><option value="">Aucun thème</option>${data.themes.map(t => `<option value="${t.id}" ${String(t.id) === e.theme_id ? "selected" : ""}>${esc(t.titre)}</option>`).join("")}<option value="__new">+ Créer un thème…</option></select></div>
+      ${e.type === "devoir" ? `
+      <div class="field"><label for="edMode">Type de rendu</label><select id="edMode" data-f="mode"><option value="individuel" ${e.mode === "individuel" ? "selected" : ""}>Individuel</option><option value="binome" ${e.mode === "binome" ? "selected" : ""}>Un rendu par binôme</option></select></div>
+      <div class="field"><label for="edFormats">Formats attendus <span class="muted">(facultatif)</span></label><input id="edFormats" data-f="formats" value="${esc(e.formats)}" placeholder="PDF, photos, Python…"></div>` : ""}
+    </aside>
+  </div>`;
+}
+
+async function uploadFichiers(files){
+  const e = S.ed;
+  for (const f of files) {
+    if (f.size > 50 * 1024 * 1024) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans OneDrive et ajoute le lien."); continue; }
+    toast("Envoi de « " + f.name + " »…");
+    const path = e.classe_id + "/" + Date.now() + "-" + safeName(f.name);
+    const { error } = await sb.storage.from("documents").upload(path, f, { upsert: false });
+    if (error) { toast("Échec de l'envoi de « " + f.name + " » : " + error.message); continue; }
+    e.ressources.push({ type: extType(f.name), label: f.name, path }); e.uploaded.push(path);
+    toast("« " + f.name + " » ajouté");
+  }
+  render();
+}
+
+async function enregistrer(mode, programme){
+  const e = S.ed; e.err = "";
+  if (!e.titre.trim()) { e.err = "Donne un titre."; return render(); }
+  let limite = null;
+  if (e.type === "devoir" && e.hasDate) {
+    if (!e.date) { e.err = "Choisis la date limite, ou « Aucune date limite »."; return render(); }
+    limite = new Date(e.date + "T" + (e.heure || "23:59"));
+    if (mode !== "draft" && limite <= (programme || now())) { e.err = "La date limite doit être après la publication."; return render(); }
+  }
+  const row = { classe_id: e.classe_id, theme_id: e.theme_id ? Number(e.theme_id) : null, titre: e.titre.trim(), ressources: e.ressources };
+  if (e.type === "devoir") Object.assign(row, { consigne: e.html, date_limite: limite ? limite.toISOString() : null, mode: e.mode, formats: e.formats.trim(), points: e.points === "none" ? null : Number(e.points) });
+  else row.description = e.html;
+  if (mode === "draft") { row.brouillon = true; }
+  else if (mode === "schedule") { row.brouillon = false; row.publie_le = programme.toISOString(); }
+  else { row.brouillon = false; if (!e.publie) row.publie_le = now().toISOString(); }
+  e.busy = true; S.menu = null; render();
+  const table = e.type === "devoir" ? "devoirs" : "supports";
+  const q = e.id ? sb.from(table).update(row).eq("id", e.id) : sb.from(table).insert(row);
+  const { error } = await q;
+  if (error) { e.busy = false; e.err = "Enregistrement impossible : " + error.message; return render(); }
+  if (e.toDelete.length) await sb.storage.from("documents").remove(e.toDelete);
+  const classe = e.classe_id; S.ed = null; delete S.cache[classe];
+  await chargerTout();
+  toast(mode === "draft" ? "Brouillon enregistré" : mode === "schedule" ? "Publication programmée" : e.id ? "Modifications enregistrées" : (e.type === "devoir" ? "Devoir publié" : "Documentation publiée"));
+  go("/classe/" + classe);
+}
+
+/* ---------- fenêtres (thème, personnaliser, supprimer, programmer) ---------- */
+function vModal(){
+  const m = S.modal; let body = "", ok = "Enregistrer";
+  if (m.kind === "theme") { body = `<h2>${m.id ? "Renommer le thème" : "Ajouter un thème"}</h2><div class="field"><label for="mTitre">Nom du thème</label><input id="mTitre" value="${esc(m.titre || "")}" placeholder="ex. Chapitre 1 · Mouvements"></div>`; ok = m.id ? "Renommer" : "Ajouter"; }
+  else if (m.kind === "classe") { body = `<h2>Personnaliser la classe</h2>
+    <div class="field"><label for="mNom">Nom de la classe</label><input id="mNom" value="${esc(m.nom)}"></div>
+    <div class="field"><label for="mSection">Sous-titre</label><input id="mSection" value="${esc(m.section)}" placeholder="ex. Groupe 1 · 2026-2027"></div>
+    <div class="field"><label for="mSym">Symbole sur le bandeau <span class="muted">(3 caractères)</span></label><input id="mSym" maxlength="4" value="${esc(m.symbole)}"></div>
+    <div class="field"><label for="mDossier">Lien du dossier OneDrive de la classe <span class="muted">(facultatif)</span></label><input id="mDossier" type="url" value="${esc(m.dossier || "")}" placeholder="https://…sharepoint.com/…"></div>`; }
+  else if (m.kind === "prog") { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0);
+    body = `<h2>Programmer la publication</h2><p class="muted" style="margin:0">Les élèves verront cet élément à partir de cette date.</p><div style="display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px"><input id="mDate" type="date" value="${ymd(d)}" aria-label="Date"><input id="mHeure" type="time" value="08:00" aria-label="Heure"></div>`; ok = "Programmer"; }
+  else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = "Supprimer"; }
+  return `<div class="modalbg" data-act="mclose"></div><div class="modal" role="dialog" aria-modal="true">${body}${m.err ? `<div class="err">${esc(m.err)}</div>` : ""}
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="mclose">Annuler</button><button class="btn${m.kind === "confirm" ? " danger" : ""}" data-act="mok" ${m.busy ? "disabled" : ""}>${ok}</button></div></div>`;
+}
+async function modalOk(){
+  const m = S.modal, val = id => (document.getElementById(id) || {}).value || "";
+  const done = async (msg, classe) => { S.modal = null; if (classe) delete S.cache[classe]; await chargerTout(); toast(msg); render(); };
+  m.busy = true;
+  try {
+    if (m.kind === "theme") {
+      const t = val("mTitre").trim(); if (!t) { m.err = "Donne un nom au thème."; m.busy = false; return render(); }
+      if (m.id) { const { error } = await sb.from("themes").update({ titre: t }).eq("id", m.id); if (error) throw error; return done("Thème renommé", m.classe); }
+      const data = await chargerClasse(m.classe), ordre = data.themes.reduce((a, x) => Math.max(a, x.ordre), 0) + 1;
+      const { data: ins, error } = await sb.from("themes").insert({ classe_id: m.classe, titre: t, ordre }).select("id").single(); if (error) throw error;
+      if (m.fromEditor && S.ed) { delete S.cache[m.classe]; await chargerClasse(m.classe); S.ed.theme_id = String(ins.id); S.modal = null; toast("Thème ajouté"); return render(); }
+      return done("Thème ajouté", m.classe);
+    }
+    if (m.kind === "classe") {
+      const nom = val("mNom").trim(); if (!nom) { m.err = "Le nom de la classe est obligatoire."; m.busy = false; return render(); }
+      const dossier = val("mDossier").trim(); if (dossier && !/^https:\/\//.test(dossier)) { m.err = "Le lien OneDrive doit commencer par https://"; m.busy = false; return render(); }
+      const { error } = await sb.from("classes").update({ nom, section: val("mSection").trim(), symbole: val("mSym").trim() || m.symbole, dossier_onedrive: dossier || null }).eq("id", m.id); if (error) throw error;
+      return done("Classe mise à jour");
+    }
+    if (m.kind === "prog") {
+      const d = new Date(val("mDate") + "T" + (val("mHeure") || "08:00"));
+      if (isNaN(d) || d <= now()) { m.err = "Choisis une date dans le futur."; m.busy = false; return render(); }
+      S.modal = null; return enregistrer("schedule", d);
+    }
+    if (m.kind === "confirm") {
+      if (m.action === "suppr") {
+        const table = m.k === "devoir" ? "devoirs" : m.k === "support" ? "supports" : "quiz";
+        const rec = m.k === "devoir" ? S.devoirs.find(d => String(d.id) === m.id) : ((S.cache[m.classe] || {supports:[]}).supports.find(x => String(x.id) === m.id));
+        const { error } = await sb.from(table).delete().eq("id", m.id); if (error) throw error;
+        const paths = ((rec && rec.ressources) || []).filter(x => x.path).map(x => x.path); if (paths.length) await sb.storage.from("documents").remove(paths);
+        return done("Élément supprimé", m.classe);
+      }
+      if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
+    }
+  } catch (err) { m.busy = false; m.err = "Action impossible : " + (err.message || err); render(); }
+}
+
 /* ---------- rendu ---------- */
 let renderId = 0;
 async function render(){
   const id = ++renderId, r = route();
+  const modal = S.modal ? vModal() : "";
+  if (r.v === "editer") {
+    if (!S.prof) { go("/"); return; }
+    try { await initEditeur(r); } catch (e) { app.innerHTML = `<div class="page"><div class="emptystate"><b>Impossible d'ouvrir l'éditeur.</b><span>${esc(e.message || e)}</span><a href="#/">Retour à l'accueil</a></div></div>`; return; }
+    if (id !== renderId) return;
+    const foc = document.activeElement && document.activeElement.id;
+    app.innerHTML = vEditer() + (S.modal ? vModal() : "");
+    const fi = document.getElementById("edFile"); if (fi) fi.onchange = () => { uploadFichiers([...fi.files]); fi.value = ""; };
+    if (S.modal) { const f = document.querySelector(".modal input"); if (f) f.focus(); }
+    else if (foc && document.getElementById(foc) && foc !== "edHtml") document.getElementById(foc).focus();
+    return;
+  }
   let content;
   try {
     if (r.v === "classe") {
@@ -333,14 +559,15 @@ async function render(){
       content = vClasse(r, data);
     } else content = ({agenda:vAgenda, todo:vTodo, outils:vOutils, devoir:vDevoir})[r.v]?.(r) ?? vAccueil();
   } catch (e) { content = `<div class="page"><div class="emptystate"><b>Impossible de charger cette page.</b><span>${esc(e.message || e)}</span><button class="btn ghost" data-act="reload">Réessayer</button></div></div>`; }
-  app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>`;
+  app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + modal;
+  if (S.modal) { const f = document.querySelector(".modal input"); if (f) f.focus(); }
 }
 
 /* ---------- événements ---------- */
 document.addEventListener("click", async e => {
   const a = e.target.closest("[data-act]");
   if (!a) {
-    if ((S.dd || S.me) && !e.target.closest(".dd")) { S.dd = false; S.me = false; render(); }
+    if ((S.dd || S.me || S.menu) && !e.target.closest(".dd")) { S.dd = false; S.me = false; S.menu = null; render(); }
     if (S.drawer && window.innerWidth < 1100 && e.target.closest(".drawer a")) S.drawer = false;
     return;
   }
@@ -358,14 +585,61 @@ document.addEventListener("click", async e => {
     case "pickall": { const el = (S.cache[a.dataset.c] || {eleves:[]}).eleves, all = el.every(x => S.pick.has(x.email)); S.pick = all ? new Set() : new Set(el.map(x => x.email)); if (!S.pick.size) S.compose = false; render(); return; }
     case "compose": S.compose = true; render(); return;
     case "closecompose": S.compose = false; S.cSub = ""; S.cBody = ""; render(); return;
+    case "menu": e.preventDefault(); S.menu = S.menu === a.dataset.m ? null : a.dataset.m; render(); return;
+    case "bientot": e.preventDefault(); S.menu = null; render(); toast("Les questionnaires arrivent à une prochaine étape."); return;
+    case "newtheme": e.preventDefault(); S.menu = null; S.modal = {kind:"theme", classe:a.dataset.c}; render(); return;
+    case "renomtheme": e.preventDefault(); S.menu = null; S.modal = {kind:"theme", id:a.dataset.id, titre:a.dataset.titre, classe:route().a}; render(); return;
+    case "supprtheme": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"supprtheme", id:a.dataset.id, classe:a.dataset.c, titre:"Supprimer le thème « " + a.dataset.titre + " » ?", texte:"Les devoirs et documentations de ce thème ne sont pas supprimés : ils passent dans « Sans thème »."}; render(); return;
+    case "suppr": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"suppr", k:a.dataset.k, id:a.dataset.id, classe:route().a, titre:"Supprimer « " + a.dataset.titre + " » ?", texte:a.dataset.k === "devoir" ? "Les travaux rendus par les élèves et leurs notes pour ce devoir seront aussi supprimés. Cette action est définitive." : "Cette action est définitive."}; render(); return;
+    case "movetheme": { e.preventDefault(); S.menu = null; const cid = a.dataset.c, th = (await chargerClasse(cid)).themes.slice(), i = th.findIndex(t => String(t.id) === a.dataset.id), j = i + Number(a.dataset.dir);
+      if (i < 0 || j < 0 || j >= th.length) return render();
+      [th[i], th[j]] = [th[j], th[i]];
+      const res = await Promise.all(th.map((t, n) => sb.from("themes").update({ ordre: n + 1 }).eq("id", t.id)));
+      if (res.some(x => x.error)) toast("Déplacement impossible."); delete S.cache[cid]; render(); return; }
+    case "publier": { e.preventDefault(); S.menu = null; const table = a.dataset.k === "devoir" ? "devoirs" : a.dataset.k === "support" ? "supports" : "quiz";
+      const { error } = await sb.from(table).update({ brouillon: false, publie_le: now().toISOString() }).eq("id", a.dataset.id);
+      if (error) { toast("Publication impossible : " + error.message); return; }
+      delete S.cache[route().a]; await chargerTout(); render(); toast("Publié"); return; }
+    case "perso": { const c = cls(a.dataset.c); S.modal = {kind:"classe", id:c.id, nom:c.nom, section:c.section, symbole:c.symbole, dossier:c.dossier_onedrive}; render(); return; }
+    case "mclose": if (a.classList.contains("modalbg") && S.modal && S.modal.busy) return; S.modal = null; render(); return;
+    case "mok": modalOk(); return;
+    case "openfile": { e.preventDefault(); const w = window.open("about:blank", "_blank");
+      const { data, error } = await sb.storage.from("documents").createSignedUrl(a.dataset.path, 3600);
+      if (error || !data) { if (w) w.close(); toast("Fichier introuvable."); return; }
+      if (w) w.location = data.signedUrl; else location.href = data.signedUrl; return; }
+    case "fmt": e.preventDefault(); document.getElementById("edHtml").focus(); document.execCommand(a.dataset.cmd, false, null); S.ed.html = document.getElementById("edHtml").innerHTML; return;
+    case "edlink": S.ed.linkMode = a.dataset.mode; render(); setTimeout(() => { const u = document.getElementById("edLinkUrl"); if (u) u.focus(); }, 0); return;
+    case "edlinkcancel": S.ed.linkMode = null; render(); return;
+    case "edlinkadd": { const u = document.getElementById("edLinkUrl").value.trim(), l = document.getElementById("edLinkLabel").value.trim();
+      if (!/^https?:\/\//.test(u)) { toast("Colle une adresse qui commence par https://"); return; }
+      const t = typeDeLien(u, S.ed.linkMode); S.ed.ressources.push({ type: t, label: l || (t === "Lien" ? u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : t), url: u }); S.ed.linkMode = null; render(); return; }
+    case "edupload": document.getElementById("edFile").click(); return;
+    case "rmres": { const x = S.ed.ressources.splice(Number(a.dataset.i), 1)[0];
+      if (x && x.path) { if (S.ed.uploaded.includes(x.path)) { sb.storage.from("documents").remove([x.path]); S.ed.uploaded = S.ed.uploaded.filter(p => p !== x.path); } else S.ed.toDelete.push(x.path); }
+      render(); return; }
+    case "edprog": e.preventDefault(); S.menu = null; S.modal = {kind:"prog"}; render(); return;
+    case "edsave": e.preventDefault(); enregistrer(a.dataset.mode); return;
+    case "edclose": { const ed = S.ed; if (ed && ed.uploaded.length) sb.storage.from("documents").remove(ed.uploaded); const c = ed ? ed.classe_id : null; S.ed = null; if (c) go("/classe/" + c); else history.back(); return; }
     case "copymails": { const txt = [...S.pick].join("; "); try { navigator.clipboard.writeText(txt).then(() => toast("Adresses copiées"), () => toast(txt)); } catch (_) { toast(txt); } return; }
   }
 });
 document.addEventListener("input", e => {
+  if (S.ed && e.target.id === "edHtml") { S.ed.html = e.target.innerHTML; return; }
+  if (S.ed && e.target.dataset && e.target.dataset.f && e.target.tagName !== "SELECT") { S.ed[e.target.dataset.f] = e.target.value; return; }
   if (e.target.id === "cSub" || e.target.id === "cBody") { S[e.target.id] = e.target.value; const l = document.getElementById("olk"); if (l) l.href = outlookLink([...S.pick], S.cSub, S.cBody); }
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && (S.dd || S.me || (S.drawer && window.innerWidth < 1100))) { S.dd = false; S.me = false; if (window.innerWidth < 1100) S.drawer = false; render(); } });
-window.addEventListener("hashchange", () => { S.open = null; S.dd = false; S.me = false; S.compose = false; S.pick = new Set(); S.cSub = ""; S.cBody = ""; if (window.innerWidth < 1100) S.drawer = false; window.scrollTo(0, 0); render(); });
+document.addEventListener("change", async e => {
+  const t = e.target; if (!S.ed || !t.dataset || !t.dataset.f || t.tagName !== "SELECT") return;
+  const f = t.dataset.f, v = t.value;
+  if (f === "theme_id" && v === "__new") { t.value = S.ed.theme_id; S.modal = {kind:"theme", classe:S.ed.classe_id, fromEditor:true}; render(); return; }
+  if (f === "hasDate") { S.ed.hasDate = v === "1"; render(); return; }
+  if (f === "classe_id") { S.ed.classe_id = v; S.ed.theme_id = ""; await chargerClasse(v); render(); return; }
+  S.ed[f] = v;
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && S.modal && e.target.closest && e.target.closest(".modal") && e.target.tagName === "INPUT") { e.preventDefault(); modalOk(); return; }
+  if (e.key === "Escape" && S.modal) { S.modal = null; render(); return; } if (e.key === "Escape" && (S.dd || S.me || (S.drawer && window.innerWidth < 1100))) { S.dd = false; S.me = false; if (window.innerWidth < 1100) S.drawer = false; render(); } });
+window.addEventListener("hashchange", () => { if (route().v !== "editer") S.ed = null; S.menu = null; S.modal = null; S.open = null; S.dd = false; S.me = false; S.compose = false; S.pick = new Set(); S.cSub = ""; S.cBody = ""; if (window.innerWidth < 1100) S.drawer = false; window.scrollTo(0, 0); render(); });
 let lastW = window.innerWidth;
 window.addEventListener("resize", () => { const w = window.innerWidth; if ((lastW >= 1100) !== (w >= 1100)) { S.drawer = w >= 1100; if (S.profil) render(); } lastW = w; });
 
