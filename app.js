@@ -60,6 +60,7 @@ const IC = {
   reuse:'<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   file:'<path d="M6 3h8l4 4v14H6z"/>', expand:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
 };
+IC.bell = '<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>';
 IC.question = '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.6M12 17.2v.1"/>';
 IC.invite = '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5M19 8v6M16 11h6"/>';
 /* illustrations des bandeaux (dessins au trait, propres à PhysiquePro) */
@@ -224,6 +225,7 @@ function topbar(r){
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
     <span class="spacer"></span>
     <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    ${cloche()}
     <div class="dd"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
       ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
     <div class="dd"><button class="avatar" data-act="me" title="${esc(S.nom)}" style="border:0;cursor:pointer">${initials(S.nom)}</button>
@@ -241,7 +243,7 @@ function drawer(r){
     ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
     <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
-    ${S.prof ? `<a class="it" href="#/admin" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>` : ""}
+    <a class="it" href="#/admin/profil" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>
   </nav>${S.drawer && window.innerWidth < 1100 ? `<div class="scrim" data-act="drawer"></div>` : ""}`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
@@ -889,6 +891,7 @@ async function enregistrer(mode, programme){
     if (r2.error) { e.busy = false; e.err = "Les bonnes réponses n'ont pas pu être enregistrées : " + r2.error.message; e.id = data.id; return render(); }
   }
   if (e.toDelete.length) await sb.storage.from("documents").remove(e.toDelete);
+  if (mode === "schedule") progAjoute(e.type === "questionnaire" ? "quiz" : e.type === "documentation" ? "support" : "devoir", data.id);
   const classe = e.classe_id, nouveau = !e.id, typ = e.type; S.ed = null;
   await rafraichir(classe);
   toast(mode === "draft" ? "Brouillon enregistré" : mode === "schedule" ? "Publication programmée" : !nouveau ? "Modifications enregistrées" : ({devoir:"Devoir publié", questionnaire:"Questionnaire publié", documentation:"Documentation publiée", question:"Question publiée"})[typ]);
@@ -1242,8 +1245,8 @@ async function modalOk(){
   } catch (err) { stop("Action impossible : " + (err.message || err)); }
 }
 /* ---------- Paramètres de PhysiquePro (administration, prof uniquement) ---------- */
-const ADM_TABS = [["site", "Site"], ["cours", "Cours"], ["eleves", "Élèves"], ["fichiers", "Fichiers"], ["sauvegarde", "Sauvegarde"]];
-const admTab = r => ADM_TABS.some(([k]) => k === r.a) ? r.a : "site";
+const ADM_TABS = [["profil", "Profil et notifications"], ["site", "Site"], ["cours", "Cours"], ["eleves", "Élèves"], ["fichiers", "Fichiers"], ["sauvegarde", "Sauvegarde"]];
+const admTab = r => !S.prof ? "profil" : ADM_TABS.some(([k]) => k === r.a) ? r.a : "profil";
 const getPath = (o, p) => p.split(".").reduce((x, k) => x == null ? x : x[k], o);
 function setPath(o, p, v){ const ks = p.split("."), last = ks.pop(); const t = ks.reduce((x, k) => x[k], o); t[last] = v; }
 const sansAccent = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -1262,9 +1265,9 @@ function initAdm(){
 
 function vAdmin(r){
   const tab = admTab(r);
-  const head = `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs" role="tablist">${ADM_TABS.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/admin/${k}">${l}</a>`).join("")}</div></div>`;
-  const body = tab === "site" ? admSite() : tab === "cours" ? admCours() : tab === "eleves" ? admEleves() : tab === "fichiers" ? admFichiers() : admSauvegarde();
-  return head + `<div class="page wide adm"><div class="homehead"><h1>Paramètres de PhysiquePro</h1></div>${body}${pageFoot()}</div>`;
+  const head = `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs" role="tablist">${ADM_TABS.filter(([k]) => S.prof || k === "profil").map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/admin/${k}">${l}</a>`).join("")}</div></div>`;
+  const body = tab === "profil" ? admProfil() : tab === "site" ? admSite() : tab === "cours" ? admCours() : tab === "eleves" ? admEleves() : tab === "fichiers" ? admFichiers() : admSauvegarde();
+  return head + `<div class="page wide adm${tab === "profil" ? " crpage" : ""}"><div class="homehead"><h1>Paramètres</h1></div>${body}${pageFoot()}</div>`;
 }
 
 /* ----- onglet Site : identité, liens rapides, boîte à outils ----- */
@@ -1651,6 +1654,97 @@ document.addEventListener("pointermove", e => {
 document.addEventListener("touchmove", e => { if (DT.on) e.preventDefault(); }, { passive: false });
 document.addEventListener("pointerup", e => { if (DT.el && e.pointerId === DT.pid) dtFin(false); });
 document.addEventListener("pointercancel", () => { if (DT.el) dtFin(true); });
+/* ---------- notifications (cloche) et page Profil ---------- */
+const NOTIF_DEF = {
+  coms: [["coms", "Commentaires ajoutés à vos posts"], ["mention", "Commentaires dans lesquels vous êtes mentionné"], ["prives", "Commentaires privés sur les devoirs"]],
+  prof: [["rendus", "Nouveaux envois de devoirs d'élèves"], ["manquants", "Devoirs non rendus à la date limite"], ["programmes", "Publication d'un post programmé"]],
+  eleve: [["travaux", "Nouveaux devoirs, questions, questionnaires et documents"], ["notes", "Notes et travaux rendus par le professeur"], ["annonces", "Nouvelles annonces dans le flux"], ["echeances", "Travaux à rendre dans les 24 heures"]]
+};
+const prefs = () => (S.profil && S.profil.prefs) || {};
+const notifOn = k => prefs().bell !== false && prefs()[k] !== false;
+const coursOn = cid => !cid || !(prefs().cours_off || []).includes(cid);
+const vuLe = () => S.profil && S.profil.vu_le ? D(S.profil.vu_le) : new Date(now() - 7 * 864e5);
+function progListe(){ try { return JSON.parse(localStorage.getItem("pp_prog") || "[]"); } catch (_) { return []; } }
+function progAjoute(k, id){ try { const l = progListe().filter(x => x !== k + ":" + id); l.push(k + ":" + id); localStorage.setItem("pp_prog", JSON.stringify(l.slice(-50))); } catch (_) {} }
+
+async function chargerNotifs(){
+  if (!S.profil) return;
+  const vu = vuLe(), depuis = new Date(Math.max(+vu, now() - 30 * 864e5)).toISOString(), moiId = S.user.id;
+  const prenom = sansAccent((S.nom || "").split(/\s+/)[0]);
+  const reqs = [
+    sb.from("commentaires").select("id, annonce_id, auteur, auteur_nom, texte, cree_le, annonces(classe_id, auteur)").gt("cree_le", depuis).order("cree_le", { ascending: false }).limit(60),
+    sb.from("commentaires_prives").select("id, devoir_id, eleve_email, auteur, auteur_nom, texte, cree_le").gt("cree_le", depuis).order("cree_le", { ascending: false }).limit(60)
+  ];
+  if (S.prof) reqs.push(sb.from("rendus").select("id, devoir_id, auteur_email, rendu_le").gt("rendu_le", depuis).order("rendu_le", { ascending: false }).limit(80));
+  else reqs.push(sb.from("annonces").select("id, classe_id, auteur, auteur_nom, cree_le").gt("cree_le", depuis).limit(40), sb.from("supports").select("id, classe_id, titre, publie_le").gt("publie_le", depuis).limit(40));
+  const res = await Promise.all(reqs.map(p => Promise.resolve(p).catch(() => ({ data: [] }))));
+  const [co, cp] = res.map(r => (r && !r.error && r.data) || []);
+  const L = [], add = (k, date, titre, href, cid) => { if (notifOn(k) && coursOn(cid)) L.push({ k, date, titre, href, cid }); };
+  const dv = id => S.devoirs.find(d => d.id === id) || {};
+  co.filter(x => x.auteur !== moiId).forEach(x => { const a = x.annonces || {}, cid = a.classe_id, mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
+    if (mention) add("mention", D(x.cree_le), esc(x.auteur_nom) + " vous a mentionné dans un commentaire", "#/classe/" + cid + "/flux", cid);
+    else if (S.prof || a.auteur === moiId) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté " + (S.prof ? "une annonce" : "votre post"), "#/classe/" + cid + "/flux", cid); });
+  cp.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id); add("prives", D(x.cree_le), esc(x.auteur_nom) + " : commentaire privé sur « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
+  if (S.prof) {
+    ((res[2] && res[2].data) || []).forEach(x => { const d = dv(x.devoir_id); add("rendus", D(x.rendu_le), esc(nomDe(d.classe_id, x.auteur_email)) + (d.type === "question" ? " a répondu à « " : " a rendu « ") + esc(d.titre || "") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
+    S.devoirs.filter(d => !d.brouillon && d.date_limite && D(d.date_limite) > vu && D(d.date_limite) <= now()).forEach(d => {
+      const el = elevesDuDevoir(d, inscritsDe(d.classe_id)), n = el.filter(e => !renduDe(d, e.email)).length;
+      if (n) add("manquants", D(d.date_limite), n + " élève" + (n > 1 ? "s n'ont" : " n'a") + " pas rendu « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id); });
+    const prog = progListe(), restants = [];
+    prog.forEach(key => { const [k, id] = key.split(":"), o = k === "quiz" ? S.quiz.find(q => String(q.id) === id) : S.devoirs.find(d => String(d.id) === id);
+      if (o && !o.brouillon && D(o.publie_le) <= now()) add("programmes", D(o.publie_le), "Post programmé publié : « " + esc(o.titre) + " »", (k === "quiz" ? "#/quiz/" : "#/devoir/") + o.id, o.classe_id);
+      else if (o || k === "support") restants.push(key); });
+  } else {
+    const nouveaux = [...S.devoirs.map(d => ({ o: d, h: "#/devoir/" + d.id, l: d.type === "question" ? "Nouvelle question" : "Nouveau devoir" })), ...S.quiz.map(q => ({ o: q, h: "#/quiz/" + q.id, l: "Nouveau questionnaire" })),
+      ...((res[3] && res[3].data) || []).map(s => ({ o: s, h: "#/classe/" + s.classe_id + "/travaux", l: "Nouveau document" }))];
+    nouveaux.filter(x => D(x.o.publie_le) > vu && D(x.o.publie_le) <= now()).forEach(x => add("travaux", D(x.o.publie_le), x.l + " : « " + esc(x.o.titre) + " »", x.h, x.o.classe_id));
+    S.corrections.filter(c => c.publiee && c.modifie_le && D(c.modifie_le) > vu).forEach(c => { const r = S.rendus.find(x => x.id === c.rendu_id), d = r && dv(r.devoir_id);
+      if (d && d.id) add("notes", D(c.modifie_le), "Travail rendu : « " + esc(d.titre) + " »" + (c.note != null ? " · " + fmtNote(c.note) + "/" + d.points : ""), "#/devoir/" + d.id, d.classe_id); });
+    ((res[2] && res[2].data) || []).filter(a => a.auteur !== moiId).forEach(a => add("annonces", D(a.cree_le), esc(a.auteur_nom) + " a publié une annonce", "#/classe/" + a.classe_id + "/flux", a.classe_id));
+    S.devoirs.filter(d => d.date_limite && D(d.date_limite) > now() && D(d.date_limite) - now() < 864e5 && etat(d, moi()).t === "Attribué").forEach(d => add("echeances", D(d.date_limite), "À rendre " + dueTxt(D(d.date_limite)).toLowerCase() + " : « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id));
+  }
+  L.sort((a, b) => b.date - a.date);
+  S.notifs = L; S.nbNotifs = L.filter(x => x.k === "echeances" || x.date > vu).length;
+  majCloche();
+}
+function cloche(){
+  if (prefs().bell === false) return "";
+  const n = S.nbNotifs || 0, L = S.notifs || [];
+  return `<div class="dd bellwrap"><button class="ib" data-act="bell" title="Notifications" aria-label="Notifications${n ? " (" + n + " nouvelles)" : ""}" aria-expanded="${!!S.bell}">${icon("bell")}${n ? `<span class="badge">${n > 99 ? "99+" : n}</span>` : ""}</button>
+    ${S.bell ? `<div class="dd-menu bellmenu"><div class="bellhead"><b>Notifications</b>${n ? `<button class="linkbtn" data-act="toutlu">Tout marquer comme lu</button>` : ""}</div>
+      ${L.length ? `<div class="belllist">${L.slice(0, 40).map(x => { const c = cls(x.cid); return `<a href="${x.href}" class="${x.k === "echeances" || x.date > vuLe() ? "new" : ""}"><span class="ini" style="--bb:var(${C(c && c.couleur).b})">${esc(c ? (c.symbole || c.nom).slice(0, 3) : "•")}</span><span><span class="bt">${x.titre}</span><small class="muted">${esc(c ? c.nom : "")} · ${fmtQuand(x.date)}</small></span></a>`; }).join("")}</div>` : `<p class="muted" style="margin:8px 10px">Aucune nouvelle notification.</p>`}
+      <a class="bellfoot" href="#/admin/profil">${icon("gear")} Paramètres des notifications</a></div>` : ""}</div>`;
+}
+function majCloche(){ const w = document.querySelector(".bellwrap"); if (w) w.outerHTML = cloche(); }
+
+async function sauverPrefs(p){
+  S.profil.prefs = p;
+  const { error } = await sb.rpc("pp_prefs", { p });
+  if (error) toast("Paramètre non enregistré : " + error.message); else toast("Paramètre enregistré");
+  chargerNotifs();
+}
+
+/* page Profil et notifications (comme Paramètres de Classroom) */
+function admProfil(){
+  const P = prefs(), sw = (k, label) => `<label class="switch crsw"><span>${label}</span><input type="checkbox" data-pref="${k}" ${P[k] !== false ? "checked" : ""}${k !== "bell" && P.bell === false ? " disabled" : ""}><i aria-hidden="true"></i></label>`;
+  const off = P.cours_off || [];
+  return `<section class="edcard crcard"><h2 class="crbig">Profil</h2>
+      <div class="crrow"><b>Photo de profil</b><div class="who2">${avatarP(S.nom, "lg")}<a class="linkbtn" href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Modifier</a></div></div>
+      <div class="crrow"><b>Paramètres du compte</b><span>Modifiez le mot de passe et les options de sécurité de votre compte Microsoft 365 du lycée. <a href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Gérer</a></span></div>
+      <div class="crrow"><b>Changer de nom</b>${S.prof ? `<div class="two" style="align-items:end"><div class="field"><label for="pfNom">Nom affiché aux élèves</label><input id="pfNom" value="${esc(R().prof.nom)}"></div><div><button class="btn sm" data-act="savenom">Enregistrer</button></div></div>`
+        : `<span>Ton nom (${esc(S.nom)}) est indiqué par ton professeur. S'il y a une erreur, écris-lui.</span>`}</div>
+      <div class="crrow"><b>Adresse</b><span class="muted">${esc(moi())}</span></div>
+    </section>
+    <section class="edcard crcard"><h2 class="crbig">Notifications</h2>
+      <h3 class="crsub">Dans PhysiquePro</h3>
+      <p class="muted" style="margin:0">Ces paramètres s'appliquent aux notifications de la cloche ${icon("bell")} en haut de chaque page. PhysiquePro n'envoie pas d'e-mails automatiques : la cloche les remplace.</p>
+      ${sw("bell", "Autoriser les notifications")}
+      <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, l)).join("")}
+      <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Cours dont vous êtes élève"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
+      <details class="crdet"><summary><span><b>Notifications de cours</b><small class="muted">Ces paramètres s'appliquent aux notifications pour chaque cours</small></span>${icon("down")}</summary>
+        ${actives().map(c => `<label class="switch crsw"><span class="who2"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span>${esc(c.nom)}</span><input type="checkbox" data-prefc="${esc(c.id)}" ${off.includes(c.id) ? "" : "checked"}><i aria-hidden="true"></i></label>`).join("")}</details>
+    </section>`;
+}
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -1686,7 +1780,7 @@ async function render(){
       if (id !== renderId) return;
       content = vQuiz(r);
     } else if (r.v === "admin") {
-      if (!S.prof) { go("/"); return; }
+      if (!S.prof && r.a !== "profil") { go("/admin/profil"); return; }
       if (admTab(r) === "fichiers" && !S.fich) { app.innerHTML = chargement(r); await chargerFichiers(); if (id !== renderId) return; }
       content = vAdmin(r);
     } else if (r.v === "rejoindre") {
@@ -1710,19 +1804,25 @@ function apresRendu(foc){
   if (S.modal && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox])"); if (f) f.focus(); return; }
   if (foc && document.getElementById(foc) && !["edHtml", "anHtml"].includes(foc)) { const el = document.getElementById(foc); el.focus(); if (el.setSelectionRange && el.type === "text") { const n = el.value.length; el.setSelectionRange(n, n); } }
 }
-const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; };
+const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; S.bell = false; };
 
 /* ---------- clics ---------- */
 document.addEventListener("click", async e => {
   const a = e.target.closest("[data-act]");
   if (!a) {
-    if ((S.dd || S.me || S.menu) && !e.target.closest(".dd")) { fermerMenus(); render(); }
+    if ((S.dd || S.me || S.menu || S.bell) && !e.target.closest(".dd")) { fermerMenus(); render(); }
     return;
   }
   const act = a.dataset.act, r = route();
   if (["INPUT"].includes(a.tagName) && ["pick", "pickall", "cibletous", "cibleun", "bonne", "ans", "inscr", "bonnecase", "anscase", "repchoix"].includes(act)) { /* traité par « change » */ if (act !== "pick" && act !== "pickall") return; }
   switch (act) {
     case "drawer": S.drawer = !S.drawer; render(); return;
+    case "bell": { const o = !S.bell; fermerMenus(); S.bell = o; render(); if (o) chargerNotifs(); return; }
+    case "toutlu": { const { data, error } = await sb.rpc("pp_vu"); if (error) { toast("Action impossible : " + error.message); return; } S.profil.vu_le = data || now().toISOString(); await chargerNotifs(); return; }
+    case "savenom": { const n = ((document.getElementById("pfNom") || {}).value || "").trim(); if (!n) { toast("Le nom ne peut pas être vide."); return; }
+      const data = { prof: { nom: n, titre: R().prof.titre }, liensUtiles: R().liensUtiles, outils: R().outils };
+      const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() }); if (error) { toast("Enregistrement impossible : " + error.message); return; }
+      appliquerReglages(data); S.nom = n; S.adm = null; toast("Nom modifié"); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
     case "logout": e.preventDefault(); await sb.auth.signOut(); location.replace(ICI); return;
@@ -1948,6 +2048,8 @@ document.addEventListener("change", async e => {
     if (error) { toast("Action impossible : " + error.message); t.checked = !on; t.disabled = false; return; }
     await rafraichir(); toast((on ? "Inscrit en " : "Retiré de ") + cls(cid).nom); render(); return; }
   if (S.adm && t.dataset.ad) { setPath(S.adm, t.dataset.ad, t.type === "checkbox" ? t.checked : t.value); S.adm.modif = true; render(); return; }
+  if (t.dataset.pref) { const p = { ...prefs() }; p[t.dataset.pref] = t.checked; await sauverPrefs(p); render(); return; }
+  if (t.dataset.prefc) { const p = { ...prefs() }, off = new Set(p.cours_off || []); t.checked ? off.delete(t.dataset.prefc) : off.add(t.dataset.prefc); p.cours_off = [...off]; await sauverPrefs(p); return; }
   if (t.dataset.adf) { S.admF = t.value; render(); return; }
   if (t.dataset.mclasse && S.modal) { S.modal.classe = t.value; const ap = document.getElementById("mApercu"); if (ap) ap.innerHTML = apercuListe(S.modal); return; }
   if (t.id === "edMontrer" && S.ed) { S.ed.montrer = t.checked; return; }
@@ -1994,7 +2096,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   let pj = null; try { pj = localStorage.getItem("pp_join"); localStorage.removeItem("pp_join"); } catch (_) {}
   if (pj && route().v !== "rejoindre") history.replaceState(null, "", ICI + "#/rejoindre/" + encodeURIComponent(pj));
   S.user = session.user;
-  const { data: profil, error } = await sb.from("profiles").select("email, nom, role").eq("id", S.user.id).maybeSingle();
+  const { data: profil, error } = await sb.from("profiles").select("*").eq("id", S.user.id).maybeSingle();
   if (error || !profil) { vLogin("Ton profil n'a pas pu être chargé. Déconnecte-toi puis reconnecte-toi."); await sb.auth.signOut(); return; }
   S.profil = profil; S.prof = profil.role === "prof";
   if (S.prof) S.nom = R().prof.nom;
@@ -2006,6 +2108,8 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   if (S.prof) S.nom = R().prof.nom;
   try { S.recent = localStorage.getItem("pp_recent") === "1"; } catch (_) {}
   render();
+  chargerNotifs().catch(() => {});
+  setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });
 })();
 })();

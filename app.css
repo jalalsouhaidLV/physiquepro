@@ -554,3 +554,36 @@ section.theme:hover .grip{opacity:1}
 .dtph{opacity:.35;outline:2px dashed var(--line);outline-offset:2px;border-radius:8px}
 section.theme.compact>*:not(.themehead){display:none}
 .dtghost{background:var(--surface);border-radius:8px;padding:6px 10px;opacity:.95}
+/* cloche et page Paramètres façon Classroom */
+.bellwrap{position:relative}
+.bellwrap .badge{position:absolute;top:4px;right:4px;min-width:17px;height:17px;border-radius:9px;background:var(--bad);color:#fff;font-size:.64rem;font-weight:700;display:grid;place-items:center;padding:0 4px;pointer-events:none}
+.bellmenu{width:min(380px,calc(100vw - 24px));padding:0;max-height:70vh;display:flex;flex-direction:column;overflow:hidden}
+.bellhead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.belllist{overflow-y:auto;display:grid}
+.belllist a{display:flex!important;gap:12px;align-items:flex-start;padding:10px 14px!important;border-radius:0!important;text-decoration:none;color:var(--ink);border-bottom:1px solid var(--line)}
+.belllist a.new{background:var(--accent-soft)}
+.belllist a:hover{background:var(--hover)}
+.belllist .bt{display:block;font-size:.88rem;line-height:1.35}
+.belllist small{font-size:.75rem}
+.bellfoot{display:flex!important;align-items:center;gap:6px;padding:10px 14px!important;font-size:.85rem;color:var(--accent)!important;text-decoration:none}
+.crpage{max-width:1000px}
+.crcard{border-radius:10px;padding:28px 32px;gap:18px}
+.crbig{font-size:2rem!important;font-weight:400!important}
+.crsub{font-size:1.15rem!important;font-weight:400!important;margin-top:8px!important}
+.crrow{display:grid;gap:6px}
+.crrow>b{font-weight:500}
+.crsw{padding:10px 0}
+.crsw>span{font-size:.95rem}
+.crsw input:disabled+i{opacity:.4}
+.crdet{border-top:1px solid var(--line);margin:8px -32px -28px;padding:14px 32px}
+.crdet summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none}
+.crdet summary::-webkit-details-marker{display:none}
+.crdet summary>span{display:grid;gap:2px}
+.crdet summary b{font-weight:400;font-size:1.15rem}
+.crdet[open] summary svg{transform:rotate(180deg)}
+.crdet .ini{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;background:var(--bb);color:#fff;font-size:.62rem;font-weight:700}
+.avatar.lg{width:44px;height:44px}
+@media (max-width:600px){.crcard{padding:20px}.crdet{margin:8px -20px -20px;padding:14px 20px}}
+.belllist a{justify-content:flex-start!important;text-align:left}
+.belllist a>span:last-child{flex:1;min-width:0}
+.crsw>span.who2{display:flex;align-items:center;gap:12px}
