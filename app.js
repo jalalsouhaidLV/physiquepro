@@ -2241,7 +2241,8 @@ function ressourcesCR(it){
     const type = /youtu/.test(u) ? "YouTube" : /docs\.google\.com\/document/.test(u) ? "Docs" : /spreadsheets/.test(u) ? "Sheets" : /presentation/.test(u) ? "Slides" : /forms/.test(u) ? "Forms" : /drive\.google/.test(u) ? (extType(t) !== "Fichier" ? extType(t) : "Drive") : "Lien";
     return { type, label: type === "YouTube" && /^(youtube|vidéo)/i.test(t) ? "YouTube" : t || u, url: u, cr: /google\.com/.test(u) ? 1 : 0 }; });
 }
-const coursAuto = nom => { const n = sansAccent(nom); return /ter|tle|terminale/.test(n) ? "tle" : /1ere|1re|premiere/.test(n) ? "1re" : /snt/.test(n) ? "snt" : /option si|\bsi\b/.test(n) ? "si" : /3eme|3e|techno/.test(n) ? "3e" : /pix/.test(n) ? "pix" : ""; };
+const coursAuto = nom => { const n = " " + sansAccent(nom).replace(/[^a-z0-9]+/g, " ") + " ";
+  return /\s(ter|tle|tale|terminale|terminales)\s/.test(n) ? "tle" : /\s(1ere|1re|1eres|premiere|premieres)\s/.test(n) ? "1re" : /\ssnt\s/.test(n) ? "snt" : /\s(si|option si|sciences de l ingenieur)\s/.test(n) ? "si" : /\s(3eme|3e|3eme a b|techno|technologie)\s/.test(n) ? "3e" : /\spix\s/.test(n) ? "pix" : ""; };
 
 function admImport(){
   const I = S.imp || (S.imp = { texte: "", data: null, map: {}, brouillons: true, log: [], busy: false });
@@ -2318,6 +2319,10 @@ async function importerZip(files){
     let cid = ""; for (const seg of p.split("/").slice(0, -1)) { cid = coursAuto(seg); if (cid) break; }
     const k = cle(p); if (!index.has(k)) index.set(k, []); index.get(k).push({ e, cid, p }); }); }
   log(index.size + " fichiers trouvés dans le zip.");
+  { const parCours = {}, sans = new Set(); index.forEach(l => l.forEach(x => { parCours[x.cid || "?"] = (parCours[x.cid || "?"] || 0) + 1; if (!x.cid) sans.add(x.p.split("/").slice(0, -1).slice(0, 3).join(" / ") || "(racine du zip)"); }));
+    log("Fichiers par cours : " + Object.entries(parCours).map(([k, v]) => (k === "?" ? "cours non reconnu" : ((cls(k) || {}).nom || k)) + " " + v).join(" · "));
+    if (sans.size) log("Dossiers sans cours reconnu : " + [...sans].slice(0, 6).join(" | ")); }
+  { let nd = 0; index.forEach(l => { if (new Set(l.map(x => x.cid)).size > 1) nd++; }); log(nd + " nom" + (nd > 1 ? "s" : "") + " de fichier présent" + (nd > 1 ? "s" : "") + " dans plusieurs cours."); }
   const choisir = (label, cid) => { const l = index.get(cle(label)); if (!l) return null; return l.find(x => x.cid === cid) || (l.length === 1 ? l[0] : null); };
   const doublon = label => { const l = index.get(cle(label)); return l && new Set(l.map(x => x.cid)).size > 1; };
   for (const c of S.classes) await chargerClasse(c.id, true);
