@@ -166,7 +166,10 @@ async function rafraichir(classe){ if (classe) delete S.cache[classe]; else S.ca
 
 /* ---------- logique ---------- */
 const cls = id => S.classes.find(c => c.id === id);
-const actives = () => S.classes.filter(c => !c.archive);
+/* ordre des cours : celui du prof (base de données) ; un élève peut avoir son propre ordre (gardé sur son appareil) */
+function ordreEleve(){ try { return JSON.parse(localStorage.getItem("pp_ordre_" + (S.user && S.user.id)) || "[]"); } catch (_) { return []; } }
+const actives = () => { const l = S.classes.filter(c => !c.archive); if (S.prof) return l; const o = ordreEleve(); if (!o.length) return l;
+  const rang = id => { const i = o.indexOf(id); return i < 0 ? 1e6 : i; }; return l.slice().sort((a, b) => rang(a.id) - rang(b.id)); };
 const moi = () => S.profil.email;
 const renduDe = (d, email) => S.rendus.find(r => r.devoir_id === d.id && (r.auteur_email === email || r.binome_email === email));
 const correctionDe = r => r && S.corrections.find(c => c.rendu_id === r.id);
@@ -259,10 +262,11 @@ function carte(c, archivee){
       body = due.map(d => `<span class="due">${dueOf(d)}</span><a href="#/devoir/${d.id}">${esc(d.titre)}</a>`).join("");
     }
   }
-  const menu = S.prof ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">
+  const menuEleve = !S.prof && !archivee ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">${deplacerMenu(c)}</div>` : ""}</div>` : "";
+  const menu = !S.prof ? menuEleve : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">
       ${archivee ? `<a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="0">${icon("restore")} Restaurer</a><a href="#" data-act="supprclasse" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a>`
-        : `${c.code ? `<a href="#" data-act="copylien" data-code="${esc(c.code)}">${icon("links")} Copier le lien d'invitation</a>` : ""}<a href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Modifier</a><a href="#" data-act="copiercours" data-c="${esc(c.id)}">${icon("copy")} Copier</a><a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="1">${icon("archive")} Archiver</a>`}</div>` : ""}</div>` : "";
-  return `<article class="ccard${archivee ? " archived" : ""}" style="--bb:var(${k.b})">
+        : `${c.code ? `<a href="#" data-act="copylien" data-code="${esc(c.code)}">${icon("links")} Copier le lien d'invitation</a>` : ""}<a href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Modifier</a>${deplacerMenu(c)}<a href="#" data-act="copiercours" data-c="${esc(c.id)}">${icon("copy")} Copier</a><a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="1">${icon("archive")} Archiver</a>`}</div>` : ""}</div>`;
+  return `<article class="ccard${archivee ? " archived" : " movable"}" data-cid="${esc(c.id)}" style="--bb:var(${k.b})">
     <div style="position:relative">
       <a class="banner" href="#/classe/${esc(c.id)}">${bannerArt(c)}<h2>${esc(c.nom)}</h2>${c.section ? `<p>${esc(c.section)}</p>` : ""}<span class="teacher">${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(R().prof.nom)}</span></a>
       ${S.prof ? "" : avatarP(R().prof.nom, "lg ph")}
@@ -273,6 +277,10 @@ function carte(c, archivee){
       ${c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive de ${esc(c.nom)}">${icon("folder")}</a>` : ""}
       ${menu}
     </div></article>`;
+}
+function deplacerMenu(c){
+  const l = actives(), i = l.findIndex(x => x.id === c.id);
+  return `${i > 0 ? `<a href="#" data-act="deplacer" data-c="${esc(c.id)}" data-pos="0">${icon("up")} Placer en premier</a><a href="#" data-act="deplacer" data-c="${esc(c.id)}" data-pos="${i - 1}">${icon("left")} Déplacer avant</a>` : ""}${i < l.length - 1 ? `<a href="#" data-act="deplacer" data-c="${esc(c.id)}" data-pos="${i + 1}">${icon("right")} Déplacer après</a>` : ""}`;
 }
 function vAccueil(){
   const list = actives();
@@ -430,7 +438,7 @@ function workItem(it){
       ${draft || prog ? `<a href="#" data-act="publier" data-k="${it.k}" data-id="${rid}">${icon("check")} Publier maintenant</a>` : ""}
       <a href="#" data-act="reutiliser" data-k="${it.k}" data-id="${rid}">${icon("reuse")} Réutiliser dans un autre cours</a>
       <a href="#" data-act="suppr" data-k="${it.k}" data-id="${rid}" data-titre="${esc(it.titre)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : "";
-  return `<div class="work${draft ? " isdraft" : ""}"><div class="workrow"><button data-act="toggle" data-id="${it.id}" aria-expanded="${op}"><span class="ico ${it.k === "support" ? "pale" : ""}">${icon(it.q2 ? "question" : it.k, "")}</span><span class="tt">${esc(it.titre)}</span>${S.prof ? cible : ""}${right}</button>${menu}</div>${op ? `<div class="workd">${detail}</div>` : ""}</div>`;
+  return `<div class="work${draft ? " isdraft" : ""}"${S.prof ? ` data-wk="${it.k}:${rid}"` : ""}><div class="workrow"><button data-act="toggle" data-id="${it.id}" aria-expanded="${op}"><span class="ico ${it.k === "support" ? "pale" : ""}">${icon(it.q2 ? "question" : it.k, "")}</span><span class="tt">${esc(it.titre)}</span>${S.prof ? cible : ""}${right}</button>${menu}</div>${op ? `<div class="workd">${detail}</div>` : ""}</div>`;
 }
 function statsDevoir(d){
   const el = elevesDuDevoir(d, inscritsDe(d.classe_id)), n = el.filter(e => renduDe(d, e.email)).length;
@@ -457,7 +465,7 @@ function vTravaux(c, data){
     ${groupes.length > 1 ? `<div class="field filt"><label for="filtreTheme">Filtre thématique</label><select id="filtreTheme" data-f="filtre"><option value="">Tous les thèmes</option>${groupes.map(g => `<option value="${gid(g)}" ${S.filtreTheme === gid(g) ? "selected" : ""}>${esc(g.titre)}</option>`).join("")}</select></div>` : ""}
     <span class="spacer"></span>${groupes.length ? `<button class="linkbtn" data-act="toutreduire">${S.reduits.size ? "Tout développer" : "Tout réduire"}</button>` : ""}</div>`;
   return `<div class="page" style="--c:var(${C(c.couleur).c})">${head}
-    ${visibles.length ? visibles.map(g => `<section class="theme"><div class="themehead"><h2>${esc(g.titre)}</h2><button class="ib sm" data-act="reduire" data-id="${gid(g)}" aria-label="${S.reduits.has(gid(g)) ? "Développer" : "Réduire"}">${icon(S.reduits.has(gid(g)) ? "down" : "up")}</button>${themeMenu(g)}</div>
+    ${visibles.length ? visibles.map(g => `<section class="theme${S.prof ? " movable" : ""}" data-tid="${gid(g)}"><div class="themehead">${S.prof && g.t ? `<span class="grip" title="Glisser pour déplacer" aria-hidden="true">⋮⋮</span>` : ""}<h2>${esc(g.titre)}</h2><button class="ib sm" data-act="reduire" data-id="${gid(g)}" aria-label="${S.reduits.has(gid(g)) ? "Développer" : "Réduire"}">${icon(S.reduits.has(gid(g)) ? "down" : "up")}</button>${themeMenu(g)}</div>
       ${S.reduits.has(gid(g)) ? "" : g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir, un questionnaire ou une documentation." : "Rien pour l'instant."}</p>`}</section>`).join("")
       : `<div class="emptystate"><b>${S.prof ? "Crée ton premier élément" : "Aucun travail pour l'instant."}</b><span>${S.prof ? "Crée un thème (par exemple « Chapitre 1 »), puis ajoute des devoirs, des questionnaires et des documentations." : "Ton professeur n'a encore rien publié dans ce cours."}</span></div>`}
     ${pageFoot()}</div>`;
@@ -1497,6 +1505,152 @@ function exporterEleves(){
   tousLesEleves().forEach(e => rows.push([e.nom, e.email, [...e.classes].map(id => (act.find(c => c.id === id) || {}).nom || id).join(", "), e.compte ? "connecté" : "jamais connecté"]));
   telecharger("eleves-physiquepro-" + ymd(now()) + ".csv", csv(rows), "text/csv;charset=utf-8");
 }
+/* ---------- déplacer les cours (glisser-déposer, comme Classroom) ---------- */
+async function enregistrerOrdre(ids){
+  if (S.prof) {
+    ids.forEach((id, n) => { const c = cls(id); if (c) c.ordre = n + 1; });
+    S.classes.sort((a, b) => (a.archive - b.archive) || (a.ordre - b.ordre));
+    render();
+    const res = await Promise.all(ids.map((id, n) => sb.from("classes").update({ ordre: n + 1 }).eq("id", id)));
+    if (res.some(x => x.error)) { toast("L'ordre n'a pas pu être enregistré."); await rafraichir(); render(); }
+  } else {
+    try { localStorage.setItem("pp_ordre_" + S.user.id, JSON.stringify(ids)); } catch (_) {}
+    render();
+  }
+}
+function deplacerA(id, pos){
+  const ids = actives().map(c => c.id).filter(x => x !== id);
+  ids.splice(Math.max(0, Math.min(pos, ids.length)), 0, id);
+  return enregistrerOrdre(ids);
+}
+const DG = { el: null, ghost: null, x0: 0, y0: 0, dx: 0, dy: 0, on: false, timer: null, pid: null, bloqueClic: false };
+function finDrag(annule){
+  clearTimeout(DG.timer);
+  if (DG.on) {
+    const ids = [...document.querySelectorAll(".cards .ccard.movable")].map(x => x.dataset.cid);
+    DG.ghost && DG.ghost.remove(); DG.el.classList.remove("dragph"); document.body.classList.remove("dragging");
+    DG.bloqueClic = true; setTimeout(() => { DG.bloqueClic = false; }, 50);
+    const avant = actives().map(c => c.id).join();
+    if (!annule && ids.join() !== avant) enregistrerOrdre(ids); else render();
+  }
+  DG.el = null; DG.ghost = null; DG.on = false; DG.pid = null;
+}
+function debutDrag(){
+  const r = DG.el.getBoundingClientRect();
+  DG.dx = DG.x0 - r.left; DG.dy = DG.y0 - r.top;
+  const g = DG.el.cloneNode(true); g.classList.add("dragghost"); g.style.width = r.width + "px"; g.style.height = r.height + "px";
+  g.style.left = r.left + "px"; g.style.top = r.top + "px"; document.body.appendChild(g);
+  DG.ghost = g; DG.on = true; DG.el.classList.add("dragph"); document.body.classList.add("dragging");
+  fermerMenus();
+}
+function bougeDrag(x, y){
+  DG.ghost.style.left = (x - DG.dx) + "px"; DG.ghost.style.top = (y - DG.dy) + "px";
+  const sous = document.elementFromPoint(x, y), cible = sous && sous.closest(".cards .ccard.movable");
+  if (cible && cible !== DG.el) {
+    const list = [...document.querySelectorAll(".cards .ccard.movable")], i = list.indexOf(DG.el), j = list.indexOf(cible);
+    cible.parentNode.insertBefore(DG.el, i < j ? cible.nextSibling : cible);
+  }
+  if (y < 70) window.scrollBy(0, -12); else if (y > window.innerHeight - 50) window.scrollBy(0, 12);
+}
+document.addEventListener("pointerdown", e => {
+  if (e.button !== 0 || route().v !== "accueil") return;
+  const card = e.target.closest(".cards .ccard.movable");
+  if (!card || e.target.closest(".dd-menu") || e.target.closest("input")) return;
+  DG.el = card; DG.x0 = e.clientX; DG.y0 = e.clientY; DG.pid = e.pointerId; DG.on = false;
+  if (e.pointerType === "touch") DG.timer = setTimeout(() => { if (DG.el && !DG.on) { debutDrag(); bougeDrag(DG.x0, DG.y0); if (navigator.vibrate) try { navigator.vibrate(20); } catch (_) {} } }, 380);
+});
+document.addEventListener("pointermove", e => {
+  if (!DG.el || e.pointerId !== DG.pid) return;
+  if (!DG.on) {
+    const d = Math.hypot(e.clientX - DG.x0, e.clientY - DG.y0);
+    if (e.pointerType === "touch") { if (d > 10) { clearTimeout(DG.timer); DG.el = null; } return; }
+    if (d < 6) return;
+    debutDrag();
+  }
+  e.preventDefault(); bougeDrag(e.clientX, e.clientY);
+});
+document.addEventListener("touchmove", e => { if (DG.on) e.preventDefault(); }, { passive: false });
+document.addEventListener("pointerup", e => { if (DG.el && e.pointerId === DG.pid) finDrag(false); });
+document.addEventListener("pointercancel", () => { if (DG.el) finDrag(true); });
+document.addEventListener("click", e => { if (DG.bloqueClic) { e.preventDefault(); e.stopPropagation(); } }, true);
+document.addEventListener("dragstart", e => { if (e.target.closest && e.target.closest(".cards .ccard.movable")) e.preventDefault(); });
+
+/* ---------- déplacer les thèmes et les travaux (onglet Travaux et devoirs) ---------- */
+const DT = { el: null, kind: null, ghost: null, x0: 0, y0: 0, dx: 0, dy: 0, on: false, pid: null, timer: null, depuis: null };
+const sections = () => [...document.querySelectorAll(".page section.theme.movable")];
+function dtDebut(){
+  const r = DT.el.getBoundingClientRect(), src = DT.kind === "theme" ? DT.el.querySelector(".themehead") : DT.el;
+  const g = src.cloneNode(true); g.classList.add("dragghost", "dtghost"); g.style.width = r.width + "px";
+  DT.dx = DT.x0 - r.left; DT.dy = DT.y0 - r.top; g.style.left = r.left + "px"; g.style.top = r.top + "px";
+  document.body.appendChild(g); DT.ghost = g; DT.on = true; DT.el.classList.add("dtph"); document.body.classList.add("dragging");
+  if (DT.kind === "theme") document.querySelectorAll(".page section.theme").forEach(x => x.classList.add("compact"));
+  DT.depuis = DT.kind === "item" ? DT.el.closest("section.theme").dataset.tid : null; fermerMenus();
+}
+function dtBouge(x, y){
+  DT.ghost.style.left = (x - DT.dx) + "px"; DT.ghost.style.top = (y - DT.dy) + "px";
+  const sous = document.elementFromPoint(x, y);
+  if (!sous) return;
+  if (DT.kind === "theme") {
+    const cible = sous.closest("section.theme.movable");
+    if (cible && cible !== DT.el && cible.dataset.tid !== "none") {
+      const r = cible.getBoundingClientRect();
+      cible.parentNode.insertBefore(DT.el, y < r.top + r.height / 2 ? cible : cible.nextSibling);
+    }
+  } else {
+    const sec = sous.closest("section.theme.movable"); if (!sec) return;
+    const w = sous.closest(".work[data-wk]");
+    if (w && w !== DT.el && sec.contains(w)) { const r = w.getBoundingClientRect(); w.parentNode.insertBefore(DT.el, y < r.top + r.height / 2 ? w : w.nextSibling); }
+    else if (!w && !sec.contains(DT.el)) { const vide = sec.querySelector("p.empty"); if (vide) vide.remove(); sec.appendChild(DT.el); }
+  }
+  if (y < 80) window.scrollBy(0, -14); else if (y > window.innerHeight - 50) window.scrollBy(0, 14);
+}
+async function dtFin(annule){
+  clearTimeout(DT.timer);
+  const was = DT.on, kind = DT.kind, el = DT.el, depuis = DT.depuis, cid = route().a;
+  DT.el = null; DT.on = false; DT.pid = null;
+  if (!was) return;
+  DT.ghost && DT.ghost.remove(); el.classList.remove("dtph"); document.body.classList.remove("dragging");
+  document.querySelectorAll(".page section.theme.compact").forEach(x => x.classList.remove("compact"));
+  DG.bloqueClic = true; setTimeout(() => { DG.bloqueClic = false; }, 50);
+  if (annule) return render();
+  if (kind === "theme") {
+    const ids = sections().map(x => x.dataset.tid).filter(x => x !== "none");
+    const data = S.cache[cid]; if (!data) return render();
+    if (ids.join() === data.themes.map(t => String(t.id)).join()) return render();
+    data.themes.sort((a, b) => ids.indexOf(String(a.id)) - ids.indexOf(String(b.id))); data.themes.forEach((t, n) => t.ordre = n + 1); render();
+    const res = await Promise.all(ids.map((id, n) => sb.from("themes").update({ ordre: n + 1 }).eq("id", id)));
+    if (res.some(x => x.error)) toast("L'ordre des thèmes n'a pas pu être enregistré."); else toast("Thèmes réorganisés");
+    delete S.cache[cid]; return render();
+  }
+  const vers = el.closest("section.theme").dataset.tid;
+  if (vers === depuis) return render();
+  const [k, id] = el.dataset.wk.split(":"), table = k === "devoir" ? "devoirs" : k === "support" ? "supports" : "quiz";
+  const { error } = await sb.from(table).update({ theme_id: vers === "none" ? null : Number(vers) }).eq("id", id);
+  if (error) toast("Déplacement impossible : " + error.message); else toast(vers === "none" ? "Déplacé dans « Aucun thème »" : "Déplacé dans le thème");
+  await rafraichir(cid); render();
+}
+document.addEventListener("pointerdown", e => {
+  if (e.button !== 0 || !S.prof) return;
+  const r = route(); if (r.v !== "classe" || (r.t && r.t !== "travaux") || (!r.t && fluxVisible(cls(r.a) || {}))) return;
+  if (e.target.closest(".dd, .dd-menu, input, select")) return;
+  const head = e.target.closest("section.theme.movable .themehead"), work = e.target.closest(".work[data-wk]");
+  let el = null, kind = null;
+  if (head && head.parentNode.dataset.tid !== "none" && !e.target.closest("button")) { el = head.parentNode; kind = "theme"; }
+  else if (work && !e.target.closest(".workd")) { el = work; kind = "item"; }
+  if (!el) return;
+  Object.assign(DT, { el, kind, x0: e.clientX, y0: e.clientY, pid: e.pointerId, on: false });
+  if (e.pointerType === "touch") DT.timer = setTimeout(() => { if (DT.el && !DT.on) { dtDebut(); dtBouge(DT.x0, DT.y0); } }, 380);
+});
+document.addEventListener("pointermove", e => {
+  if (!DT.el || e.pointerId !== DT.pid) return;
+  if (!DT.on) { const d = Math.hypot(e.clientX - DT.x0, e.clientY - DT.y0);
+    if (e.pointerType === "touch") { if (d > 10) { clearTimeout(DT.timer); DT.el = null; } return; }
+    if (d < 6) return; dtDebut(); }
+  e.preventDefault(); dtBouge(e.clientX, e.clientY);
+});
+document.addEventListener("touchmove", e => { if (DT.on) e.preventDefault(); }, { passive: false });
+document.addEventListener("pointerup", e => { if (DT.el && e.pointerId === DT.pid) dtFin(false); });
+document.addEventListener("pointercancel", () => { if (DT.el) dtFin(true); });
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -1600,6 +1754,7 @@ document.addEventListener("click", async e => {
     case "savesettings": enregistrerParametres(); return;
     case "copylien": { e.preventDefault(); S.menu = null; const lien = ICI + "#/rejoindre/" + encodeURIComponent(a.dataset.code);
       try { navigator.clipboard.writeText(lien).then(() => toast("Lien d'invitation copié"), () => toast(lien)); } catch (_) { toast(lien); } render(); return; }
+    case "deplacer": e.preventDefault(); S.menu = null; deplacerA(a.dataset.c, Number(a.dataset.pos)); return;
     case "copiercours": { e.preventDefault(); S.menu = null; const c = cls(a.dataset.c); S.modal = {kind:"copiercours", id:c.id, nom:c.nom}; render(); return; }
     case "moveclasse": { const act2 = actives(), i = act2.findIndex(c => c.id === a.dataset.c), j = i + Number(a.dataset.dir); if (i < 0 || j < 0 || j >= act2.length) return;
       [act2[i], act2[j]] = [act2[j], act2[i]];
@@ -1810,6 +1965,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id && e.target.id.startsWith("cm-")) { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-act="comment"]'); if (b) b.click(); return; }
   if (e.key === "Enter" && e.target.id === "cpIn") { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-act="cpsend"]'); if (b) b.click(); return; }
   if (e.key === "Enter" && e.target.dataset && e.target.dataset.act === "note") { e.target.blur(); return; }
+  if (e.key === "Escape" && DG.on) { finDrag(true); return; }
+  if (e.key === "Escape" && DT.on) { dtFin(true); return; }
   if (e.key === "Escape") { if (S.modal && !S.modal.busy) { S.modal = null; render(); return; } if (S.dd || S.me || S.menu) { fermerMenus(); render(); return; } if (S.drawer && window.innerWidth < 1100) { S.drawer = false; render(); } }
 });
 window.addEventListener("hashchange", () => {

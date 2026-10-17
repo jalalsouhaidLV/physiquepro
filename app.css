@@ -539,3 +539,18 @@ tr.avg td{background:var(--surface-2);font-weight:600}
 .qans.wrong{border-color:var(--bad);background:var(--bad-bg)}
 .admtable th.cc,.admtable td.cc{width:56px}
 .admtable td.first{width:38%}
+/* déplacer les cours */
+.cards .ccard.movable{cursor:grab;touch-action:pan-y}
+body.dragging,body.dragging *{cursor:grabbing!important;user-select:none!important}
+.ccard.dragph{background:var(--surface-2);border-color:transparent;box-shadow:none}
+.ccard.dragph>*{visibility:hidden}
+.dragghost{position:fixed;z-index:60;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.25);transform:rotate(1deg);margin:0;background:var(--surface)}
+.dragghost .banner h2{text-decoration:underline}
+section.theme.movable>.themehead{cursor:grab}
+section.theme.movable[data-tid="none"]>.themehead{cursor:default}
+.work[data-wk]>.workrow>button{cursor:grab}
+.grip{color:var(--muted);font-size:.9rem;letter-spacing:-3px;padding:0 4px 10px 0;user-select:none;opacity:.6}
+section.theme:hover .grip{opacity:1}
+.dtph{opacity:.35;outline:2px dashed var(--line);outline-offset:2px;border-radius:8px}
+section.theme.compact>*:not(.themehead){display:none}
+.dtghost{background:var(--surface);border-radius:8px;padding:6px 10px;opacity:.95}
