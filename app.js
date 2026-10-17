@@ -109,7 +109,7 @@ const ICI = location.origin + location.pathname;
 
 /* ---------- réglages du site (modifiables dans Administration) ---------- */
 const COULEURS = [["pc","Bleu"],["snt","Vert"],["si","Rouge"],["tech","Ocre"],["pix","Bleu pétrole"]];
-const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
+const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
 const clone = o => JSON.parse(JSON.stringify(o));
 function appliquerReglages(d){
   d = d || {};
@@ -220,7 +220,7 @@ function vLogin(message, info){
 const messageErreur = desc => /Database error saving new user|non autoris/i.test(desc) ? "Cette adresse n'est pas autorisée : seules les adresses @" + esc(CFG.domaine) + " peuvent se connecter." : "La connexion a échoué : " + esc(desc);
 
 /* ---------- barre du haut ---------- */
-const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png", "logo-pix": "logo-pix.png" };
+const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png" };
 function quickIcon(k){
   if (LOGOS_RAPIDES[k]) return `<img class="qlogo" src="${LOGOS_RAPIDES[k]}" alt="">`;
   if (k === "pronote") return `<b class="qp">P</b>`;
@@ -2230,7 +2230,7 @@ async function lancerImport(){
     log("— " + c.nom + " —");
     const data = await chargerClasse(cid, true), themes = data.themes.slice();
     const existants = new Set([...S.devoirs.filter(d => d.classe_id === cid).map(d => d.titre), ...data.supports.map(s => s.titre), ...S.quiz.filter(q => q.classe_id === cid).map(q => q.titre)].map(sansAccent));
-    const ordreTopics = [...new Set(C.items.map(i => i.topic))];
+    const ordreTopics = [...new Set([...(C.topics || []), ...C.items.map(i => i.topic)])];
     let ordre = themes.reduce((a, t) => Math.max(a, t.ordre || 0), 0);
     const idTheme = {};
     for (const nom of ordreTopics) {
@@ -2239,6 +2239,9 @@ async function lancerImport(){
       const r = await sb.from("themes").insert({ classe_id: cid, titre: nom, ordre: ++ordre }).select("id").single();
       if (r.error) { log("Thème « " + nom + " » : " + r.error.message); continue; } idTheme[nom] = r.data.id; log("Thème créé : " + nom);
     }
+    /* même ordre des thèmes que dans Classroom (les autres thèmes passent après) */
+    const ids = ordreTopics.map(t => idTheme[t]).filter(Boolean), autres = themes.filter(t => !ids.includes(t.id)).map(t => t.id);
+    await Promise.all([...ids, ...autres].map((id, k2) => sb.from("themes").update({ ordre: k2 + 1 }).eq("id", id)));
     const base = Date.now(); let n = 0, saut = 0;
     for (let i = 0; i < C.items.length; i++) {
       const it = C.items[i], brouillon = /Brouillon/i.test(it.statut);

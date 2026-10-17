@@ -18,8 +18,8 @@ window.PHYSIQUEPRO = {
     { nom: "Pronote Verdun", url: "https://2050012z.index-education.net/pronote/", icone: "logo-pronote", couleur: "#1E8C45", principal: true },
     { nom: "PIX",      url: "https://app.pix.fr/connexion",  icone: "logo-pix",    couleur: "#5B3FD6" },
     { nom: "Site Lycée Verdun", url: "https://www.lycee-verdun.edu.lb/", icone: "logo-lycee", couleur: "#116482" },
-    { nom: "Outlook",  url: "https://outlook.office.com",     icone: "mail",   couleur: "#0F6CBD" },
-    { nom: "OneDrive", url: "https://glfl-my.sharepoint.com/_layouts/15/MySite.aspx?MySiteRedirect=AllDocuments", icone: "nuage", couleur: "#0364B8" }
+    { nom: "Outlook",  url: "https://outlook.office.com",     icone: "logo-outlook", couleur: "#0F6CBD" },
+    { nom: "OneDrive", url: "https://glfl-my.sharepoint.com/_layouts/15/MySite.aspx?MySiteRedirect=AllDocuments", icone: "logo-onedrive", couleur: "#0364B8" }
   ],
 
   outils: [
