@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhysiquePro · Test de connexion</title>
+<style>
+  :root{--bg:#F1F6F8;--surface:#fff;--ink:#0B1F28;--muted:#536973;--line:#D2E0E5;--accent:#116482;--ok:#1D7F4C;--ok-bg:#E3F3EA;--bad:#C0392B;--bad-bg:#FBE4E1}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px 16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px;max-width:520px;width:100%;display:grid;gap:16px}
+  h1{margin:0;font-size:1.4rem}
+  p{margin:0}
+  .muted{color:var(--muted)}
+  .btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:11px 18px;font:inherit;font-weight:600;cursor:pointer}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+  .box{border-radius:10px;padding:14px 16px;display:grid;gap:6px}
+  .box.ok{background:var(--ok-bg);color:var(--ok)}
+  .box.bad{background:var(--bad-bg);color:var(--bad)}
+  dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:.92rem}
+  dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
+  code{font-size:.8rem;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>PhysiquePro · test de connexion Microsoft</h1>
+  <p class="muted">Cette page vérifie seulement que la connexion avec un compte Microsoft 365 du lycée fonctionne. Elle n'enregistre rien.</p>
+  <div id="out"><p class="muted">Chargement…</p></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<script>
+(async function(){
+  const CLIENT_ID = "f52213ef-d098-49cc-ac22-944c23bcab61";
+  const TENANT_ID = "4bd4c77d-938d-4bd2-99ae-3ca7e4de49e6";
+  const DOMAINE   = "lycee-verdun.edu.lb";
+  const out = document.getElementById("out");
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  const EXPLICATIONS = {
+    "AADSTS65001": "Microsoft demande une autorisation que l'utilisateur n'a pas pu donner.",
+    "AADSTS90094": "Le lycée exige la validation d'un administrateur pour cette application.",
+    "AADSTS90008": "Le lycée exige la validation d'un administrateur pour cette application.",
+    "AADSTS50011": "L'adresse de cette page ne correspond pas à l'URI de redirection déclarée dans Entra.",
+    "AADSTS700016": "L'identifiant d'application est introuvable dans l'organisation MLF.",
+    "AADSTS50020": "Ce compte n'appartient pas à l'organisation MLF.",
+    "AADSTS53003": "Une règle d'accès conditionnel du lycée bloque la connexion."
+  };
+
+  if (!window.msal) { out.innerHTML = `<div class="box bad"><b>La bibliothèque Microsoft n'a pas pu être chargée.</b><span>Vérifie ta connexion Internet puis recharge la page.</span></div>`; return; }
+
+  const app = new msal.PublicClientApplication({
+    auth: { clientId: CLIENT_ID, authority: "https://login.microsoftonline.com/" + TENANT_ID,
+            redirectUri: location.origin + location.pathname },
+    cache: { cacheLocation: "sessionStorage" }
+  });
+
+  function showButton(extra){
+    out.innerHTML = (extra || "") + `<div style="display:grid;gap:10px;margin-top:${extra?"16px":"0"}">
+      <label for="mail" style="font-size:.9rem;font-weight:600">Adresse Microsoft 365</label>
+      <input id="mail" type="email" placeholder="prenom.nom@${DOMAINE}" style="font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px">
+      <button class="btn" id="go">Se connecter</button></div>`;
+    document.getElementById("go").onclick = () => {
+      const hint = document.getElementById("mail").value.trim();
+      app.loginRedirect({ scopes: ["openid","profile","email"], loginHint: hint || undefined, prompt: "select_account" });
+    };
+  }
+
+  function showError(e){
+    const msg = (e && (e.errorMessage || e.message)) || String(e);
+    const code = (msg.match(/AADSTS\d+/) || [""])[0];
+    const expl = EXPLICATIONS[code] || "Erreur inattendue.";
+    showButton(`<div class="box bad"><b>Connexion refusée${code ? " · "+code : ""}</b><span>${esc(expl)}</span>
+      <code>${esc(msg.slice(0,400))}</code><span style="color:var(--ink)">Fais une capture d'écran de ce message et envoie-la à Claude.</span></div>`);
+  }
+
+  try {
+    await app.initialize();
+    const res = await app.handleRedirectPromise();
+    const acc = res ? res.account : app.getAllAccounts()[0];
+    if (!acc) { showButton(); return; }
+    const mail = (acc.username || "").toLowerCase();
+    const bonDomaine = mail.endsWith("@" + DOMAINE);
+    out.innerHTML = `<div class="box ${bonDomaine ? "ok" : "bad"}"><b>${bonDomaine ? "Connexion réussie ✓" : "Connexion réussie, mais adresse hors du lycée"}</b>
+      <span>${bonDomaine ? "La connexion Microsoft fonctionne pour ce compte." : "PhysiquePro refusera cette adresse : seules les adresses @" + DOMAINE + " seront acceptées."}</span></div>
+      <dl style="margin-top:14px"><dt>Nom</dt><dd>${esc(acc.name)}</dd><dt>Adresse</dt><dd>${esc(acc.username)}</dd>
+      <dt>Organisation</dt><dd>${acc.tenantId === TENANT_ID ? "MLF ✓" : esc(acc.tenantId)}</dd></dl>
+      <div style="margin-top:16px"><button class="btn ghost" id="out-btn">Se déconnecter</button></div>`;
+    document.getElementById("out-btn").onclick = () => app.logoutRedirect({ account: acc, postLogoutRedirectUri: location.origin + location.pathname });
+  } catch (e) { showError(e); }
+})();
+</script>
+</body>
+</html>
