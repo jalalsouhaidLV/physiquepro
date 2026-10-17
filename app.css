@@ -655,3 +655,7 @@ sup,sub{line-height:0;font-size:.75em}
 .dlbtn svg.i{width:16px;height:16px}
 .files li .dlbtn{border:0;background:none;padding:2px 6px}
 .vfoot{display:flex;gap:16px;flex-wrap:wrap}
+/* logos des liens rapides */
+.quick .qi:has(.qlogo){width:auto;min-width:30px;padding:2px 5px;background:#fff;box-shadow:0 0 0 1px var(--line)}
+.quick a.main .qi:has(.qlogo){background:#fff;box-shadow:0 0 0 2px var(--q)}
+.qlogo{height:24px;width:auto;display:block;max-width:86px;object-fit:contain}
