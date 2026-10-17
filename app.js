@@ -45,6 +45,8 @@ const IC = {
   more:'<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>', theme:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 10v9"/>',
   edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>', trash:'<path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', up:'<path d="M12 19V5M6 11l6-6 6 6"/>', down:'<path d="M12 5v14M6 13l6 6 6-6"/>',
   upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>', attach:'<path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/>',
+  ecole:'<path d="M3 10l9-5 9 5-9 5z"/><path d="M7 12v5c3 2 7 2 10 0v-5"/>', nuage:'<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/>',
+  copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>', key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>', logout:'<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>'
 };
 const icon = (k, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
@@ -149,8 +151,9 @@ function topbar(r){
     <button class="ib" data-act="drawer" aria-label="Menu principal">${icon("menu")}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
     <span class="spacer"></span>
-    <div class="dd"><button class="ib" data-act="dd" aria-label="Liens utiles" aria-expanded="${S.dd}" title="Liens utiles">${icon("links")}</button>
-      ${S.dd ? `<div class="dd-menu">${CFG.liensUtiles.map(l => `<a href="${esc(l.url || (S.prof ? l.prof : l.eleve))}" target="_blank" rel="noopener">${esc(l.nom)} <small>${esc(l.detail)}</small></a>`).join("")}</div>` : ""}</div>
+    <nav class="quick" aria-label="Liens rapides">${CFG.liensUtiles.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <div class="dd"><button class="ib" data-act="dd" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
+      ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
     <div class="dd"><button class="avatar" data-act="me" title="${esc(S.nom)}" style="border:0;cursor:pointer">${initials(S.nom)}</button>
       ${S.me ? `<div class="dd-menu"><div style="padding:8px 10px"><b>${esc(S.nom)}</b><br><small class="muted">${esc(moi())}</small></div><a href="#" data-act="logout">${icon("logout")} Se déconnecter</a></div>` : ""}</div>
   </header>`;
@@ -166,13 +169,18 @@ function drawer(r){
     <hr><a class="it" href="#/outils" ${cur("outils")} style="text-decoration:none">${icon("tools")}<span class="lbl">Boîte à outils</span></a>
   </nav>${S.drawer && window.innerWidth < 1100 ? `<div class="scrim" data-act="drawer"></div>` : ""}`;
 }
+function quickIcon(k){
+  if (k === "pronote") return `<b class="qp">P</b>`;
+  if (k === "pix") return `<b class="qp" style="font-size:.72rem;letter-spacing:.02em">PIX</b>`;
+  return `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[k === "ecole" ? "ecole" : k === "mail" ? "mail" : k === "nuage" ? "nuage" : "links"]}</svg>`;
+}
 const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · ${esc(CFG.prof.nom)} · ${esc(CFG.prof.titre)}</span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 
 /* ---------- accueil ---------- */
 function vAccueil(){
   if (!S.classes.length) return `<div class="page">${S.prof ? bientot("Aucune classe n'est encore créée.") :
-    `<div class="emptystate"><b>Tu n'es inscrit dans aucune classe pour l'instant.</b><span>Ton professeur doit t'ajouter à la liste de ta classe. Si le problème persiste, écris-lui depuis Outlook à ${esc(CFG.prof.email)}.</span></div>`}${pageFoot()}</div>`;
+    `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
   return `<div class="page wide"><div class="cards">${S.classes.map(c => {
     const k = C(c.couleur), dv = S.devoirs.filter(d => d.classe_id === c.id);
     let body;
@@ -248,11 +256,11 @@ function vClasse(r, data){
   if (tab === "personnes") {
     const el = data.eleves, selN = el.filter(e => S.pick.has(e.email)).length;
     inner = `<div class="page" style="max-width:800px;--c:var(${k.c})"><section class="people"><h2>Enseignants</h2><div class="person"><div class="avatar">${initials(CFG.prof.nom)}</div><span>${esc(CFG.prof.nom)}</span></div></section>
-      <section class="people"><h2>Élèves <small>${el.length} élève${el.length > 1 ? "s" : ""}</small></h2>
+      <section class="people"><h2>Élèves <small>${el.length} élève${el.length > 1 ? "s" : ""}${S.prof && c.code ? ` · <a href="#" data-act="showcode" data-code="${esc(c.code)}">Inviter avec le code</a>` : ""}</small></h2>
       ${S.prof && el.length ? `<div class="person" style="gap:12px;flex-wrap:wrap"><label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" data-act="pickall" data-c="${esc(c.id)}" ${selN === el.length ? "checked" : ""}> Tout sélectionner</label><span style="flex:1"></span><button class="btn sm" data-act="compose" ${selN ? "" : "disabled"}>${icon("mail")} Envoyer un e-mail${selN ? " (" + selN + ")" : ""}</button></div>` : ""}
       ${S.prof && S.compose ? composeBox(el.filter(e => S.pick.has(e.email))) : ""}
-      ${el.length ? el.map(e => `<div class="person">${S.prof ? `<input type="checkbox" data-act="pick" data-e="${esc(e.email)}" ${S.pick.has(e.email) ? "checked" : ""} aria-label="Sélectionner ${esc(e.nom)}">` : ""}<div class="avatar" style="background:var(--surface-2);color:var(--ink)">${initials(e.nom)}</div><span style="flex:1;min-width:0">${esc(e.nom)}${S.prof ? `<small class="muted" style="display:block;overflow-wrap:anywhere">${esc(e.email)}</small>` : ""}</span></div>`).join("")
-        : `<p class="empty">${S.prof ? "Aucun élève inscrit. L'import des listes de classe arrive à une prochaine étape." : "Aucun élève."}</p>`}
+      ${el.length ? el.map(e => `<div class="person">${S.prof ? `<input type="checkbox" data-act="pick" data-e="${esc(e.email)}" ${S.pick.has(e.email) ? "checked" : ""} aria-label="Sélectionner ${esc(e.nom)}">` : ""}<div class="avatar" style="background:var(--surface-2);color:var(--ink)">${initials(e.nom)}</div><span style="flex:1;min-width:0">${esc(e.nom)}${S.prof ? `<small class="muted" style="display:block;overflow-wrap:anywhere">${esc(e.email)}</small>` : ""}</span>${S.prof ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="p${esc(e.email)}" aria-label="Options">${icon("more")}</button>${S.menu === "p" + e.email ? `<div class="dd-menu"><a href="#" data-act="retirer" data-e="${esc(e.email)}" data-n="${esc(e.nom)}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Retirer de la classe</a></div>` : ""}</div>` : ""}</div>`).join("")
+        : `<p class="empty">${S.prof ? "Aucun élève inscrit. Donne le code du cours à tes élèves : ils le saisiront avec le bouton + en haut de la page." : "Aucun élève."}</p>`}
       </section>${pageFoot()}</div>`;
   } else if (tab === "notes" && S.prof) {
     inner = `<div class="page">${bientot("Le tableau des notes arrive à l'étape 4.")}${pageFoot()}</div>`;
@@ -275,8 +283,15 @@ function vClasse(r, data){
       <div class="banner bigbanner"><span class="sym">${esc(c.symbole)}</span>${S.prof ? `<button class="btn ghost sm custom" data-act="perso" data-c="${esc(c.id)}">${icon("edit")} Personnaliser</button>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span></div>
       <div class="classgrid">
         <aside style="display:grid;gap:16px">
+          ${S.prof ? `<div class="box"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Code du cours</h3><div class="dd kebab"><button class="ib sm" data-act="menu" data-m="code" aria-label="Options du code">${icon("more")}</button>${S.menu === "code" ? `<div class="dd-menu">
+              <a href="#" data-act="copycode" data-code="${esc(c.code || "")}">${icon("copy")} Copier le code</a>
+              <a href="#" data-act="resetcode" data-c="${esc(c.id)}">${icon("key")} Réinitialiser</a>
+              <a href="#" data-act="togglecode" data-c="${esc(c.id)}" data-on="${c.code_actif ? "0" : "1"}">${icon(c.code_actif ? "x" : "check")} ${c.code_actif ? "Désactiver" : "Activer"}</a></div>` : ""}</div></div>
+            ${c.code ? `<button class="codebig" data-act="showcode" data-code="${esc(c.code)}" title="Afficher en grand">${c.code_actif ? esc(c.code) : `<span class="muted" style="font-size:1rem">Désactivé</span>`}</button>` : `<span class="muted">Installe la mise à jour de la base pour obtenir un code.</span>`}</div>` : ""}
           <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueOf(d).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" style="color:var(--ink);text-decoration:none;font-weight:500">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à rendre bientôt.</span>`}<a class="linkbtn" href="#/todo" style="text-decoration:none">Tout afficher</a></div>
-          ${c.dossier_onedrive ? `<a class="btn ghost" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" style="text-decoration:none">${icon("folder")} Dossier OneDrive</a>` : ""}
+          ${(c.liens && c.liens.length) || c.dossier_onedrive || S.prof ? `<div class="box"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Liens de la classe</h3>${S.prof ? `<button class="ib sm" data-act="editliens" data-c="${esc(c.id)}" aria-label="Modifier les liens" title="Modifier les liens">${icon("edit")}</button>` : ""}</div>
+            <div class="classlinks">${c.dossier_onedrive ? `<a href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener">${icon("folder")}<span>Dossier OneDrive</span></a>` : ""}${(c.liens || []).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${icon("links")}<span>${esc(l.nom)}</span></a>`).join("")}</div>
+            ${S.prof && !(c.liens || []).length && !c.dossier_onedrive ? `<span class="muted" style="font-size:.82rem">Ajoute des liens utiles à cette classe : manuel, simulateur, Capytale…</span>` : ""}</div>` : ""}
         </aside>
         <div style="display:grid;gap:32px;min-width:0">${creer}${groupes.length && (S.prof || groupes.some(g => g.items.length)) ? groupes.filter(g => S.prof || g.items.length).map(g => `<section class="theme"><div class="themehead"><h2>${esc(g.titre)}</h2>${themeMenu(g)}</div>${g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir ou une documentation à ce thème." : "Rien pour l'instant."}</p>`}</section>`).join("")
           : `<div class="emptystate"><b>Aucun travail pour l'instant.</b><span>${S.prof ? "Commence par créer un thème (par exemple « Chapitre 1 »), puis ajoute des documentations et des devoirs." : "Ton professeur n'a encore rien publié dans cette classe."}</span></div>`}</div>
@@ -493,7 +508,18 @@ function vModal(){
     <div class="field"><label for="mDossier">Lien du dossier OneDrive de la classe <span class="muted">(facultatif)</span></label><input id="mDossier" type="url" value="${esc(m.dossier || "")}" placeholder="https://…sharepoint.com/…"></div>`; }
   else if (m.kind === "prog") { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0);
     body = `<h2>Programmer la publication</h2><p class="muted" style="margin:0">Les élèves verront cet élément à partir de cette date.</p><div style="display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px"><input id="mDate" type="date" value="${ymd(d)}" aria-label="Date"><input id="mHeure" type="time" value="08:00" aria-label="Heure"></div>`; ok = "Programmer"; }
-  else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = "Supprimer"; }
+  else if (m.kind === "join") { body = `<h2>Rejoindre un cours</h2><p class="muted" style="margin:0">Demande le code du cours à ton professeur, puis saisis-le ici.</p><div class="field"><label for="mCode">Code du cours</label><input id="mCode" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ex. k7m4pqr" style="font-family:var(--mono);font-size:1.2rem;letter-spacing:.08em"></div>`; ok = "Rejoindre"; }
+  else if (m.kind === "newclass") { body = `<h2>Créer un cours</h2>
+    <div class="field"><label for="mNom">Nom du cours *</label><input id="mNom" placeholder="ex. Ter. G2 SPE SPC 26-27"></div>
+    <div class="field"><label for="mSection">Section</label><input id="mSection" placeholder="ex. Spécialité physique-chimie"></div>
+    <div class="field"><label for="mSym">Symbole sur le bandeau</label><input id="mSym" maxlength="4" placeholder="ex. Tle"></div>
+    <div class="field"><label for="mCouleur">Couleur</label><select id="mCouleur"><option value="pc">Bleu · physique-chimie</option><option value="snt">Vert · SNT</option><option value="si">Rouge · SI</option><option value="tech">Ocre · technologie</option><option value="pix">Bleu pétrole · PIX</option></select></div>`; ok = "Créer"; }
+  else if (m.kind === "liens") { body = `<h2>Liens de la classe</h2><p class="muted" style="margin:0">Ces liens apparaissent sur la page de la classe, pour les élèves de cette classe uniquement.</p>
+    <div class="linkedit">${m.liens.map((l, i) => `<div class="lrow"><input data-li="${i}" data-k="nom" value="${esc(l.nom)}" placeholder="Nom" aria-label="Nom du lien ${i + 1}"><input data-li="${i}" data-k="url" value="${esc(l.url)}" placeholder="https://…" aria-label="Adresse du lien ${i + 1}"><button class="ib sm" data-act="rmlien" data-i="${i}" aria-label="Supprimer ce lien">${icon("x")}</button></div>`).join("")}</div>
+    <div><button class="btn ghost sm" data-act="addlien">${icon("plus")} Ajouter un lien</button></div>`; }
+  else if (m.kind === "code") { body = `<h2>Code du cours</h2><div class="codehuge">${esc(m.code)}</div><p class="muted" style="margin:0">Les élèves cliquent sur <b>+</b> en haut de PhysiquePro, puis sur « Rejoindre un cours », et saisissent ce code.</p>`;
+    return `<div class="modalbg" data-act="mclose"></div><div class="modal" role="dialog" aria-modal="true">${body}<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="copycode" data-code="${esc(m.code)}">${icon("copy")} Copier</button><button class="btn" data-act="mclose">Fermer</button></div></div>`; }
+  else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = m.ok || "Supprimer"; }
   return `<div class="modalbg" data-act="mclose"></div><div class="modal" role="dialog" aria-modal="true">${body}${m.err ? `<div class="err">${esc(m.err)}</div>` : ""}
     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="mclose">Annuler</button><button class="btn${m.kind === "confirm" ? " danger" : ""}" data-act="mok" ${m.busy ? "disabled" : ""}>${ok}</button></div></div>`;
 }
@@ -509,6 +535,25 @@ async function modalOk(){
       const { data: ins, error } = await sb.from("themes").insert({ classe_id: m.classe, titre: t, ordre }).select("id").single(); if (error) throw error;
       if (m.fromEditor && S.ed) { delete S.cache[m.classe]; await chargerClasse(m.classe); S.ed.theme_id = String(ins.id); S.modal = null; toast("Thème ajouté"); return render(); }
       return done("Thème ajouté", m.classe);
+    }
+    if (m.kind === "join") {
+      const code = val("mCode").trim(); if (!code) { m.err = "Saisis le code du cours."; m.busy = false; return render(); }
+      const { data, error } = await sb.rpc("rejoindre_classe", { p_code: code, p_nom: S.nom });
+      if (error) { m.err = error.message; m.busy = false; return render(); }
+      S.modal = null; S.cache = {}; await chargerTout(); toast("Tu as rejoint « " + data.nom + " »"); go("/classe/" + data.id); return;
+    }
+    if (m.kind === "newclass") {
+      const nom = val("mNom").trim(); if (!nom) { m.err = "Donne un nom au cours."; m.busy = false; return render(); }
+      const base = nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "cours";
+      const id = base + "-" + Math.random().toString(36).slice(2, 6), ordre = S.classes.reduce((a, x) => Math.max(a, x.ordre || 0), 0) + 1;
+      const { error } = await sb.from("classes").insert({ id, nom, section: val("mSection").trim(), symbole: val("mSym").trim() || nom.slice(0, 3), couleur: val("mCouleur") || "pc", ordre }); if (error) throw error;
+      S.modal = null; await chargerTout(); toast("Cours créé"); go("/classe/" + id); return;
+    }
+    if (m.kind === "liens") {
+      const liens = m.liens.map(l => ({ nom: l.nom.trim(), url: l.url.trim() })).filter(l => l.nom || l.url);
+      const bad = liens.find(l => !/^https?:\/\//.test(l.url) || !l.nom); if (bad) { m.err = "Chaque lien doit avoir un nom et une adresse qui commence par https://"; m.busy = false; return render(); }
+      const { error } = await sb.from("classes").update({ liens }).eq("id", m.classe); if (error) throw error;
+      return done("Liens enregistrés");
     }
     if (m.kind === "classe") {
       const nom = val("mNom").trim(); if (!nom) { m.err = "Le nom de la classe est obligatoire."; m.busy = false; return render(); }
@@ -529,6 +574,7 @@ async function modalOk(){
         const paths = ((rec && rec.ressources) || []).filter(x => x.path).map(x => x.path); if (paths.length) await sb.storage.from("documents").remove(paths);
         return done("Élément supprimé", m.classe);
       }
+      if (m.action === "retirer") { const { error } = await sb.from("inscriptions").delete().eq("classe_id", m.classe).eq("email", m.email); if (error) throw error; S.pick.delete(m.email); return done("Élève retiré de la classe", m.classe); }
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
     }
   } catch (err) { m.busy = false; m.err = "Action impossible : " + (err.message || err); render(); }
@@ -560,7 +606,7 @@ async function render(){
     } else content = ({agenda:vAgenda, todo:vTodo, outils:vOutils, devoir:vDevoir})[r.v]?.(r) ?? vAccueil();
   } catch (e) { content = `<div class="page"><div class="emptystate"><b>Impossible de charger cette page.</b><span>${esc(e.message || e)}</span><button class="btn ghost" data-act="reload">Réessayer</button></div></div>`; }
   app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + modal;
-  if (S.modal) { const f = document.querySelector(".modal input"); if (f) f.focus(); }
+  if (S.modal && S.modal.kind !== "liens") { const f = document.querySelector(".modal input"); if (f) f.focus(); }
 }
 
 /* ---------- événements ---------- */
@@ -620,10 +666,25 @@ document.addEventListener("click", async e => {
     case "edprog": e.preventDefault(); S.menu = null; S.modal = {kind:"prog"}; render(); return;
     case "edsave": e.preventDefault(); enregistrer(a.dataset.mode); return;
     case "edclose": { const ed = S.ed; if (ed && ed.uploaded.length) sb.storage.from("documents").remove(ed.uploaded); const c = ed ? ed.classe_id : null; S.ed = null; if (c) go("/classe/" + c); else history.back(); return; }
+    case "join": e.preventDefault(); S.dd = false; S.modal = {kind:"join"}; render(); return;
+    case "newclass": e.preventDefault(); S.dd = false; S.modal = {kind:"newclass"}; render(); return;
+    case "showcode": e.preventDefault(); S.modal = {kind:"code", code:a.dataset.code}; render(); return;
+    case "copycode": { e.preventDefault(); S.menu = null; const code = a.dataset.code; try { navigator.clipboard.writeText(code).then(() => toast("Code copié : " + code), () => toast("Code : " + code)); } catch (_) { toast("Code : " + code); } return; }
+    case "resetcode": { e.preventDefault(); S.menu = null; const al = "abcdefghjkmnpqrstuvwxyz23456789"; const code = [...Array(7)].map(() => al[Math.floor(Math.random() * al.length)]).join("");
+      const { error } = await sb.from("classes").update({ code, code_actif: true }).eq("id", a.dataset.c); if (error) { toast("Impossible de changer le code : " + error.message); return; }
+      await chargerTout(); render(); toast("Nouveau code : " + code); return; }
+    case "togglecode": { e.preventDefault(); S.menu = null; const on = a.dataset.on === "1";
+      const { error } = await sb.from("classes").update({ code_actif: on }).eq("id", a.dataset.c); if (error) { toast("Action impossible : " + error.message); return; }
+      await chargerTout(); render(); toast(on ? "Code activé" : "Code désactivé : plus personne ne peut rejoindre avec ce code"); return; }
+    case "editliens": { const c = cls(a.dataset.c); S.modal = {kind:"liens", classe:c.id, liens:(c.liens || []).map(l => ({...l}))}; if (!S.modal.liens.length) S.modal.liens.push({nom:"", url:""}); render(); return; }
+    case "addlien": S.modal.liens.push({nom:"", url:""}); render(); return;
+    case "rmlien": S.modal.liens.splice(Number(a.dataset.i), 1); render(); return;
+    case "retirer": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"retirer", email:a.dataset.e, classe:a.dataset.c, ok:"Retirer", titre:"Retirer " + a.dataset.n + " de la classe ?", texte:"L'élève n'aura plus accès à cette classe. Ses travaux déjà rendus sont conservés. Il pourra revenir avec le code du cours."}; render(); return;
     case "copymails": { const txt = [...S.pick].join("; "); try { navigator.clipboard.writeText(txt).then(() => toast("Adresses copiées"), () => toast(txt)); } catch (_) { toast(txt); } return; }
   }
 });
 document.addEventListener("input", e => {
+  if (S.modal && S.modal.kind === "liens" && e.target.dataset && e.target.dataset.li != null) { S.modal.liens[Number(e.target.dataset.li)][e.target.dataset.k] = e.target.value; return; }
   if (S.ed && e.target.id === "edHtml") { S.ed.html = e.target.innerHTML; return; }
   if (S.ed && e.target.dataset && e.target.dataset.f && e.target.tagName !== "SELECT") { S.ed[e.target.dataset.f] = e.target.value; return; }
   if (e.target.id === "cSub" || e.target.id === "cBody") { S[e.target.id] = e.target.value; const l = document.getElementById("olk"); if (l) l.href = outlookLink([...S.pick], S.cSub, S.cBody); }

@@ -13,12 +13,13 @@ window.PHYSIQUEPRO = {
     titre: "Professeur de Physique-Chimie · Coordinateur du département de Physique-Chimie"
   },
 
+  // Icônes en haut de chaque page (nom affiché sous l'icône)
   liensUtiles: [
-    { nom: "Pronote", detail: "LFL Verdun", eleve: "https://2050012z.index-education.net/pronote/eleve.html", prof: "https://2050012z.index-education.net/pronote/professeur.html" },
-    { nom: "PIX", detail: "connexion", url: "https://app.pix.fr/connexion" },
-    { nom: "Site du lycée", detail: "LFL Verdun", url: "https://www.lycee-verdun.edu.lb/" },
-    { nom: "Outlook", detail: "Microsoft 365", url: "https://outlook.office.com" },
-    { nom: "OneDrive / Office", detail: "Microsoft 365", url: "https://www.office.com" }
+    { nom: "Pronote",  url: "https://2050012z.index-education.net/pronote/eleve.html", icone: "pronote", couleur: "#1E8C45", principal: true },
+    { nom: "PIX",      url: "https://app.pix.fr/connexion",  icone: "pix",    couleur: "#5B3FD6" },
+    { nom: "Lycée",    url: "https://www.lycee-verdun.edu.lb/", icone: "ecole", couleur: "#116482" },
+    { nom: "Outlook",  url: "https://outlook.office.com",     icone: "mail",   couleur: "#0F6CBD" },
+    { nom: "OneDrive", url: "https://www.office.com",         icone: "nuage",  couleur: "#0364B8" }
   ],
 
   outils: [
