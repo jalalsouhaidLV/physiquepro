@@ -479,16 +479,21 @@ function workItem(it){
   const cible = obj.eleves ? `<span class="pill">${obj.eleves.length} élève${obj.eleves.length > 1 ? "s" : ""}</span>` : "";
   if (it.k === "support") {
     right = `<span class="dt">Publié le ${fmtShort(it.date)}</span>`;
-    detail = `${obj.description ? `<div class="richtext">${rich(obj.description)}</div>` : ""}${ressources(obj.ressources) || (obj.description ? "" : `<span class="muted">Aucun fichier joint.</span>`)}`;
+    detail = `${texteUtile(obj.description) ? `<div class="richtext wkdesc">${rich(obj.description)}</div>` : ""}${ressources(obj.ressources) || (texteUtile(obj.description) ? "" : `<span class="muted">Aucun fichier joint.</span>`)}`;
   } else if (it.k === "devoir") {
     const d = obj;
     right = S.prof ? `<span class="dt">${d.date_limite ? dueOf(d).replace("Échéance : ", "") : "Publié le " + fmtShort(it.date)}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : etat(d, moi()).t === "Noté" ? fmtNote(etat(d, moi()).note) + "/" + d.points : d.date_limite ? dueOf(d).replace("Échéance : ", "") : ""}</span>`;
-    detail = `<div class="row muted">Publié le ${fmtShort(it.date)} · ${it.q2 ? (d.question && d.question.format === "choix" ? "question à choix multiple" : "question à réponse courte") : d.mode === "binome" ? "un rendu par binôme" : "individuel"} · ${pts(d)}</div>${d.consigne ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources)}
-      <div class="row">${S.prof ? statsDevoir(d) : `<span class="pill ${etat(d, moi()).k}">${etat(d, moi()).t}</span>`}<span style="flex:1"></span><a class="btn ghost sm" href="#/devoir/${d.id}">${it.q2 ? (S.prof ? "Voir les réponses" : "Répondre") : S.prof ? "Voir le devoir" : "Afficher le devoir"}</a></div>`;
+    const st = etat(d, moi());
+    detail = `<div class="wkhead"><div class="wkdl"><b>${d.date_limite ? "Date limite : " + fmtShort(D(d.date_limite)) + " " + fmtT(D(d.date_limite)) : "Aucune date limite"}</b><small>${it.q2 ? (d.question && d.question.format === "choix" ? "Question à choix multiples" : "Question à réponse courte") : d.mode === "binome" ? "Un rendu par binôme" : "Individuel"} · ${pts(d)}</small></div>
+        ${S.prof ? statsDevoir(d) : `<span class="wkst ${st.k}">${st.t}</span>`}</div>
+      ${texteUtile(d.consigne) ? `<div class="richtext wkdesc">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources)}
+      <div class="wkfoot"><a class="wklink" href="#/devoir/${d.id}">${S.prof ? "Afficher les instructions" : it.q2 ? "Afficher la question" : "Afficher le devoir"}</a>${S.prof ? `<a class="btn tonal" href="#/devoir/${d.id}">${it.q2 ? "Voir les réponses" : "Évaluer le travail"}</a>` : it.q2 && !renduDe(d, moi()) ? `<a class="btn tonal" href="#/devoir/${d.id}">Répondre</a>` : ""}</div>`;
   } else {
     const q = obj, r = resultatDe(q, S.user.id);
     right = `<span class="dt">${!S.prof && r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : q.mode === "note" ? "Questionnaire noté" : "Entraînement"}</span>`;
-    detail = `<div class="row muted">${(q.questions || []).length} questions · ${q.mode === "note" ? "noté sur " + q.points + ", une seule tentative" : "entraînement, recommençable"}</div>${q.consigne ? `<div class="richtext">${rich(q.consigne)}</div>` : ""}<div class="row"><span style="flex:1"></span><a class="btn ghost sm" href="#/quiz/${q.id}">${S.prof ? "Voir les résultats" : r ? "Voir mon résultat" : "Commencer"}</a></div>`;
+    detail = `<div class="wkhead"><div class="wkdl"><b>${q.date_limite ? "Date limite : " + fmtShort(D(q.date_limite)) + " " + fmtT(D(q.date_limite)) : "Aucune date limite"}</b><small>${(q.questions || []).length} questions · ${q.mode === "note" ? "noté sur " + q.points + ", une seule tentative" : "entraînement, recommençable"}</small></div>${!S.prof ? `<span class="wkst ${r ? "ok" : ""}">${r ? "Fait" : "Attribué"}</span>` : ""}</div>
+      ${texteUtile(q.consigne) ? `<div class="richtext wkdesc">${rich(q.consigne)}</div>` : ""}
+      <div class="wkfoot"><a class="wklink" href="#/quiz/${q.id}">Afficher le questionnaire</a><a class="btn tonal" href="#/quiz/${q.id}">${S.prof ? "Voir les résultats" : r ? "Voir mon résultat" : "Commencer"}</a></div>`;
   }
   if (S.prof && draft) right = `<span class="dt draft">Brouillon</span>`;
   else if (S.prof && prog) right = `<span class="dt draft">Programmé · ${fmtShort(D(obj.publie_le))} ${fmtT(D(obj.publie_le))}</span>`;
@@ -503,7 +508,11 @@ function workItem(it){
 }
 function statsDevoir(d){
   const el = elevesDuDevoir(d, inscritsDe(d.classe_id)), n = el.filter(e => renduDe(d, e.email)).length;
-  return `<span class="stats" style="gap:22px"><div><b>${n}</b><small>Rendus</small></div><div><b>${el.length - n}</b><small>${ouvert(d) ? "Attribués" : "Manquants"}</small></div><div><b>${aCorriger(d)}</b><small>À noter</small></div></span>`;
+  const an = aCorriger(d);
+  return `<span class="stats crstats"><div><b>${n}</b><small>Remis</small></div><div><b>${el.length - n}</b><small>${ouvert(d) ? "Attribués" : "Manquants"}</small></div>${an ? `<div><b>${an}</b><small>À noter</small></div>` : ""}</span>`;
+}
+/* vrai texte (pas seulement « … » ou des espaces) */
+function texteUtile(h){ return !!String(h || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&hellip;/g, " ").replace(/[\s.…·-]+/g, "").length;
 }
 function vTravaux(c, data){
   const groupes = data.themes.map((t, i) => ({t, i, titre:t.titre, items:itemsDuTheme(c, data, t.id)}));

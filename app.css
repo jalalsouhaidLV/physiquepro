@@ -687,7 +687,7 @@ sup,sub{line-height:0;font-size:.75em}
 
 /* ===== Lignes des travaux (identique à Google Classroom) ===== */
 .work .ico{background:var(--c);color:var(--on-banner)}
-.work .ico.pale,.work.isdraft .ico{background:transparent;color:#444746;box-shadow:inset 0 0 0 1.5px #444746;opacity:1}
+.work.isdraft .ico{background:transparent;color:#444746;box-shadow:inset 0 0 0 1.5px #444746;opacity:1}
 .work .tt{font-weight:400;font-size:1rem}
 .work.isdraft .dt{font-style:italic}
 .work:has(.workd){background:#E8EEF7;border-radius:12px;border-bottom-color:transparent;margin:4px 0}
@@ -705,3 +705,53 @@ sup,sub{line-height:0;font-size:.75em}
 .att.rcards .rtxt{align-items:flex-start;text-align:left}
 .att.rcards .rtxt b,.att.rcards .rtxt small{max-width:100%}
 .att.rcards .rthumb img.rimg{position:absolute;inset:0;background:#fff}
+
+/* ===== Élément ouvert : en-tête, chiffres et pied comme Google Classroom ===== */
+.work:has(.workd){background:#F0F4F9;border-radius:16px;overflow:hidden}
+.work:has(.workd)>.workrow{border-bottom:1px solid #C4C7C5;padding:4px 0}
+.work .ico{background:color-mix(in srgb,var(--c) 22%,#fff);color:color-mix(in srgb,var(--c) 85%,#000)}
+.work .workd{padding:16px 24px 0 24px;gap:16px}
+.wkhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;min-height:40px}
+.wkdl{display:grid;gap:2px}
+.wkdl b{font-weight:500;font-size:.875rem;color:#444746}
+.wkdl small{color:#5F6368;font-size:.8rem}
+.wkdesc{color:var(--ink);font-size:.875rem;white-space:normal}
+.crstats{display:flex;gap:0;flex-wrap:nowrap}
+.crstats div{padding:0 24px;border-left:1px solid #C4C7C5;min-width:96px}
+.crstats div b{font-family:inherit;font-size:2.25rem;font-weight:400;color:#1F1F1F;line-height:1.15}
+.crstats div small{color:#444746;font-size:.875rem}
+.wkst{font-size:.875rem;color:#146C2E;font-weight:500}
+.wkst.retard,.wkst.manque,.wkst.bad{color:var(--bad)}
+.wkfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 -24px;padding:12px 24px;border-top:1px solid #C4C7C5}
+.wklink{color:#0B57D0;font-weight:500;font-size:.875rem;text-decoration:none}
+.wklink:hover{text-decoration:underline}
+.btn.tonal{background:#C2E7FF;color:#001D35;border:0;border-radius:20px;padding:10px 24px;font-weight:500;text-decoration:none;box-shadow:none}
+.btn.tonal:hover{background:#B3DCF5;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.work .workd>.att.rcards:last-child,.work .workd>.muted:last-child,.work .workd>.wkdesc:last-child{margin-bottom:24px}
+@media (max-width:640px){.work .workd{padding:12px 12px 0}.wkfoot{margin:0 -12px;padding:10px 12px}.crstats div{padding:0 14px;min-width:0}.crstats div b{font-size:1.7rem}}
+:root[data-theme="dark"] .work:has(.workd){background:var(--surface-2)}
+:root[data-theme="dark"] .work:has(.workd)>.workrow,:root[data-theme="dark"] .wkfoot,:root[data-theme="dark"] .crstats div{border-color:var(--line)}
+:root[data-theme="dark"] .crstats div b,:root[data-theme="dark"] .wkdl b{color:var(--ink)}
+:root[data-theme="dark"] .work .ico{background:color-mix(in srgb,var(--c) 35%,#000);color:#fff}
+:root[data-theme="dark"] .wklink{color:var(--accent)}
+:root[data-theme="dark"] .btn.tonal{background:var(--accent-soft);color:var(--accent)}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .work:has(.workd){background:var(--surface-2)}
+  :root:not([data-theme="light"]) .work:has(.workd)>.workrow,:root:not([data-theme="light"]) .wkfoot,:root:not([data-theme="light"]) .crstats div{border-color:var(--line)}
+  :root:not([data-theme="light"]) .crstats div b,:root:not([data-theme="light"]) .wkdl b{color:var(--ink)}
+  :root:not([data-theme="light"]) .work .ico{background:color-mix(in srgb,var(--c) 35%,#000);color:#fff}
+  :root:not([data-theme="light"]) .wklink{color:var(--accent)}
+  :root:not([data-theme="light"]) .btn.tonal{background:var(--accent-soft);color:var(--accent)}
+}
+@media (max-width:640px){.travhead .field.filt{min-width:0;flex:1 1 160px}.travhead .field.filt select,.travhead .field.filt input{width:100%;min-width:0}}
+.page>*{min-width:0}
+.theme>*{min-width:0}.themehead h2{min-width:0;overflow-wrap:anywhere}
+.workd>*{min-width:0}
+@media (max-width:600px){
+  .crumbs:has(.cur) .brand b,.crumbs:has(.cur) .sep{display:none}
+  .crumbs{flex:1 1 auto;overflow:hidden}
+  .quick{flex:0 1 auto;max-width:42vw}
+  .wkhead .crstats{width:100%}
+  .wkhead .crstats div:first-child{border-left:0;padding-left:0}
+}
+.btn.tonal,.wklink{white-space:nowrap}@media (max-width:600px){.btn.tonal{padding:8px 16px}}
