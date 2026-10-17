@@ -59,6 +59,8 @@ const IC = {
   video:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>', archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9M10 13h4"/>',
   restore:'<path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v4h4"/>', send:'<path d="M4 12l16-8-6 16-2-7z"/>', comment:'<path d="M4 5h16v11H9l-5 4z"/>',
   people:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c2.8 0 5 2.2 5 5"/>',
+  chevup:'<path d="M6 15l6-6 6 6"/>',
+  chevdown:'<path d="M6 9l6 6 6-6"/>',
   reuse:'<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   file:'<path d="M6 3h8l4 4v14H6z"/>', expand:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
 };
@@ -520,8 +522,9 @@ function vTravaux(c, data){
   const visibles = groupes.filter(g => (S.prof || g.items.length) && (!S.filtreTheme || (g.t ? String(g.t.id) : "none") === S.filtreTheme));
   const themeMenu = g => !S.prof || !g.t ? "" : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="t${g.t.id}" aria-label="Options du thème">${icon("more")}</button>${S.menu === "t" + g.t.id ? `<div class="dd-menu">
     <a href="#" data-act="renomtheme" data-id="${g.t.id}" data-titre="${esc(g.t.titre)}">${icon("edit")} Renommer</a>
-    ${g.i > 0 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="-1" data-c="${esc(c.id)}">${icon("up")} Monter</a>` : ""}
-    ${g.i < data.themes.length - 1 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="1" data-c="${esc(c.id)}">${icon("down")} Descendre</a>` : ""}
+    <a href="#" data-act="placertheme" data-id="${g.t.id}" data-titre="${esc(g.t.titre)}" data-c="${esc(c.id)}">${icon("reuse")} Déplacer avant / après…</a>
+    ${g.i > 0 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-to="0" data-c="${esc(c.id)}">${icon("up")} Placer en premier</a><a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="-1" data-c="${esc(c.id)}">${icon("up")} Monter</a>` : ""}
+    ${g.i < data.themes.length - 1 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="1" data-c="${esc(c.id)}">${icon("down")} Descendre</a><a href="#" data-act="movetheme" data-id="${g.t.id}" data-to="999" data-c="${esc(c.id)}">${icon("down")} Placer en dernier</a>` : ""}
     <a href="#" data-act="supprtheme" data-id="${g.t.id}" data-titre="${esc(g.t.titre)}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>`;
   const gid = g => g.t ? String(g.t.id) : "none";
   const head = `<div class="travhead">
@@ -535,7 +538,7 @@ function vTravaux(c, data){
     ${groupes.length > 1 ? `<div class="field filt"><label for="filtreTheme">Filtre thématique</label><select id="filtreTheme" data-f="filtre"><option value="">Tous les thèmes</option>${groupes.map(g => `<option value="${gid(g)}" ${S.filtreTheme === gid(g) ? "selected" : ""}>${esc(g.titre)}</option>`).join("")}</select></div>` : ""}
     <span class="spacer"></span>${groupes.length ? `<button class="linkbtn" data-act="toutreduire">${S.reduits.size ? "Tout développer" : "Tout réduire"}</button>` : ""}</div>`;
   return `<div class="page" style="--c:var(${C(c.couleur).c})">${head}
-    ${visibles.length ? visibles.map(g => `<section class="theme${S.prof ? " movable" : ""}" data-tid="${gid(g)}"><div class="themehead">${S.prof && g.t ? `<span class="grip" title="Glisser pour déplacer" aria-hidden="true">⋮⋮</span>` : ""}<h2>${esc(g.titre)}</h2><button class="ib sm" data-act="reduire" data-id="${gid(g)}" aria-label="${S.reduits.has(gid(g)) ? "Développer" : "Réduire"}">${icon(S.reduits.has(gid(g)) ? "down" : "up")}</button>${themeMenu(g)}</div>
+    ${visibles.length ? visibles.map(g => `<section class="theme${S.prof ? " movable" : ""}" data-tid="${gid(g)}"><div class="themehead">${S.prof && g.t ? `<span class="grip" title="Glisser pour déplacer" aria-hidden="true">⋮⋮</span>` : ""}<h2>${esc(g.titre)}</h2><button class="ib sm" data-act="reduire" data-id="${gid(g)}" aria-label="${S.reduits.has(gid(g)) ? "Développer" : "Réduire"}">${icon(S.reduits.has(gid(g)) ? "chevdown" : "chevup")}</button>${themeMenu(g)}</div>
       ${S.reduits.has(gid(g)) ? "" : g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir, un questionnaire ou une documentation." : "Rien pour l'instant."}</p>`}</section>`).join("")
       : `<div class="emptystate"><b>${S.prof ? "Crée ton premier élément" : "Aucun travail pour l'instant."}</b><span>${S.prof ? "Crée un thème (par exemple « Chapitre 1 »), puis ajoute des devoirs, des questionnaires et des documentations." : "Ton professeur n'a encore rien publié dans ce cours."}</span></div>`}
     ${pageFoot()}</div>`;
@@ -1201,6 +1204,9 @@ function moyenneEleve(c){
 function vModal(){
   const m = S.modal; let body = "", ok = "Enregistrer", foot = true;
   if (m.kind === "theme") { body = `<h2>${m.id ? "Renommer le thème" : "Ajouter un thème"}</h2><div class="field"><label for="mTitre">Nom du thème</label><input id="mTitre" value="${esc(m.titre || "")}" placeholder="ex. Chapitre 1 · Mouvements"></div>`; ok = m.id ? "Renommer" : "Ajouter"; }
+  else if (m.kind === "placertheme") { const th = ((S.cache[m.classe] || {}).themes || []).filter(t => String(t.id) !== String(m.id));
+    body = `<h2>Déplacer « ${esc(m.titre)} »</h2><div class="dt2" style="grid-template-columns:auto 1fr"><select id="mOu" aria-label="Avant ou après"><option value="avant">Avant</option><option value="apres">Après</option></select>
+      <select id="mRef" aria-label="Thème de référence">${th.map(t => `<option value="${t.id}">${esc(t.titre)}</option>`).join("")}</select></div>`; ok = "Déplacer"; }
   else if (m.kind === "prog") { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0);
     body = `<h2>Programmer la publication</h2><p class="muted" style="margin:0">Les élèves verront cet élément à partir de cette date.</p><div class="dt2"><input id="mDate" type="date" value="${ymd(d)}" aria-label="Date"><input id="mHeure" type="time" value="08:00" aria-label="Heure"></div>`; ok = "Programmer"; }
   else if (m.kind === "join") { body = `<h2>Rejoindre un cours</h2><p class="muted" style="margin:0">Tu es connecté avec <b>${esc(moi())}</b>. Saisis le code du cours donné par ton professeur.</p><div class="field"><label for="mCode">Code du cours</label><input id="mCode" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ex. k7m4pqr" value="${esc(m.code || "")}" style="font-family:var(--mono);font-size:1.2rem;letter-spacing:.08em"></div>`; ok = "Rejoindre"; }
@@ -1293,6 +1299,10 @@ async function modalOk(){
   const stop = msg => { m.err = msg; m.busy = false; render(); };
   m.busy = true;
   try {
+    if (m.kind === "placertheme") {
+      const th = S.cache[m.classe].themes.filter(t => String(t.id) !== String(m.id)), k = th.findIndex(t => String(t.id) === val("mRef"));
+      S.modal = null; return placerTheme(m.classe, m.id, k < 0 ? 0 : k + (val("mOu") === "apres" ? 1 : 0));
+    }
     if (m.kind === "theme") {
       const t = val("mTitre").trim(); if (!t) return stop("Donne un nom au thème.");
       if (m.id) { const { error } = await sb.from("themes").update({ titre: t }).eq("id", m.id); if (error) throw error; return done("Thème renommé", m.classe); }
@@ -1760,26 +1770,33 @@ function dtDebut(){
 }
 function dtBouge(x, y){
   DT.ghost.style.left = (x - DT.dx) + "px"; DT.ghost.style.top = (y - DT.dy) + "px";
+  DT.px = x; DT.py = y;
   const sous = document.elementFromPoint(x, y);
-  if (!sous) return;
   if (DT.kind === "theme") {
-    const cible = sous.closest("section.theme.movable");
-    if (cible && cible !== DT.el && cible.dataset.tid !== "none") {
-      const r = cible.getBoundingClientRect();
-      cible.parentNode.insertBefore(DT.el, y < r.top + r.height / 2 ? cible : cible.nextSibling);
+    const autres = sections().filter(x => x !== DT.el && x.dataset.tid !== "none");
+    if (autres.length) {
+      const avant = autres.find(x => { const r = x.getBoundingClientRect(); return y < r.top + r.height / 2; });
+      const ref = avant || autres[autres.length - 1].nextSibling;
+      if (ref !== DT.el && ref !== DT.el.nextSibling) autres[0].parentNode.insertBefore(DT.el, ref);
     }
   } else {
+    if (!sous) return;
     const sec = sous.closest("section.theme.movable"); if (!sec) return;
     const w = sous.closest(".work[data-wk]");
     if (w && w !== DT.el && sec.contains(w)) { const r = w.getBoundingClientRect(); w.parentNode.insertBefore(DT.el, y < r.top + r.height / 2 ? w : w.nextSibling); }
     else if (!w && !sec.contains(DT.el)) { const vide = sec.querySelector("p.empty"); if (vide) vide.remove(); sec.appendChild(DT.el); }
   }
-  if (y < 80) window.scrollBy(0, -14); else if (y > window.innerHeight - 50) window.scrollBy(0, 14);
 }
+/* défilement automatique continu quand le pointeur reste près du haut ou du bas de l'écran */
+setInterval(() => {
+  if (!DT.on || DT.py == null) return;
+  const h = window.innerHeight, v = DT.py < 110 ? -Math.ceil((110 - DT.py) / 6) : DT.py > h - 80 ? Math.ceil((DT.py - h + 80) / 5) : 0;
+  if (v) { window.scrollBy(0, v); dtBouge(DT.px, DT.py); }
+}, 16);
 async function dtFin(annule){
   clearTimeout(DT.timer);
   const was = DT.on, kind = DT.kind, el = DT.el, depuis = DT.depuis, cid = route().a;
-  DT.el = null; DT.on = false; DT.pid = null;
+  DT.el = null; DT.on = false; DT.pid = null; DT.py = null;
   if (!was) return;
   DT.ghost && DT.ghost.remove(); el.classList.remove("dtph"); document.body.classList.remove("dragging");
   document.querySelectorAll(".page section.theme.compact").forEach(x => x.classList.remove("compact"));
@@ -1823,6 +1840,18 @@ document.addEventListener("pointermove", e => {
 document.addEventListener("touchmove", e => { if (DT.on) e.preventDefault(); }, { passive: false });
 document.addEventListener("pointerup", e => { if (DT.el && e.pointerId === DT.pid) dtFin(false); });
 document.addEventListener("pointercancel", () => { if (DT.el) dtFin(true); });
+
+/* place un thème à la position voulue (0 = premier) et enregistre l'ordre */
+async function placerTheme(cid, id, pos){
+  const data = await chargerClasse(cid), th = data.themes.slice(), i = th.findIndex(t => String(t.id) === String(id));
+  if (i < 0) return render();
+  const [t] = th.splice(i, 1); th.splice(Math.max(0, Math.min(pos, th.length)), 0, t);
+  if (th.map(x => x.id).join() === data.themes.map(x => x.id).join()) return render();
+  th.forEach((x, n) => x.ordre = n + 1); data.themes = th; render();
+  const res = await Promise.all(th.map((x, n) => sb.from("themes").update({ ordre: n + 1 }).eq("id", x.id)));
+  if (res.some(x => x.error)) toast("Déplacement impossible."); else toast("Thème déplacé");
+  delete S.cache[cid]; render();
+}
 /* ---------- notifications (cloche) et page Profil ---------- */
 const NOTIF_DEF = {
   coms: [["coms", "Commentaires ajoutés à vos posts"], ["mention", "Commentaires dans lesquels vous êtes mentionné"], ["prives", "Commentaires privés sur les devoirs"]],
@@ -2527,11 +2556,11 @@ document.addEventListener("click", async e => {
     case "newtheme": e.preventDefault(); S.menu = null; S.modal = {kind:"theme", classe:a.dataset.c}; render(); return;
     case "renomtheme": e.preventDefault(); S.menu = null; S.modal = {kind:"theme", id:a.dataset.id, titre:a.dataset.titre, classe:r.a}; render(); return;
     case "supprtheme": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"supprtheme", id:a.dataset.id, classe:a.dataset.c, titre:"Supprimer le thème « " + a.dataset.titre + " » ?", texte:"Les éléments de ce thème ne sont pas supprimés : ils passent dans « Aucun thème »."}; render(); return;
-    case "movetheme": { e.preventDefault(); S.menu = null; const cid = a.dataset.c, th = (await chargerClasse(cid)).themes.slice(), i = th.findIndex(t => String(t.id) === a.dataset.id), j = i + Number(a.dataset.dir);
-      if (i < 0 || j < 0 || j >= th.length) return render();
-      [th[i], th[j]] = [th[j], th[i]];
-      const res = await Promise.all(th.map((t, n) => sb.from("themes").update({ ordre: n + 1 }).eq("id", t.id)));
-      if (res.some(x => x.error)) toast("Déplacement impossible."); delete S.cache[cid]; render(); return; }
+    case "movetheme": { e.preventDefault(); S.menu = null; const th = (await chargerClasse(a.dataset.c)).themes.slice(), i = th.findIndex(t => String(t.id) === a.dataset.id);
+      if (i < 0) return render();
+      const j = a.dataset.to != null ? Math.min(Number(a.dataset.to), th.length - 1) : i + Number(a.dataset.dir);
+      return placerTheme(a.dataset.c, a.dataset.id, j); }
+    case "placertheme": { e.preventDefault(); S.menu = null; await chargerClasse(a.dataset.c); S.modal = {kind:"placertheme", id:a.dataset.id, titre:a.dataset.titre, classe:a.dataset.c}; render(); return; }
     case "suppr": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"suppr", k:a.dataset.k, id:a.dataset.id, classe:r.a, titre:"Supprimer « " + a.dataset.titre + " » ?", texte:a.dataset.k === "devoir" ? "Les travaux rendus par les élèves, leurs notes et les commentaires privés de ce devoir seront aussi supprimés. Cette action est définitive." : a.dataset.k === "quiz" ? "Les réponses des élèves seront aussi supprimées. Cette action est définitive." : "Cette action est définitive."}; render(); return;
     case "publier": { e.preventDefault(); S.menu = null; const table = a.dataset.k === "devoir" ? "devoirs" : a.dataset.k === "support" ? "supports" : "quiz";
       const { error } = await sb.from(table).update({ brouillon: false, publie_le: now().toISOString() }).eq("id", a.dataset.id); if (error) { toast("Publication impossible : " + error.message); return; }
