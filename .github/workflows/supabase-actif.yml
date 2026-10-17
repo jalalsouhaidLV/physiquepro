@@ -1,4 +1,4 @@
 # Garde la base Supabase active (l'offre gratuite se met en pause après 7 jours sans visite)
 name: Garder Supabase actif
 on: {schedule: [{cron: '17 5 */2 * *'}], workflow_dispatch: {}}
-jobs: {ping: {runs-on: ubuntu-latest, steps: [{name: Ping, run: "curl -fsS -o /dev/null -w '%{http_code}\\n' 'https://zycuykixcjgmdbeoflsb.supabase.co/rest/v1/classes?select=id&limit=1' -H 'apikey: sb_publishable_o2Km-g2VoDde3e2aYKKKgA_i2EmGdoD'"}]}}
+jobs: {ping: {runs-on: ubuntu-latest, steps: [{name: Ping, run: "curl -fsS -X POST 'https://zycuykixcjgmdbeoflsb.supabase.co/rest/v1/rpc/pp_ping' -H 'apikey: sb_publishable_o2Km-g2VoDde3e2aYKKKgA_i2EmGdoD' -H 'Content-Type: application/json' -d '{}'"}]}}
