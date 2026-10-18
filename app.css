@@ -791,3 +791,11 @@ sup,sub{line-height:0;font-size:.75em}
   .foot.headband .logos,.foot.headband img{display:none}
   .page{gap:18px}
 }
+@media (max-width:600px){
+  .quick{max-width:calc(100vw - 196px);gap:0}
+  .quick .qlogo{height:20px;max-width:46px}
+  .quick .qi:has(.qlogo){padding:2px 3px}
+  .quick a{min-width:36px}
+  .crumbs:has(.cur) .brand{display:none}
+}
+.foot .logos{margin-left:auto}
