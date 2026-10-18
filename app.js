@@ -285,7 +285,7 @@ function carte(c, archivee){
   const menuEleve = !S.prof && !archivee ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">${deplacerMenu(c)}<a href="#" data-act="quitter" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("logout")} Quitter le cours</a></div>` : ""}</div>` : "";
   const menu = !S.prof ? menuEleve : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">
       ${archivee ? `<a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="0">${icon("restore")} Restaurer</a><a href="#" data-act="supprclasse" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a>`
-        : `${c.code ? `<a href="#" data-act="copylien" data-code="${esc(c.code)}">${icon("links")} Copier le lien d'invitation</a>` : ""}<a href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Modifier</a>${deplacerMenu(c)}<a href="#" data-act="copiercours" data-c="${esc(c.id)}">${icon("copy")} Copier</a><a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="1">${icon("archive")} Archiver</a>`}</div>` : ""}</div>`;
+        : `${deplacerMenu(c)}${c.code ? `<a href="#" data-act="copylien" data-code="${esc(c.code)}">${icon("links")} Copier le lien d'invitation</a>` : ""}<a href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Modifier</a><a href="#" data-act="copiercours" data-c="${esc(c.id)}">${icon("copy")} Copier</a><a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="1">${icon("archive")} Archiver</a>`}</div>` : ""}</div>`;
   return `<article class="ccard${archivee ? " archived" : " movable"}" data-cid="${esc(c.id)}" style="--bb:var(${k.b})">
     <div style="position:relative">
       <a class="banner" href="#/classe/${esc(c.id)}">${bannerArt(c)}<h2>${esc(c.nom)}</h2>${c.section ? `<p>${esc(c.section)}</p>` : ""}<span class="teacher">${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(R().prof.nom)}</span></a>
@@ -298,9 +298,9 @@ function carte(c, archivee){
       ${menu}
     </div></article>`;
 }
+/* « Déplacer » comme Classroom : ouvre une fenêtre pour choisir la nouvelle place du cours */
 function deplacerMenu(c){
-  const l = actives(), i = l.findIndex(x => x.id === c.id);
-  return `${i > 0 ? `<a href="#" data-act="deplacer" data-c="${esc(c.id)}" data-pos="0">${icon("up")} Placer en premier</a><a href="#" data-act="deplacer" data-c="${esc(c.id)}" data-pos="${i - 1}">${icon("left")} Déplacer avant</a>` : ""}${i < l.length - 1 ? `<a href="#" data-act="deplacer" data-c="${esc(c.id)}" data-pos="${i + 1}">${icon("right")} Déplacer après</a>` : ""}`;
+  return actives().length > 1 ? `<a href="#" data-act="placercours" data-c="${esc(c.id)}">${icon("expand")} Déplacer</a>` : "";
 }
 function vAccueil(){
   const list = actives();
@@ -1245,6 +1245,10 @@ function vModal(){
   const m = S.modal; let body = "", ok = "Enregistrer", foot = true;
   if (m.kind === "theme") { body = `<h2>${m.id ? "Renommer le thème" : "Ajouter un thème"}</h2><div class="field"><label for="mTitre">Nom du thème</label><input id="mTitre" value="${esc(m.titre || "")}" placeholder="ex. Chapitre 1 · Mouvements"></div>`; ok = m.id ? "Renommer" : "Ajouter"; }
   else if (m.kind === "copieauth") { body = `<h2>Ouvrir ta copie modifiable</h2><p style="margin:0">Pour modifier ce document en ligne, PhysiquePro en crée <b>une copie dans ton OneDrive</b> (dossier « PhysiquePro »). Le document de ton professeur n'est pas modifié.</p><p class="muted" style="margin:0;font-size:.85rem">La première fois seulement, Microsoft te demande d'autoriser PhysiquePro à accéder à ton OneDrive.</p>`; ok = "Autoriser et ouvrir"; }
+  else if (m.kind === "placercours") { const l = actives(), i = l.findIndex(c => c.id === m.id), autres = l.filter(c => c.id !== m.id);
+    body = `<h2>Déplacer « ${esc(m.nom)} »</h2><div class="field"><label for="mPos">Nouvelle place du cours</label><select id="mPos" style="width:100%;max-width:100%">
+      <option value="0" ${i === 0 ? "selected" : ""}>En premier</option>${autres.map((c, k) => `<option value="${k + 1}" ${i === k + 1 ? "selected" : ""}>Après « ${esc(c.nom)} »</option>`).join("")}</select></div>
+      <p class="muted" style="margin:0;font-size:.85rem">${S.prof ? "Les élèves voient les cours dans cet ordre." : "Cet ordre ne concerne que ton accueil."} Tu peux aussi glisser-déposer les cartes sur l'accueil.</p>`; ok = "Déplacer"; }
   else if (m.kind === "placertheme") { const th = ((S.cache[m.classe] || {}).themes || []).filter(t => String(t.id) !== String(m.id));
     body = `<h2>Déplacer « ${esc(m.titre)} »</h2><div class="field"><label for="mOu">Placer ce thème</label><select id="mOu" style="width:100%"><option value="avant">Avant le thème…</option><option value="apres">Après le thème…</option></select></div>
       <div class="field"><label for="mRef">Thème</label><select id="mRef" style="width:100%;max-width:100%;text-overflow:ellipsis">${th.map(t => `<option value="${t.id}">${esc(t.titre.length > 70 ? t.titre.slice(0, 68) + "…" : t.titre)}</option>`).join("")}</select></div>`; ok = "Déplacer"; }
@@ -1341,6 +1345,7 @@ async function modalOk(){
   m.busy = true;
   try {
     if (m.kind === "copieauth") { m.busy = false; return copieAutoriser(); }
+    if (m.kind === "placercours") { const pos = Number(val("mPos")); S.modal = null; render(); return deplacerA(m.id, pos); }
     if (m.kind === "placertheme") {
       const th = S.cache[m.classe].themes.filter(t => String(t.id) !== String(m.id)), k = th.findIndex(t => String(t.id) === val("mRef"));
       S.modal = null; return placerTheme(m.classe, m.id, k < 0 ? 0 : k + (val("mOu") === "apres" ? 1 : 0));
@@ -2802,6 +2807,7 @@ document.addEventListener("click", async e => {
     case "copylien": { e.preventDefault(); S.menu = null; const lien = ICI + "#/rejoindre/" + encodeURIComponent(a.dataset.code);
       try { navigator.clipboard.writeText(lien).then(() => toast("Lien d'invitation copié"), () => toast(lien)); } catch (_) { toast(lien); } render(); return; }
     case "deplacer": e.preventDefault(); S.menu = null; deplacerA(a.dataset.c, Number(a.dataset.pos)); return;
+    case "placercours": { e.preventDefault(); S.menu = null; const c = cls(a.dataset.c); S.modal = {kind:"placercours", id:c.id, nom:c.nom}; render(); return; }
     case "copiercours": { e.preventDefault(); S.menu = null; const c = cls(a.dataset.c); S.modal = {kind:"copiercours", id:c.id, nom:c.nom}; render(); return; }
     case "moveclasse": { const act2 = actives(), i = act2.findIndex(c => c.id === a.dataset.c), j = i + Number(a.dataset.dir); if (i < 0 || j < 0 || j >= act2.length) return;
       [act2[i], act2[j]] = [act2[j], act2[i]];
