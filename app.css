@@ -900,3 +900,34 @@ sup,sub{line-height:0;font-size:.75em}
   .btn.caret{min-width:36px}
 }
 @media (max-width:600px){ .ccard{min-height:0} .ccard .body{min-height:56px} }
+/* ---- noms des cours en entier sur les cartes ---- */
+.ccard .banner{height:auto;min-height:100px;display:flex;flex-direction:column;gap:2px;padding-bottom:12px}
+.ccard .banner h2{white-space:normal;overflow:visible;text-overflow:clip;max-width:80%;line-height:1.2;overflow-wrap:anywhere}
+.ccard .banner p{white-space:normal;overflow:visible;text-overflow:clip;max-width:80%;line-height:1.25}
+.ccard .banner .teacher{position:static;margin-top:auto;padding-top:6px;max-width:75%}
+/* ---- Message urgent (élève) ---- */
+.tabs .urgtab{color:var(--bad);display:inline-flex;align-items:center;gap:6px;font-weight:600;background:none;border:0;cursor:pointer;font:inherit;font-weight:600}
+.tabs .urgtab .i{width:18px;height:18px}
+.tabs .urgtab:hover{background:var(--bad-bg)}
+.tabs .tc{display:none}
+@media (max-width:440px){.tabs .tc{display:inline}}
+.urgmine{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:10px;max-height:34vh;overflow-y:auto}
+.urgold{display:grid;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.urgold p,.urgrep p,.urgtxt{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.urgrep{background:var(--accent-soft);border-radius:8px;padding:8px 10px}
+/* ---- Messagerie d'urgence (prof) ---- */
+.urgbtn{position:relative;color:var(--bad)}
+.urgbtn .badge{position:absolute;top:4px;right:4px;min-width:17px;height:17px;border-radius:9px;background:var(--bad);color:#fff;font-size:.64rem;font-weight:700;display:grid;place-items:center;padding:0 4px;pointer-events:none}
+.urgn{background:var(--bad);color:#fff;border-radius:9px;padding:0 6px;font-size:.72rem;margin-left:4px}
+.urglist{display:grid;gap:12px}
+.urgcard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;padding:14px 16px;display:grid;gap:10px}
+.urgcard.nonlu{box-shadow:0 0 0 2px var(--bad-bg);border-left-color:var(--bad)}
+.urgcard header{display:flex;gap:10px;align-items:center}
+.urgcard header small{display:block}
+.urgactions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+@media (max-width:600px){.urgbtn{min-width:36px}}
+select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+/* téléphone : l'icône Messagerie d'urgence passe dans le menu ☰ (pastille rouge sur le menu) pour garder les 5 raccourcis visibles */
+.menubtn{position:relative}
+.menubtn .urgdot{display:none;position:absolute;top:4px;right:2px;min-width:17px;height:17px;border-radius:9px;background:var(--bad);color:#fff;font-size:.64rem;font-weight:700;place-items:center;padding:0 4px;pointer-events:none}
+@media (max-width:600px){.topbar .urgbtn{display:none}.menubtn .urgdot{display:grid}}

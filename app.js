@@ -155,6 +155,7 @@ async function chargerTout(){
   for (const r of res) if (r.error) throw r.error;
   [S.classes, S.devoirs, S.rendus, S.corrections, S.quiz, S.resultats] = res.slice(0, 6).map(r => r.data);
   try { const cp = await sb.from("copies").select("*"); S.copies = cp.error ? [] : cp.data; } catch (_) { S.copies = []; }
+  await chargerUrgents();
   if (S.prof) {
     S.nbEleves = {}; S.toutesInscriptions = res[6].data;
     res[6].data.forEach(x => S.nbEleves[x.classe_id] = (S.nbEleves[x.classe_id] || 0) + 1);
@@ -237,11 +238,11 @@ function topbar(r){
   const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : r.v === "quiz" ? cls((S.quiz.find(q => String(q.id) === r.a) || {}).classe_id) : null;
   if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none">${esc(c.nom)}<small>${esc(c.section)}</small></a>`;
   return `<header class="topbar">
-    <button class="ib" data-act="drawer" aria-label="Menu principal">${icon("menu")}</button>
+    <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
     <span class="spacer"></span>
     <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
-    ${cloche()}
+    ${boutonUrgences()}${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
       ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
     <div class="dd"><button class="avatar" data-act="me" title="${esc(S.nom)}" style="border:0;cursor:pointer">${initials(S.nom)}</button>
@@ -256,7 +257,7 @@ function drawer(r){
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
     <a class="it" href="#/todo" ${cur("todo")}>${icon(S.prof ? "check" : "todo")}<span class="lbl">${S.prof ? "À corriger" : "À faire"}</span></a>
-    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a>` : ""}
+    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}>${icon("urgent")}<span class="lbl">Messagerie d'urgence${nbUrgents() ? ` <b class="urgn">${nbUrgents()}</b>` : ""}</span></a>` : ""}
     ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
     <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
@@ -342,7 +343,7 @@ function teamsVisible(c){ return c.teams_url && (S.prof || c.teams_visible); }
 function classTabs(c, tab){
   const T = []; if (fluxVisible(c)) T.push(["flux", "Flux"]);
   T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "Mes notes"]);
-  return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}</div>
+  return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}${ongletUrgent(c)}</div>
     <div class="tabicons">
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
       <a class="ib" href="#/agenda/${esc(c.id)}" title="Agenda du cours" aria-label="Agenda du cours">${icon("cal")}</a>
@@ -409,6 +410,11 @@ const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.cou
 function asideClasse(c){
   const up = S.devoirs.filter(d => d.classe_id === c.id && d.date_limite && ouvert(d) && !d.brouillon && (S.prof || !renduDe(d, moi()))).slice(0, 3);
   return `<aside class="caside">
+    ${(c.liens && c.liens.length) || S.prof ? `<div class="box"><div class="boxhead"><h3>Liens de la classe</h3>${S.prof ? `<button class="ib sm" data-act="editliens" data-c="${esc(c.id)}" aria-label="Modifier les liens" title="Modifier les liens">${icon("edit")}</button>` : ""}</div>
+      <div class="classlinks">${(c.liens || []).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${icon("links")}<span>${esc(l.nom)}</span></a>`).join("")}</div>
+      ${S.prof && !(c.liens || []).length ? `<span class="muted" style="font-size:.82rem">Ajoute des liens utiles : manuel, simulateur, Capytale…</span>` : ""}</div>` : ""}
+    <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueOf(d).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" class="uplink">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à remettre dans les jours qui viennent</span>`}<a class="linkbtn" href="#/todo">Tout afficher</a></div>
+    ${!S.prof && c.moyenne_visible ? `<div class="box"><h3>Ma moyenne</h3><span class="grade">${moyenneEleve(c) == null ? "–" : fmtNote(moyenneEleve(c))}<small>/20</small></span><span class="muted" style="font-size:.78rem">Calculée sur les notes rendues par ton professeur.</span></div>` : ""}
     ${teamsVisible(c) ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="btn ghost" href="${esc(c.teams_url)}" target="_blank" rel="noopener" style="text-decoration:none">Rejoindre</a>${S.prof ? `<span class="muted" style="font-size:.78rem">${icon("eye")} ${c.teams_visible ? "Visible par les élèves" : "Masqué aux élèves"}</span>` : ""}</div>`
       : S.prof ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="linkbtn" href="#/classe/${esc(c.id)}/parametres">Ajouter le lien de la visio</a></div>` : ""}
     ${S.prof ? `<div class="box"><div class="boxhead"><h3>Code du cours</h3><div class="dd kebab"><button class="ib sm" data-act="menu" data-m="code" aria-label="Options du code">${icon("more")}</button>${S.menu === "code" ? `<div class="dd-menu">
@@ -417,11 +423,6 @@ function asideClasse(c){
         <a href="#" data-act="resetcode" data-c="${esc(c.id)}">${icon("key")} Réinitialiser</a>
         <a href="#" data-act="togglecode" data-c="${esc(c.id)}" data-on="${c.code_actif ? "0" : "1"}">${icon(c.code_actif ? "x" : "check")} ${c.code_actif ? "Désactiver" : "Activer"}</a></div>` : ""}</div></div>
       ${c.code_actif ? `<button class="codebig" data-act="showcode" data-code="${esc(c.code)}" title="Afficher en grand">${esc(c.code)} ${icon("expand")}</button>` : `<span class="muted">Désactivé</span>`}</div>` : ""}
-    ${!S.prof && c.moyenne_visible ? `<div class="box"><h3>Ma moyenne</h3><span class="grade">${moyenneEleve(c) == null ? "–" : fmtNote(moyenneEleve(c))}<small>/20</small></span><span class="muted" style="font-size:.78rem">Calculée sur les notes rendues par ton professeur.</span></div>` : ""}
-    <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueOf(d).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" class="uplink">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à remettre dans les jours qui viennent</span>`}<a class="linkbtn" href="#/todo">Tout afficher</a></div>
-    ${(c.liens && c.liens.length) || S.prof ? `<div class="box"><div class="boxhead"><h3>Liens de la classe</h3>${S.prof ? `<button class="ib sm" data-act="editliens" data-c="${esc(c.id)}" aria-label="Modifier les liens" title="Modifier les liens">${icon("edit")}</button>` : ""}</div>
-      <div class="classlinks">${(c.liens || []).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${icon("links")}<span>${esc(l.nom)}</span></a>`).join("")}</div>
-      ${S.prof && !(c.liens || []).length ? `<span class="muted" style="font-size:.82rem">Ajoute des liens utiles : manuel, simulateur, Capytale…</span>` : ""}</div>` : ""}
   </aside>`;
 }
 
@@ -1295,6 +1296,7 @@ function vModal(){
       : `<p class="muted" style="margin:0">Une copie sera créée en <b>brouillon</b> dans les cours choisis : tu pourras la relire avant de la publier.</p>
         <div class="ciblelist">${autres.map(c => `<label class="check"><input type="checkbox" class="mDest" value="${esc(c.id)}"> ${esc(c.nom)}</label>`).join("") || `<span class="muted">Aucun autre cours actif.</span>`}</div>`}`; ok = "Copier"; }
   else if (m.kind === "supprclasse") { body = `<h2>Supprimer « ${esc(m.nom)} » ?</h2><p style="margin:0">Le cours, ses devoirs, questionnaires, documentations, annonces, les travaux rendus et les notes seront <b>définitivement supprimés</b>.${odActif() ? " Son dossier OneDrive et tout son contenu partent dans la corbeille de ton OneDrive (récupérables pendant 93 jours)." : ""}</p><div class="field"><label for="mConfirm">Pour confirmer, tape le nom du cours</label><input id="mConfirm" autocomplete="off" placeholder="${esc(m.nom)}"></div>`; ok = "Supprimer"; }
+  else if (m.kind === "urgent") { body = modalUrgent(m); ok = "Envoyer"; }
   else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = m.ok || "Supprimer"; }
   const danger = m.kind === "confirm" || m.kind === "supprclasse";
   return `<div class="modalbg" data-act="mclose"></div><div class="modal" role="dialog" aria-modal="true">${body}${m.err ? `<div class="err">${esc(m.err)}</div>` : ""}
@@ -1346,6 +1348,7 @@ async function modalOk(){
   const stop = msg => { m.err = msg; m.busy = false; render(); };
   m.busy = true;
   try {
+    if (m.kind === "urgent") { await envoyerUrgent(m); S.modal = null; render(); toast("Message envoyé à " + nomProfCourt()); return; }
     if (m.kind === "copieauth") { m.busy = false; return copieAutoriser(); }
     if (m.kind === "placercours") { const pos = Number(val("mPos")); S.modal = null; render(); return deplacerA(m.id, pos); }
     if (m.kind === "placertheme") {
@@ -2836,6 +2839,67 @@ function demanderConnexion(suite){
   try { if (suite && suite !== "#/" && suite !== "#") localStorage.setItem("pp_next", suite); } catch (_) {}
   vLogin("Connecte-toi avec ton compte Microsoft 365 du lycée pour ouvrir cette page.", true);
 }
+/* ---------- Message urgent (élève → prof) et Messagerie d'urgence (prof) ---------- */
+IC.urgent = '<path d="M12 3l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.1"/>';
+const nomProfCourt = () => { const w = String(R().prof.nom || "").trim().split(/\s+/); const up = w.filter(x => x.length > 1 && x === x.toUpperCase()); return "M. " + (up.length ? up.join(" ") : w[w.length - 1] || ""); };
+async function chargerUrgents(){
+  try { const r = await sb.from("messages_urgents").select("*").order("cree_le", { ascending: false }).limit(300); S.urgents = r.error ? (S.urgents || []) : r.data; }
+  catch (_) { S.urgents = S.urgents || []; }
+  const n = nbUrgents(), b = document.querySelector(".urgbtn .badge"), btn = document.querySelector(".urgbtn");
+  if (btn) { if (b && !n) b.remove(); else if (b) b.textContent = n > 99 ? "99+" : n; else if (n) btn.insertAdjacentHTML("beforeend", `<span class="badge">${n > 99 ? "99+" : n}</span>`); }
+}
+const nbUrgents = () => S.prof ? (S.urgents || []).filter(m => !m.lu).length : 0;
+/* icône de la barre du haut (prof) */
+const boutonUrgences = () => S.prof ? `<a class="ib urgbtn" href="#/urgences" title="Messagerie d'urgence" aria-label="Messagerie d'urgence${nbUrgents() ? " (" + nbUrgents() + " non lus)" : ""}">${icon("urgent")}${nbUrgents() ? `<span class="badge">${nbUrgents() > 99 ? "99+" : nbUrgents()}</span>` : ""}</a>` : "";
+/* onglet élève, à côté de « Mes notes » */
+const ongletUrgent = c => S.prof ? "" : `<button role="tab" class="urgtab" data-act="urgent" data-c="${esc(c.id)}">${icon("urgent")}<span class="tl">Message urgent à ${esc(nomProfCourt())}</span><span class="tc">Urgent</span></button>`;
+function modalUrgent(m){
+  const mes = (S.urgents || []).filter(x => x.classe_id === m.classe).slice(0, 5);
+  return `<h2>${icon("urgent")} Message urgent à ${esc(nomProfCourt())}</h2>
+    <p class="muted" style="margin:0;font-size:.88rem">Pour une question importante sur ce cours (absence le jour d'un devoir, problème pour rendre un travail…). ${esc(nomProfCourt())} reçoit ton message sur le site et te répond ici.</p>
+    <div class="field"><label for="mUrg">Ton message</label><textarea id="mUrg" rows="5" maxlength="2000" placeholder="Écris ton message…" style="width:100%;resize:vertical">${esc(m.texte || "")}</textarea></div>
+    ${mes.length ? `<div class="urgmine"><b style="font-size:.85rem">Tes derniers messages dans ce cours</b>${mes.map(x => `<div class="urgold"><div><small class="muted">${fmtQuand(D(x.cree_le))} · ${x.reponse ? "Répondu" : x.lu ? "Lu par ton professeur" : "Envoyé"}</small><p>${linkify(x.texte)}</p></div>${x.reponse ? `<div class="urgrep"><small><b>Réponse de ${esc(nomProfCourt())}</b> · ${fmtQuand(D(x.repondu_le))}</small><p>${linkify(x.reponse)}</p></div>` : ""}</div>`).join("")}</div>` : ""}`;
+}
+async function envoyerUrgent(m){
+  const t = ((document.getElementById("mUrg") || {}).value || "").trim();
+  if (!t) throw new Error("Écris ton message avant d'envoyer.");
+  const nom = S.nom || nomDepuisEmail(moi());
+  const { data, error } = await sb.from("messages_urgents").insert({ classe_id: m.classe, eleve: S.user.id, eleve_email: moi(), eleve_nom: nom, texte: t }).select().single();
+  if (error) throw error;
+  S.urgents = [data, ...(S.urgents || [])];
+}
+/* page prof */
+function vUrgences(){
+  const L = S.urgents || [], filtre = S.urgF || "tous";
+  const vus = L.filter(m => filtre === "tous" || (filtre === "nonlus" ? !m.lu : m.classe_id === filtre));
+  const carte = m => { const c = cls(m.classe_id);
+    return `<article class="urgcard${m.lu ? "" : " nonlu"}" style="--c:var(${C(c && c.couleur).c})">
+      <header>${avatarP(m.eleve_nom || m.eleve_email, "sm")}<div style="flex:1;min-width:0"><b>${esc(m.eleve_nom || nomDepuisEmail(m.eleve_email))}</b><small class="muted">${esc(c ? c.nom : "Cours supprimé")} · ${fmtD(D(m.cree_le))} à ${fmtT(D(m.cree_le))}</small></div>${m.lu ? "" : `<span class="pill bad">Non lu</span>`}</header>
+      <p class="urgtxt">${linkify(m.texte)}</p>
+      ${m.reponse ? `<div class="urgrep"><small><b>Ta réponse</b> · ${fmtQuand(D(m.repondu_le))}</small><p>${linkify(m.reponse)}</p></div>` : ""}
+      ${S.urgRep === m.id ? `<div class="field"><textarea id="urgRep${m.id}" rows="3" placeholder="Ta réponse (l'élève la voit dans sa fenêtre « Message urgent »)" style="width:100%">${esc(m.reponse || "")}</textarea></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="urgsend" data-id="${m.id}">${icon("send")} Envoyer la réponse</button><button class="btn ghost sm" data-act="urgrep" data-id="">Annuler</button></div>`
+      : `<div class="urgactions"><button class="btn tonal sm" data-act="urgrep" data-id="${m.id}">${icon("comment")} ${m.reponse ? "Modifier la réponse" : "Répondre"}</button>
+        ${m.lu ? `<button class="btn ghost sm" data-act="urglu" data-id="${m.id}" data-on="0">Marquer non lu</button>` : `<button class="btn ghost sm" data-act="urglu" data-id="${m.id}" data-on="1">${icon("check")} Marquer comme lu</button>`}
+        <a class="btn ghost sm" href="mailto:${esc(m.eleve_email)}?subject=${encodeURIComponent("Re : message urgent · " + (c ? c.nom : ""))}">${icon("mail")} E-mail</a>
+        <button class="ib sm" data-act="urgsuppr" data-id="${m.id}" title="Supprimer" aria-label="Supprimer le message">${icon("trash")}</button></div>`}
+    </article>`; };
+  return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">${icon("urgent")} Messagerie d'urgence</h1>
+      <select data-urgf="1" aria-label="Filtrer les messages"><option value="tous">Tous les messages (${L.length})</option><option value="nonlus" ${filtre === "nonlus" ? "selected" : ""}>Non lus (${L.filter(m => !m.lu).length})</option>${S.classes.map(c => `<option value="${esc(c.id)}" ${filtre === c.id ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></div>
+    <p class="muted" style="margin:0">Les messages urgents envoyés par tes élèves depuis la page d'un cours. Ta réponse s'affiche pour l'élève dans sa fenêtre « Message urgent ».</p>
+    ${vus.length ? `<div class="urglist">${vus.map(carte).join("")}</div>` : `<div class="emptystate"><b>Aucun message${filtre === "nonlus" ? " non lu" : ""}.</b><span>Quand un élève t'écrit, son message apparaît ici et l'icône ⚠ de la barre du haut affiche un chiffre rouge.</span></div>`}
+    ${pageFoot()}</div>`;
+}
+async function actionUrgence(act, a){
+  const m = (S.urgents || []).find(x => String(x.id) === a.dataset.id);
+  if (act === "urgrep") { S.urgRep = m ? m.id : null; render(); return; }
+  if (!m) return;
+  if (act === "urglu") { const on = a.dataset.on === "1"; const { error } = await sb.from("messages_urgents").update({ lu: on }).eq("id", m.id); if (error) return toast("Action impossible : " + error.message); m.lu = on; render(); return; }
+  if (act === "urgsend") { const t = ((document.getElementById("urgRep" + m.id) || {}).value || "").trim(); if (!t) return toast("Écris ta réponse.");
+    const patch = { reponse: t, repondu_le: now().toISOString(), lu: true }; const { error } = await sb.from("messages_urgents").update(patch).eq("id", m.id); if (error) return toast("Envoi impossible : " + error.message);
+    Object.assign(m, patch); S.urgRep = null; toast("Réponse envoyée à " + (m.eleve_nom || m.eleve_email)); render(); return; }
+  if (act === "urgsuppr") { const { error } = await sb.from("messages_urgents").delete().eq("id", m.id); if (error) return toast("Suppression impossible : " + error.message); S.urgents = S.urgents.filter(x => x !== m); toast("Message supprimé"); render(); return; }
+}
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -2879,6 +2943,9 @@ async function render(){
       if (q) await urlsSignees((q.questions || []).map(x => x.img).filter(Boolean));
       if (id !== renderId) return;
       content = vQuiz(r);
+    } else if (r.v === "urgences") {
+      if (!S.prof) { go("/"); return; }
+      content = vUrgences();
     } else if (r.v === "suivi") {
       if (!S.prof) { go("/"); return; }
       content = vSuivi();
@@ -2899,7 +2966,7 @@ async function render(){
     }
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + (S.modal ? vModal() : "");
-    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
+    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
       document.title = (r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro"; }
     { const pg = app.querySelector("main.content > .page"); if (pg && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };
@@ -2911,7 +2978,7 @@ async function render(){
   }
 }
 function apresRendu(foc){
-  if (S.modal && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox])"); if (f) f.focus(); return; }
+  if (S.modal && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox]), .modal textarea"); if (f) f.focus(); return; }
   if (foc && document.getElementById(foc) && !["edHtml", "anHtml"].includes(foc)) { const el = document.getElementById(foc); el.focus(); if (el.setSelectionRange && el.type === "text") { const n = el.value.length; el.setSelectionRange(n, n); } }
 }
 const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; S.bell = false; };
@@ -3114,6 +3181,8 @@ document.addEventListener("click", async e => {
 
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
+    case "urgent": e.preventDefault(); fermerMenus(); S.modal = {kind:"urgent", classe:a.dataset.c}; render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
+    case "urgrep": case "urglu": case "urgsend": case "urgsuppr": e.preventDefault(); await actionUrgence(act, a); return;
     case "odorphelins": { e.preventDefault(); toast("Recherche des dossiers de cours supprimés…");
       try { const l = await dossiersOrphelins(); if (!l.length) { toast("Aucun dossier de cours supprimé dans OneDrive ✓"); return; }
         S.modal = {kind:"confirm", action:"odorphelins", ids:l.map(x => x.id), ok:"Mettre à la corbeille", titre:"Supprimer " + l.length + " dossier" + (l.length > 1 ? "s" : "") + " de cours supprimé" + (l.length > 1 ? "s" : "") + " ?", texte:"Dossiers trouvés dans OneDrive sans cours correspondant : " + l.map(x => "« " + x.name + " »").join(", ") + ". Ils partent avec tout leur contenu dans la corbeille de ton OneDrive (récupérables pendant 93 jours)."}; render();
@@ -3238,6 +3307,7 @@ document.addEventListener("change", async e => {
   if (t.classList && t.classList.contains("anAussi") && S.annonce) { const v = t.value, l = S.annonce.aussi || []; S.annonce.aussi = t.checked ? [...new Set([...l, v])] : l.filter(x => x !== v); return; }
   if (t.dataset.impmap != null) { S.imp.map[t.dataset.impmap] = t.value; return; }
   if (t.id === "impBrouillons") { S.imp.brouillons = t.checked; return; }
+  if (t.dataset.urgf) { S.urgF = t.value; render(); return; }
   if (t.dataset.swf) { S.swFiltre = t.value; render(); return; }
   if (t.dataset.swt) { S.swTri = t.value; try { localStorage.setItem("pp_tri", t.value); } catch (_) {} render(); return; }
   if (t.dataset.accepte) { const d = S.devoirs.find(x => String(x.id) === t.dataset.accepte), on = t.checked; if (!d) return; t.disabled = true;
@@ -3320,7 +3390,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   chargerNotifs().catch(() => {});
   if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
   if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
-  setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
+  setInterval(() => { if (document.visibilityState === "visible") { chargerNotifs().catch(() => {}); if (S.prof) chargerUrgents(); } }, 180000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });
 })();
 })();
