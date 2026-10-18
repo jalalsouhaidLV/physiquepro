@@ -817,3 +817,7 @@ sup,sub{line-height:0;font-size:.75em}
 .copierow svg.i{width:16px;height:16px;color:var(--accent)}
 .copierow span{flex:1;min-width:0;overflow-wrap:anywhere}
 .att.rcards a.dlbtn{display:grid;place-items:center;color:var(--muted);text-decoration:none}
+/* noms des raccourcis : en gras, centrés sous chaque logo */
+.quick a{justify-items:center;text-align:center}
+.quick .ql{display:block;width:100%;text-align:center;font-weight:600;color:var(--ink);white-space:nowrap}
+@media (max-width:760px){.quick .ql{display:none}}
