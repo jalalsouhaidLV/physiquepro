@@ -849,7 +849,7 @@ async function initEditeur(r){
   await chargerClasse(classe);
   const lim = rec && rec.date_limite ? D(rec.date_limite) : (() => { const x = new Date(); x.setDate(x.getDate() + 7); x.setHours(23, 59, 0, 0); return x; })();
   S.ed = { key, type, id: rec ? rec.id : null, classe_id: classe, titre: rec ? rec.titre : "",
-    html: rec ? (type === "documentation" ? rec.description : rec.consigne) || "" : "", ressources: rec ? (rec.ressources || []).slice() : [],
+    html: rec ? (type === "documentation" ? rec.description : rec.consigne) || "" : "", ressources: rec ? (rec.ressources || []).filter(x => !x.pending || x.pending instanceof Blob) : [], fantomes: rec ? (rec.ressources || []).filter(x => x.pending && !(x.pending instanceof Blob)).map(x => x.label) : [],
     theme_id: rec && rec.theme_id ? String(rec.theme_id) : (S.edTheme || ""), points: rec ? (rec.points == null ? "none" : String(rec.points)) : "20",
     hasDate: rec ? !!rec.date_limite : type !== "documentation", date: ymd(lim), heure: hm(lim), mode: rec ? rec.mode : (type === "questionnaire" ? "note" : "individuel"), formats: rec ? rec.formats || "" : "",
     eleves: rec && rec.eleves ? rec.eleves.slice() : null, montrer: rec ? rec.montrer_correction !== false : true,
@@ -884,6 +884,7 @@ function vEditer(){
   <div class="edgrid" style="--c:var(${k.c})">
     <div class="edmain">
       ${e.err ? `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">${esc(e.err)}</div>` : ""}
+      ${(e.fantomes || []).length ? `<div class="notice">${e.fantomes.length > 1 ? "Ces fichiers n'avaient" : "Ce fichier n'avait"} pas été envoyé${e.fantomes.length > 1 ? "s" : ""} correctement : <b>${e.fantomes.map(esc).join(", ")}</b>. ${e.fantomes.length > 1 ? "Ils ont été retirés" : "Il a été retiré"} : ajoute-${e.fantomes.length > 1 ? "les" : "le"} à nouveau si besoin.</div>` : ""}
       ${e.aDesResultats ? `<div class="notice">Des élèves ont déjà répondu à ce questionnaire : modifier les questions ou les bonnes réponses ne recalcule pas leurs notes.</div>` : ""}
       <section class="edcard">
         <div class="field"><label for="edTitre">${isQ ? "Question *" : "Titre *"}</label><input id="edTitre" data-f="titre" value="${esc(e.titre)}" placeholder="${e.type === "devoir" ? "ex. Compte rendu du TP titrage" : e.type === "questionnaire" ? "ex. QCM · Les acides et les bases" : isQ ? "ex. Quelle est l'unité de la quantité de matière ?" : "ex. Cours · Les acides et les bases"}"></div>
@@ -1025,6 +1026,7 @@ async function enregistrer(mode, programme){
     try { await envoyerEnAttente(e); } catch (er) { e.busy = false; e.err = "Envoi dans OneDrive impossible : " + (er.message || er) + ". Réessaie, ou désactive OneDrive dans Paramètres › Site."; return render(); }
     if (row.ressources) row.ressources = e.ressources;
   }
+  if (row.ressources) row.ressources = row.ressources.filter(x => !x.pending);
   const table = e.type === "devoir" || e.type === "question" ? "devoirs" : e.type === "questionnaire" ? "quiz" : "supports";
   const q = e.id ? sb.from(table).update(row).eq("id", e.id).select("id").single() : sb.from(table).insert(row).select("id").single();
   const { data, error } = await q;
@@ -2232,6 +2234,7 @@ async function connecterOneDrive(){
 
 /* envoi des fichiers en attente de l'éditeur, au moment d'enregistrer */
 async function envoyerEnAttente(e){
+  e.ressources = e.ressources.filter(x => !x.pending || x.pending instanceof Blob);
   const att = e.ressources.filter(x => x.pending); if (!att.length) return;
   const parts = dossierTravail(e.classe_id, e.theme_id, e.titre.trim());
   for (const x of att) {
