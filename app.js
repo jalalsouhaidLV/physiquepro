@@ -355,7 +355,7 @@ function teamsVisible(c){ return c.teams_url && (S.prof || c.teams_visible); }
 function classTabs(c, tab){
   const T = []; if (fluxVisible(c)) T.push(["flux", "Flux"]);
   T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "Mes notes"]);
-  if (S.prof) { const n = S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon).reduce((a, d) => a + aCorriger(d), 0); T.push(["corriger", `À corriger${n ? ` <span class="tcount">${n}</span>` : ""}`]); }
+  if (S.prof) T.push(["corriger", "À corriger"]);
   return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}${ongletUrgent(c)}</div>
     <div class="tabicons">
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
