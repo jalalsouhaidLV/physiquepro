@@ -813,3 +813,7 @@ sup,sub{line-height:0;font-size:.75em}
 @media (max-width:600px){.tabicons .ib:not(:last-child){display:none}.tabicons{gap:0}.crumbs{margin-right:6px}}
 @media (max-width:600px){.tabsbar .tabs a{padding:14px 8px 11px;font-size:.85rem}.tabsbar{padding-left:4px;padding-right:4px;gap:2px}}
 @media (max-width:440px){.tabs .tl{display:none}}
+.copierow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--accent-soft,#E8F0FE);border-radius:8px;padding:8px 10px;font-size:.85rem}
+.copierow svg.i{width:16px;height:16px;color:var(--accent)}
+.copierow span{flex:1;min-width:0;overflow-wrap:anywhere}
+.att.rcards a.dlbtn{display:grid;place-items:center;color:var(--muted);text-decoration:none}

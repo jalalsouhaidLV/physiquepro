@@ -380,7 +380,7 @@ function vignetteRes(r, fam){
   else if (r.path && fam === "img") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
   return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('img');this.remove()">` : ""}</span>`;
 }
-function carteRes(r){
+function carteRes(r, ctx = {}){
   if (!r.path && ytId(r.url)) {
     const id = ytId(r.url), titre = !libelleGenerique(r.label) ? r.label : YT[id] || "Vidéo YouTube";
     if (libelleGenerique(r.label) && !YT[id] && !ytEnCours.has(id)) { ytEnCours.add(id); titreYoutube(r.url).then(t => { if (t) render(); }); }
@@ -389,13 +389,17 @@ function carteRes(r){
   const nom = r.label || r.path || r.url || "", fam = familleRes(r.od || r.path ? nom : (r.label && /\.\w{2,5}$/.test(r.label) ? r.label : ""));
   const sous = fam ? TYPE_RES[fam][0] : r.url ? String(r.url).replace(/^https?:\/\//, "") : "Fichier";
   const tip = appOffice(nom) ? `title="Ouvrir dans ${appOffice(nom)} en ligne"` : `title="${esc(nom)}"`;
-  const lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
-  return `<div class="rcard"><a class="rtxt" ${lien} ${tip}><b>${esc(nom)}</b><small>${esc(sous)}</small></a>${r.path ? btnDl(r.bucket || "documents", r.path, r.label) : ""}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
+  const copie = !S.prof && appOffice(nom) && (r.path || r.od || /sharepoint\.com|1drv\.ms|onedrive/i.test(r.url || ""));
+  let lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
+  let tip2 = tip;
+  if (copie) { lien = `href="#" data-act="copieoffice" data-r="${esc(JSON.stringify({ url: r.url || "", path: r.path || "", bucket: r.bucket || "", label: nom }))}" data-ctx="${esc(JSON.stringify(ctx))}"`; tip2 = `title="Ouvrir ma copie modifiable dans ${appOffice(nom)} en ligne"`; }
+  const dl = r.path ? btnDl(r.bucket || "documents", r.path, r.label) : r.url && /sharepoint\.com/i.test(r.url) && fam ? `<a class="dlbtn" href="${esc(r.url + (r.url.includes("?") ? "&" : "?") + "download=1")}" target="_blank" rel="noopener" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom)}">${icon("down")}</a>` : "";
+  return `<div class="rcard"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${copie ? " · modifiable en ligne" : ""}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
 }
 const carteYoutube = r => carteRes(r);
-function ressources(list){
+function ressources(list, ctx = {}){
   if (!list || !list.length) return "";
-  return `<div class="att rcards">${list.map(carteRes).join("")}</div>`;
+  return `<div class="att rcards">${list.map(r => carteRes(r, ctx)).join("")}</div>`;
 }
 const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.couleur).b})">${bannerArt(c)}${S.prof ? `<a class="btn ghost sm custom" href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Personnaliser</a>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span>${c.description ? `<p class="bdesc">${esc(c.description)}</p>` : ""}</div>`;
 
@@ -459,7 +463,7 @@ function vAnnonce(c, a, data){
   return `<section class="post">
     <div class="posthead">${avatarP(a.auteur_nom)}<div style="flex:1;min-width:0"><b>${esc(a.auteur_nom)}</b><small class="muted">${fmtQuand(D(a.cree_le))}</small></div>
       ${mien ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="a${a.id}" aria-label="Options de l'annonce">${icon("more")}</button>${S.menu === "a" + a.id ? `<div class="dd-menu"><a href="#" data-act="editannonce" data-id="${a.id}" data-c="${esc(c.id)}">${icon("edit")} Modifier</a><a href="#" data-act="copiertexte" data-id="${a.id}" data-c="${esc(c.id)}">${icon("copy")} Copier le texte</a><a href="#" data-act="supprannonce" data-id="${a.id}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : ""}</div>
-    <div class="richtext">${rich(a.texte)}</div>${ressources(a.ressources)}
+    <div class="richtext">${rich(a.texte)}</div>${ressources(a.ressources, { classe: a.classe_id })}
     <div class="coms">${coms.length ? `${!open ? `<button class="linkbtn" data-act="opencoms" data-id="${a.id}">${icon("people")} ${coms.length} commentaires sur le cours</button>` : `<span class="muted" style="font-size:.85rem">${icon("people")} ${coms.length} commentaire${coms.length > 1 ? "s" : ""} sur le cours</span>`}` : ""}
       ${shown.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div>${S.prof || x.auteur === S.user.id ? `<button class="ib sm" data-act="supprcom" data-id="${x.id}" data-c="${esc(c.id)}" aria-label="Supprimer le commentaire" title="Supprimer">${icon("x")}</button>` : ""}</div>`).join("")}
       ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="cm-${a.id}" placeholder="Ajouter un commentaire pour le cours…" aria-label="Commentaire pour le cours"><button class="ib" data-act="comment" data-id="${a.id}" data-c="${esc(c.id)}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
@@ -484,14 +488,14 @@ function workItem(it){
   const cible = obj.eleves ? `<span class="pill">${obj.eleves.length} élève${obj.eleves.length > 1 ? "s" : ""}</span>` : "";
   if (it.k === "support") {
     right = `<span class="dt">Publié le ${fmtShort(it.date)}</span>`;
-    detail = `${texteUtile(obj.description) ? `<div class="richtext wkdesc">${rich(obj.description)}</div>` : ""}${ressources(obj.ressources) || (texteUtile(obj.description) ? "" : `<span class="muted">Aucun fichier joint.</span>`)}`;
+    detail = `${texteUtile(obj.description) ? `<div class="richtext wkdesc">${rich(obj.description)}</div>` : ""}${ressources(obj.ressources, { classe: obj.classe_id }) || (texteUtile(obj.description) ? "" : `<span class="muted">Aucun fichier joint.</span>`)}`;
   } else if (it.k === "devoir") {
     const d = obj;
     right = S.prof ? `<span class="dt">${d.date_limite ? dueOf(d).replace("Échéance : ", "") : "Publié le " + fmtShort(it.date)}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : etat(d, moi()).t === "Noté" ? fmtNote(etat(d, moi()).note) + "/" + d.points : d.date_limite ? dueOf(d).replace("Échéance : ", "") : ""}</span>`;
     const st = etat(d, moi());
     detail = `<div class="wkhead"><div class="wkdl"><b>${d.date_limite ? "Date limite : " + fmtShort(D(d.date_limite)) + " " + fmtT(D(d.date_limite)) : "Aucune date limite"}</b><small>${it.q2 ? (d.question && d.question.format === "choix" ? "Question à choix multiples" : "Question à réponse courte") : d.mode === "binome" ? "Un rendu par binôme" : "Individuel"} · ${pts(d)}</small></div>
         ${S.prof ? statsDevoir(d) : `<span class="wkst ${st.k}">${st.t}</span>`}</div>
-      ${texteUtile(d.consigne) ? `<div class="richtext wkdesc">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources)}
+      ${texteUtile(d.consigne) ? `<div class="richtext wkdesc">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}
       <div class="wkfoot"><a class="wklink" href="#/devoir/${d.id}">${S.prof ? "Afficher les instructions" : it.q2 ? "Afficher la question" : "Afficher le devoir"}</a>${S.prof ? `<a class="btn tonal" href="#/devoir/${d.id}">${it.q2 ? "Voir les réponses" : "Évaluer le travail"}</a>` : it.q2 && !renduDe(d, moi()) ? `<a class="btn tonal" href="#/devoir/${d.id}">Répondre</a>` : ""}</div>`;
   } else {
     const q = obj, r = resultatDe(q, S.user.id);
@@ -660,6 +664,7 @@ function vDevoir(r){
   } else {
     const cam = (S.cache[c.id] ? S.cache[c.id].eleves : []).filter(x => x.email !== moi());
     work = `${d.mode === "binome" ? `<div class="field"><label for="partenaire">Mon binôme</label><select id="partenaire"><option value="">Choisir…</option>${cam.map(x => `<option value="${esc(x.email)}" ${S.partenaire === x.email ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>` : ""}
+      ${copiesDe(d.id).filter(x => !S.files.some(f => f.name === x.nom)).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie de <b>${esc(x.nom)}</b></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="linkbtn">Ouvrir</a><button class="btn ghost sm" data-act="joindrecopie" data-id="${esc(x.id)}" data-nom="${esc(x.nom)}">Joindre</button></div>`).join("")}
       ${S.files.length ? `<ul class="files">${S.files.map((f, i) => `<li><span>${esc(f.name)}</span><span><span class="mono muted">${tailleTxt(f.size)}</span> <button data-act="rmfile" data-i="${i}" aria-label="Retirer ${esc(f.name)}">✕</button></span></li>`).join("")}</ul>` : ""}
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
@@ -675,7 +680,7 @@ function vDevoir(r){
         <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}</div>
         <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
       <div class="dvbody">${texteUtile(d.consigne) ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}
-        ${isQ ? "" : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un seul rendu par binôme : la note s'applique aux deux élèves." : "Travail individuel."}</p>`}${ressources(d.ressources)}</div>
+        ${isQ ? "" : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un seul rendu par binôme : la note s'applique aux deux élèves." : "Travail individuel."}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>
       ${isQ ? reponsesClasse(d, c, rd, Q) : ""}
     </div>
     <aside style="display:grid;gap:16px;align-content:start">
@@ -749,7 +754,7 @@ function vDevoirProf(d, c){
     return tabs + `<div class="page wide" style="--c:var(${k.c})"><div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
       <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}${d.brouillon ? " · <i>Brouillon</i>" : ""}${d.eleves ? " · attribué à " + d.eleves.length + " élève" + (d.eleves.length > 1 ? "s" : "") : ""}</div>
       <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
-      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}${isQ ? `<p class="muted" style="margin:0;font-size:.85rem">${(d.question || {}).format === "choix" ? "Choix multiple : " + (d.question.options || []).map(esc).join(" · ") : "Réponse courte."}${(d.question || {}).voir ? " Les élèves voient les réponses de la classe." : ""}${(d.question || {}).modifier === false ? " Réponse non modifiable." : ""}</p>` : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un rendu par binôme." : "Individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>`}${ressources(d.ressources)}</div>${pageFoot()}</div>`;
+      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}${isQ ? `<p class="muted" style="margin:0;font-size:.85rem">${(d.question || {}).format === "choix" ? "Choix multiple : " + (d.question.options || []).map(esc).join(" · ") : "Réponse courte."}${(d.question || {}).voir ? " Les élèves voient les réponses de la classe." : ""}${(d.question || {}).modifier === false ? " Réponse non modifiable." : ""}</p>` : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un rendu par binôme." : "Individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>${pageFoot()}</div>`;
   }
   const rendusE = el.filter(e => renduDe(d, e.email)), autres = el.filter(e => !renduDe(d, e.email));
   const noteDe = e => { const cr = correctionDe(renduDe(d, e.email)); return cr && cr.note != null ? fmtNote(cr.note) : "__"; };
@@ -1211,6 +1216,7 @@ function moyenneEleve(c){
 function vModal(){
   const m = S.modal; let body = "", ok = "Enregistrer", foot = true;
   if (m.kind === "theme") { body = `<h2>${m.id ? "Renommer le thème" : "Ajouter un thème"}</h2><div class="field"><label for="mTitre">Nom du thème</label><input id="mTitre" value="${esc(m.titre || "")}" placeholder="ex. Chapitre 1 · Mouvements"></div>`; ok = m.id ? "Renommer" : "Ajouter"; }
+  else if (m.kind === "copieauth") { body = `<h2>Ouvrir ta copie modifiable</h2><p style="margin:0">Pour modifier ce document en ligne, PhysiquePro en crée <b>une copie dans ton OneDrive</b> (dossier « PhysiquePro »). Le document de ton professeur n'est pas modifié.</p><p class="muted" style="margin:0;font-size:.85rem">La première fois seulement, Microsoft te demande d'autoriser PhysiquePro à accéder à ton OneDrive.</p>`; ok = "Autoriser et ouvrir"; }
   else if (m.kind === "placertheme") { const th = ((S.cache[m.classe] || {}).themes || []).filter(t => String(t.id) !== String(m.id));
     body = `<h2>Déplacer « ${esc(m.titre)} »</h2><div class="field"><label for="mOu">Placer ce thème</label><select id="mOu" style="width:100%"><option value="avant">Avant le thème…</option><option value="apres">Après le thème…</option></select></div>
       <div class="field"><label for="mRef">Thème</label><select id="mRef" style="width:100%;max-width:100%;text-overflow:ellipsis">${th.map(t => `<option value="${t.id}">${esc(t.titre.length > 70 ? t.titre.slice(0, 68) + "…" : t.titre)}</option>`).join("")}</select></div>`; ok = "Déplacer"; }
@@ -1306,6 +1312,7 @@ async function modalOk(){
   const stop = msg => { m.err = msg; m.busy = false; render(); };
   m.busy = true;
   try {
+    if (m.kind === "copieauth") { m.busy = false; return copieAutoriser(); }
     if (m.kind === "placertheme") {
       const th = S.cache[m.classe].themes.filter(t => String(t.id) !== String(m.id)), k = th.findIndex(t => String(t.id) === val("mRef"));
       S.modal = null; return placerTheme(m.classe, m.id, k < 0 ? 0 : k + (val("mOu") === "apres" ? 1 : 0));
@@ -2158,14 +2165,13 @@ async function jetonGraph(interactif){
 async function graph(chemin, opt = {}, interactif = true){
   const t = await jetonGraph(interactif);
   const r = await fetch(chemin.startsWith("http") ? chemin : "https://graph.microsoft.com/v1.0" + chemin, { ...opt, headers: { Authorization: "Bearer " + t, ...(opt.headers || {}) } });
-  if (!r.ok) { let m = r.status + ""; try { const j = await r.json(); m = (j.error && j.error.message) || m; } catch (_) {} throw new Error(m); }
+  if (!r.ok) { let m = r.status + ""; try { const j = await r.json(); m = (j.error && j.error.message) || m; } catch (_) {} const er = new Error(m); er.status = r.status; throw er; }
   return r.status === 204 ? null : r.json();
 }
 const nomOD = s => String(s || "").replace(/[\\/:*?"<>|#%]+/g, " ").replace(/\s+/g, " ").trim().replace(/^\.+|\.+$/g, "").slice(0, 120) || "Sans titre";
 const cheminOD = parts => parts.map(nomOD).map(encodeURIComponent).join("/");
 /* envoie un fichier dans le OneDrive du prof et renvoie {id, web, partage} */
-async function odEnvoyer(parts, fichier){
-  const ch = cheminOD([OD_RACINE, ...parts]);
+async function odPut(ch, fichier){
   let item;
   if (fichier.size <= 4 * 1024 * 1024) item = await graph("/me/drive/root:/" + ch + ":/content?@microsoft.graph.conflictBehavior=rename", { method: "PUT", body: fichier });
   else {
@@ -2177,6 +2183,10 @@ async function odEnvoyer(parts, fichier){
       if (fin === fichier.size) item = await r.json();
     }
   }
+  return item;
+}
+async function odEnvoyer(parts, fichier){
+  const item = await odPut(cheminOD([OD_RACINE, ...parts]), fichier);
   const lien = await graph("/me/drive/items/" + item.id + "/createLink", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "view", scope: "organization" }) });
   return { id: item.id, web: item.webUrl, partage: lien.link.webUrl, nom: item.name };
 }
@@ -2268,6 +2278,66 @@ function vignetteOD(id){
     try { const c = JSON.parse(localStorage.getItem("pp_vign") || "{}"); c[id] = { u, t: Date.now() }; const ks = Object.keys(c); if (ks.length > 400) ks.slice(0, 100).forEach(x => delete c[x]); localStorage.setItem("pp_vign", JSON.stringify(c)); } catch (_) {}
     clearTimeout(vignetteOD.t); vignetteOD.t = setTimeout(render, 150);
   }).catch(e => { setTimeout(() => vignEnCours.delete(id), 120000); if (/interaction|login|consent|popup|InteractionRequired/i.test(String(e && (e.errorCode || e.message) || e))) vignErreur = true; });
+}
+
+/* ---------- élève : copie modifiable d'un document Word / Excel / PowerPoint dans SON OneDrive ---------- */
+const b64u = t => btoa(unescape(encodeURIComponent(t))).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+const cleCopies = () => "pp_copies_" + (S.user ? S.user.id : "");
+function copiesDe(devoir){ if (!devoir) return []; try { return (JSON.parse(localStorage.getItem(cleCopies()) || "{}")[devoir] || []); } catch (_) { return []; } }
+function memoCopie(ctx, item, nom){
+  if (!ctx.devoir) return;
+  try { const all = JSON.parse(localStorage.getItem(cleCopies()) || "{}"), l = (all[ctx.devoir] || []).filter(x => x.id !== item.id);
+    l.push({ id: item.id, nom, web: item.webUrl }); all[ctx.devoir] = l; localStorage.setItem(cleCopies(), JSON.stringify(all)); } catch (_) {}
+}
+function attente(win, txt){
+  try { win.document.title = "PhysiquePro"; win.document.body.innerHTML = `<div style="font:16px Roboto,system-ui,sans-serif;color:#1F1F1F;display:grid;place-items:center;min-height:90vh;text-align:center"><div><div style="width:34px;height:34px;border:3px solid #C2E7FF;border-top-color:#116482;border-radius:50%;margin:0 auto 14px;animation:t 1s linear infinite"></div>${txt}</div></div><style>@keyframes t{to{transform:rotate(360deg)}}</style>`; } catch (_) {}
+}
+async function ouvrirCopie(r, ctx, win){
+  const nom = nomOD(r.label || (r.path || "").split("/").pop().replace(/^\d+-/, ""));
+  const c = ctx.classe ? cls(ctx.classe) : null, ch = cheminOD(["PhysiquePro", c ? c.nom : "Documents", nom]);
+  let item = null;
+  try { item = await graph("/me/drive/root:/" + ch, {}, false); } catch (e) { if (e.status !== 404) throw e; }
+  if (!item) {
+    attente(win, "Création de ta copie de « " + esc(nom) + " »…");
+    let blob;
+    if (r.path) { const { data, error } = await sb.storage.from(r.bucket || "documents").createSignedUrl(r.path, 600); if (error) throw error; blob = await (await fetch(data.signedUrl)).blob(); }
+    else {
+      const it = await graph("/shares/u!" + b64u(r.url) + "/driveItem", { headers: { Prefer: "redeemSharingLinkIfNecessary" } }, false);
+      const url = it["@microsoft.graph.downloadUrl"]; if (!url) throw new Error("document introuvable");
+      const res = await fetch(url); if (!res.ok) throw new Error("lecture du document impossible (" + res.status + ")"); blob = await res.blob();
+    }
+    item = await odPut(ch, blob);
+  }
+  memoCopie(ctx, item, nom);
+  win.location.href = item.webUrl;
+  if (ctx.devoir && route().v === "devoir") render();
+}
+async function copieOffice(a){
+  const r = JSON.parse(a.dataset.r || "{}"), ctx = JSON.parse(a.dataset.ctx || "{}");
+  const win = window.open("", "_blank");
+  if (!win) { toast("Autorise les fenêtres (pop-up) pour ce site, puis réessaie."); return; }
+  attente(win, "Ouverture de ta copie…");
+  try { await jetonGraph(false); }
+  catch (e) { win.close(); S.modal = { kind: "copieauth", r, ctx }; render(); return; }
+  try { await ouvrirCopie(r, ctx, win); }
+  catch (e) { win.close(); toast("Copie impossible : " + (e.message || e)); }
+}
+/* première fois : l'élève autorise PhysiquePro à utiliser son OneDrive (clic direct = fenêtre Microsoft autorisée) */
+async function copieAutoriser(){
+  const m = S.modal; if (!m) return;
+  try { await jetonGraph(true); } catch (e) { toast("Autorisation OneDrive refusée ou impossible."); return; }
+  S.modal = null; render();
+  const win = window.open("", "_blank"); if (!win) { toast("Autorise les fenêtres (pop-up) pour ce site, puis réessaie."); return; }
+  attente(win, "Ouverture de ta copie…");
+  try { await ouvrirCopie(m.r, m.ctx, win); } catch (e) { win.close(); toast("Copie impossible : " + (e.message || e)); }
+}
+async function joindreCopie(id, nom){
+  try {
+    toast("Ajout de ta copie…");
+    const it = await graph("/me/drive/items/" + encodeURIComponent(id), {}, true), url = it["@microsoft.graph.downloadUrl"];
+    const blob = await (await fetch(url)).blob();
+    S.files.push(new File([blob], nom, { type: blob.type || "application/octet-stream" })); render(); toast("« " + nom + " » ajouté à ton travail");
+  } catch (e) { toast("Impossible de joindre la copie : " + (e.message || e)); }
 }
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
@@ -2580,6 +2650,8 @@ document.addEventListener("click", async e => {
       if (i < 0) return render();
       const j = a.dataset.to != null ? Math.min(Number(a.dataset.to), th.length - 1) : i + Number(a.dataset.dir);
       return placerTheme(a.dataset.c, a.dataset.id, j); }
+    case "copieoffice": e.preventDefault(); copieOffice(a); return;
+    case "joindrecopie": e.preventDefault(); joindreCopie(a.dataset.id, a.dataset.nom); return;
     case "moveitem": { e.preventDefault(); S.menu = null; const sec = a.closest("section.theme"), wks = [...sec.querySelectorAll(".work[data-wk]")].map(x => x.dataset.wk), i = wks.indexOf(a.dataset.wk);
       if (i < 0) return render();
       wks.splice(i, 1); const t = a.dataset.to, j = t === "first" ? 0 : t === "last" ? wks.length : Math.max(0, Math.min(wks.length, i + Number(t)));
