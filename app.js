@@ -3554,7 +3554,7 @@ window.addEventListener("beforeunload", () => { if (CP.t) { try { localStorage.s
    page : ils s'ouvrent dans une fenêtre placée exactement sur le panneau (déplaçable et redimensionnable). */
 const COTE_A_COTE = {
   "logo-numworks": { titre: "Calculatrice NumWorks", mode: "cadre" },
-  "logo-pronote":  { titre: "Pronote", mode: "cadre", virtuel: 1000 },
+  "logo-pronote":  { titre: "Pronote", mode: "cadre", virtuel: 720 },
   "logo-chatgpt":  { titre: "ChatGPT", mode: "fenetre" },
   "logo-copilot":  { titre: "Copilot M365", mode: "fenetre" },
   "logo-gemini":   { titre: "Gemini", mode: "fenetre" },
