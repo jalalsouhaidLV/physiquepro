@@ -1495,3 +1495,37 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 .fcok{width:90px;height:90px}
 .fcok circle{fill:none;stroke:var(--ok);stroke-width:3}
 .fcok path{fill:none;stroke:var(--ok);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+/* ---- compteur de visites (prof, sous les logos) ---- */
+.compteur{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:-4px}
+.compteur:empty{display:none}
+.cpt{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:.78rem;color:var(--muted)}
+.cpt .i{width:15px;height:15px}
+.cpt b{color:var(--ink);font-weight:700}
+.cpt.enligne b{color:var(--ok)}
+.pastille{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(29,127,76,.6);animation:pouls 1.8s infinite}
+@keyframes pouls{70%{box-shadow:0 0 0 8px rgba(29,127,76,0)}100%{box-shadow:0 0 0 0 rgba(29,127,76,0)}}
+/* ---- ordre des cours ---- */
+.ordreaide{font:400 .8rem var(--body);color:var(--muted);letter-spacing:0}
+.drawer a.itcours{cursor:grab;touch-action:pan-y}
+.drawer a.itcours.dmplace{opacity:.55;background:var(--accent-soft);outline:2px dashed var(--accent);outline-offset:-2px;cursor:grabbing}
+/* ---- scientifique du jour ---- */
+.sciday{display:flex;gap:20px;align-items:center;padding:18px;border-radius:var(--r-xl);background:linear-gradient(135deg,var(--surface) 60%,var(--accent-soft));box-shadow:var(--shadow)}
+.sciphoto{position:relative;flex:none;width:118px;height:140px;border-radius:var(--r-lg);overflow:hidden;background:var(--surface-2);display:grid;place-items:center;text-decoration:none;box-shadow:var(--shadow-2);transition:transform .2s var(--ease)}
+.sciphoto:hover{transform:scale(1.03)}
+.sciphoto img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.sciphoto span{font:700 2rem var(--display);color:var(--accent)}
+.sciphoto em{position:absolute;left:0;right:0;bottom:0;display:flex;gap:4px;justify-content:center;align-items:center;padding:4px;background:rgba(0,0,0,.55);color:#fff;font:600 .68rem var(--body);font-style:normal;opacity:0;transition:opacity .2s}
+.sciphoto em .i{width:12px;height:12px}
+.sciphoto:hover em,.sciphoto:focus-visible em{opacity:1}
+.scitx{min-width:0;display:grid;gap:6px}
+.scilbl{display:inline-flex;align-items:center;gap:6px;font:700 .72rem var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.scilbl .i{width:15px;height:15px}
+.sciday h2{margin:0;font-size:1.3rem}
+.sciday h2 a{color:var(--ink);text-decoration:none}
+.sciday h2 a:hover{color:var(--accent);text-decoration:underline}
+.sciday h2 span{font:500 .85rem var(--body);color:var(--muted)}
+.sciday p{margin:0;color:var(--ink);font-size:.92rem;line-height:1.45}
+.scinot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.8rem}
+.scinot b{color:var(--muted);font-weight:600;margin-right:2px}
+.scinot span{padding:3px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+@media (max-width:600px){.sciday{flex-direction:column;align-items:flex-start;gap:12px;padding:14px}.sciphoto{width:96px;height:112px}}

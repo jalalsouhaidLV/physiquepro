@@ -266,7 +266,7 @@ function drawer(r){
     ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span></a>` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt().replace(/[A-ZÀ-Ý]{2,}/g, m => m.charAt(0) + m.slice(1).toLowerCase())}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
-    ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
+    ${actives().map(c => `<a class="it itcours" data-cid="${esc(c.id)}" title="Glisse pour changer l'ordre" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
     ${liensUtilesEleve()}<div class="sect">${icon("flask")} Ressources</div>
     <a class="it" href="#/revisions" ${cur("revisions")}>${icon("cards")}<span class="lbl">Révisions et flashcards</span></a>
@@ -287,7 +287,7 @@ function liensUtilesEleve(){
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
 const pageHead = () => `<div class="foot headband"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
-const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
+const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>${compteurVisites()}`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
 
@@ -329,7 +329,7 @@ function vAccueil(){
   if (!list.length) return `<div class="page">${S.prof ? `<div class="emptystate"><b>Aucun cours actif.</b><span>Crée ton premier cours avec le bouton + en haut de la page.</span><div><button class="btn" data-act="newclass">${icon("plus")} Créer un cours</button></div></div>` :
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
   return `<div class="page wide home">${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
-    <section class="homepanel"><div class="homehead"><h1>Cours</h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
+    ${blocScientifique()}<section class="homepanel"><div class="homehead"><h1>Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
     <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${pageFoot()}</div>`;
 }
 /* « À rendre récemment » (en haut de l'accueil, comme Classroom) */
@@ -4281,6 +4281,123 @@ document.addEventListener("click", async e => {
 document.addEventListener("keydown", e => { if (!FC.rev || route().v !== "revisions" || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "")) return;
   const clic = s => { const b = document.querySelector(`[data-act="${s}"]`); if (b) { e.preventDefault(); b.click(); } };
   if (e.key === " ") clic("fcflip"); else if (e.key === "1" && FC.rev.retournee) clic("fcnon"); else if (e.key === "2" && FC.rev.retournee) clic("fcoui"); });
+
+/* ---------- Compteur de visites (prof) : comptes, visites, personnes en ligne ---------- */
+let presenceOn = false;
+function demarrerPresence(){
+  if (presenceOn) return; presenceOn = true;
+  setInterval(() => { if (document.visibilityState === "visible" && S.user) sb.rpc("pp_visite").then(() => {}, () => {}); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.user) sb.rpc("pp_visite").then(() => {}, () => {}); });
+  if (S.prof) { chargerStatsVisites(); setInterval(chargerStatsVisites, 60000); }
+}
+async function chargerStatsVisites(){
+  if (!S.prof) return; const { data, error } = await sb.rpc("pp_stats_visites"); if (error || !data) return;
+  S.stv = typeof data === "string" ? JSON.parse(data) : data; document.querySelectorAll(".compteur").forEach(z => z.outerHTML = compteurVisites());
+}
+function compteurVisites(){
+  if (!S.prof || !S.stv) return S.prof ? `<div class="compteur"></div>` : "";
+  const v = S.stv, noms = (v.noms || []).slice(0, 12);
+  return `<div class="compteur"><span class="cpt" title="Comptes créés depuis l'ouverture du site">${icon("people")}<b>${v.comptes}</b> personne${v.comptes > 1 ? "s" : ""} déjà connectée${v.comptes > 1 ? "s" : ""}</span>
+    <span class="cpt" title="Visites cumulées (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} au total</span>
+    <span class="cpt" title="Connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> aujourd'hui</span>
+    <span class="cpt enligne" title="${esc(noms.join(", "))}${(v.noms || []).length > 12 ? "…" : ""}"><i class="pastille"></i><b>${v.enligne}</b> en ligne maintenant</span></div>`;
+}
+
+/* ---------- Glisser-déposer des cours dans le menu de gauche ---------- */
+const DM = { el: null, y0: 0, on: false, pid: null, bloque: false };
+document.addEventListener("pointerdown", e => { if (e.button !== 0) return; const it = e.target.closest && e.target.closest(".drawer a.itcours"); if (!it) return; DM.el = it; DM.y0 = e.clientY; DM.on = false; DM.pid = e.pointerId; });
+document.addEventListener("pointermove", e => {
+  if (!DM.el || e.pointerId !== DM.pid) return;
+  if (!DM.on) { if (Math.abs(e.clientY - DM.y0) < 8) return; if (e.pointerType === "touch") { DM.el = null; return; } DM.on = true; DM.el.classList.add("dmplace"); document.body.classList.add("dragging"); }
+  e.preventDefault();
+  const L = [...document.querySelectorAll(".drawer a.itcours")], cible = L.find(x => { const r = x.getBoundingClientRect(); return e.clientY >= r.top && e.clientY <= r.bottom; });
+  if (cible && cible !== DM.el) { const r = cible.getBoundingClientRect(); cible.parentNode.insertBefore(DM.el, e.clientY < r.top + r.height / 2 ? cible : cible.nextSibling); }
+});
+document.addEventListener("pointerup", e => { if (!DM.el || e.pointerId !== DM.pid) return; const el = DM.el; DM.el = null;
+  if (!DM.on) return; DM.on = false; el.classList.remove("dmplace"); document.body.classList.remove("dragging"); DM.bloque = true; setTimeout(() => DM.bloque = false, 60);
+  const ids = [...document.querySelectorAll(".drawer a.itcours")].map(x => x.dataset.cid); if (ids.join() !== actives().map(c => c.id).join()) enregistrerOrdre(ids); });
+document.addEventListener("click", e => { if (DM.bloque && e.target.closest && e.target.closest(".drawer")) { e.preventDefault(); e.stopPropagation(); } }, true);
+document.addEventListener("dragstart", e => { if (e.target.closest && e.target.closest(".drawer a.itcours")) e.preventDefault(); });
+
+/* ---------- Scientifique du jour (programme de Physique-Chimie 2nde, 1re, Tle) ---------- */
+const SCIENTIFIQUES = [
+  ["Isaac Newton", "1643–1727", "Isaac_Newton", "Physicien et mathématicien anglais. Ses Principia (1687) unifient la chute des corps sur Terre et le mouvement des planètes.", ["Principe d'inertie (2nde)", "Deuxième loi de Newton (Tle)", "Gravitation universelle", "Décomposition de la lumière blanche"]],
+  ["Amedeo Avogadro", "1776–1856", "Amedeo_Avogadro", "Physicien et chimiste italien. Il propose en 1811 que des volumes égaux de gaz, dans les mêmes conditions, contiennent le même nombre de molécules.", ["Quantité de matière et mole (2nde)", "Constante d'Avogadro", "Volume molaire d'un gaz"]],
+  ["Daniel Bernoulli", "1700–1782", "Daniel_Bernoulli", "Physicien et mathématicien suisse, fondateur de l'hydrodynamique. Il relie vitesse, pression et altitude dans un fluide en écoulement.", ["Relation de Bernoulli (Tle)", "Écoulement d'un fluide, débit", "Pression d'un fluide"]],
+  ["Albert Einstein", "1879–1955", "Albert_Einstein", "Physicien d'origine allemande, prix Nobel 1921. Il explique l'effet photoélectrique par les photons et formule la relativité.", ["Effet photoélectrique (Tle)", "Photon et énergie E = h·ν", "Équivalence masse-énergie E = m·c²"]],
+  ["Blaise Pascal", "1623–1662", "Blaise_Pascal", "Savant et philosophe français. Il prouve que la pression de l'air diminue avec l'altitude (expérience du Puy de Dôme, 1648).", ["Pression (2nde)", "Loi fondamentale de la statique des fluides (1re)", "Unité : le pascal"]],
+  ["Antoine Lavoisier", "1743–1794", "Antoine_Lavoisier", "Chimiste français, père de la chimie moderne. « Rien ne se perd, rien ne se crée, tout se transforme. »", ["Conservation de la masse (2nde)", "Équation de réaction ajustée", "Rôle du dioxygène dans la combustion"]],
+  ["Dmitri Mendeleïev", "1834–1907", "Dmitri_Mendeleïev", "Chimiste russe. En 1869, il classe les éléments par masse croissante et propriétés, en laissant des cases pour des éléments encore inconnus.", ["Tableau périodique (2nde)", "Familles chimiques", "Électrons de valence"]],
+  ["Marie Curie", "1867–1934", "Marie_Curie", "Physicienne et chimiste franco-polonaise, seule personne récompensée par deux prix Nobel scientifiques (physique 1903, chimie 1911).", ["Radioactivité (1re)", "Décroissance radioactive (Tle)", "Découverte du polonium et du radium"]],
+  ["Ernest Rutherford", "1871–1937", "Ernest_Rutherford", "Physicien néo-zélandais. Avec la feuille d'or, il montre que l'atome possède un noyau minuscule, dense et chargé positivement.", ["Modèle de l'atome (2nde)", "Noyau, proton", "Rayonnements α et β"]],
+  ["Niels Bohr", "1885–1962", "Niels_Bohr", "Physicien danois, prix Nobel 1922. Son modèle de l'atome explique les spectres de raies par des niveaux d'énergie quantifiés.", ["Niveaux d'énergie de l'atome (1re)", "Spectres d'émission et d'absorption", "Quantification de l'énergie"]],
+  ["Max Planck", "1858–1947", "Max_Planck", "Physicien allemand, prix Nobel 1918, fondateur de la physique quantique : l'énergie est échangée par « quanta ».", ["Constante de Planck h (1re)", "Énergie d'un photon E = h·ν", "Rayonnement du corps noir"]],
+  ["James Clerk Maxwell", "1831–1879", "James_Clerk_Maxwell", "Physicien écossais. Ses équations unifient électricité et magnétisme et montrent que la lumière est une onde électromagnétique.", ["Ondes électromagnétiques (2nde)", "Spectre électromagnétique", "Champs électrique et magnétique (1re)"]],
+  ["Michael Faraday", "1791–1867", "Michael_Faraday", "Physicien et chimiste anglais. Il découvre l'induction électromagnétique et établit les lois de l'électrolyse.", ["Champ magnétique (1re)", "Électrolyse (Tle)", "Constante de Faraday"]],
+  ["Georg Ohm", "1789–1854", "Georg_Simon_Ohm", "Physicien allemand. Il établit en 1827 la proportionnalité entre la tension aux bornes d'un conducteur et l'intensité qui le traverse.", ["Loi d'Ohm U = R·I (2nde)", "Résistance, unité ohm", "Caractéristique d'un dipôle"]],
+  ["Alessandro Volta", "1745–1827", "Alessandro_Volta", "Physicien italien. Il invente en 1800 la pile électrique, première source de courant continu.", ["Piles électrochimiques (1re)", "Tension électrique, unité volt", "Oxydoréduction"]],
+  ["André-Marie Ampère", "1775–1836", "André-Marie_Ampère", "Physicien français, fondateur de l'électrodynamique : il étudie les forces entre courants électriques.", ["Intensité du courant, unité ampère (2nde)", "Loi des nœuds", "Courant et champ magnétique"]],
+  ["Gustav Kirchhoff", "1824–1887", "Gustav_Kirchhoff", "Physicien allemand. Il énonce les lois des circuits électriques et fonde, avec Bunsen, l'analyse spectrale.", ["Lois des nœuds et des mailles (2nde)", "Spectres de raies et identification des éléments"]],
+  ["Christiaan Huygens", "1629–1695", "Christiaan_Huygens", "Savant néerlandais. Il propose une théorie ondulatoire de la lumière et invente l'horloge à pendule.", ["Propagation des ondes (Tle)", "Période d'un pendule", "Nature ondulatoire de la lumière"]],
+  ["Galilée", "1564–1642", "Galilée_(savant)", "Savant italien. Il étudie la chute des corps, observe le ciel à la lunette et défend que la Terre tourne autour du Soleil.", ["Chute libre (Tle)", "Principe d'inertie et référentiel (2nde)", "Relativité du mouvement"]],
+  ["Johannes Kepler", "1571–1630", "Johannes_Kepler", "Astronome allemand. Ses trois lois décrivent les orbites elliptiques des planètes autour du Soleil.", ["Lois de Kepler (Tle)", "Mouvement des planètes et des satellites"]],
+  ["Robert Hooke", "1635–1703", "Robert_Hooke", "Savant anglais. Il énonce la loi d'élasticité des ressorts et observe les premières cellules au microscope.", ["Force de rappel d'un ressort", "Modélisation d'une action mécanique (2nde)"]],
+  ["Robert Boyle", "1627–1691", "Robert_Boyle", "Physicien et chimiste irlandais. Il montre qu'à température constante, la pression d'un gaz est inversement proportionnelle à son volume.", ["Loi de Boyle-Mariotte P·V = constante (2nde)", "Pression d'un gaz"]],
+  ["Joseph Louis Gay-Lussac", "1778–1850", "Louis_Joseph_Gay-Lussac", "Chimiste et physicien français. Il étudie la dilatation des gaz et les volumes de gaz qui réagissent entre eux.", ["Modèle du gaz parfait P·V = n·R·T (Tle)", "Influence de la température sur un gaz"]],
+  ["Svante Arrhenius", "1859–1927", "Svante_August_Arrhenius", "Chimiste suédois, prix Nobel 1903. Il définit les acides et les bases et étudie l'effet de la température sur la vitesse des réactions.", ["Acides et bases (Tle)", "Température, facteur cinétique (Tle)", "Effet de serre"]],
+  ["Johannes Brønsted", "1879–1947", "Johannes_Nicolaus_Brønsted", "Chimiste danois. En 1923, il définit un acide comme une espèce capable de céder un proton H⁺.", ["Couples acide/base (1re)", "Réactions acide-base (Tle)"]],
+  ["Søren Sørensen", "1868–1939", "Søren_Sørensen", "Chimiste danois. Il introduit en 1909 l'échelle de pH pour mesurer l'acidité d'une solution.", ["pH d'une solution (Tle)", "Solutions acides, basiques, neutres"]],
+  ["Gilbert Lewis", "1875–1946", "Gilbert_Newton_Lewis", "Chimiste américain. Il décrit la liaison covalente comme une mise en commun d'électrons.", ["Schéma de Lewis (1re)", "Doublets liants et non liants", "Liaison covalente"]],
+  ["Linus Pauling", "1901–1994", "Linus_Pauling", "Chimiste américain, deux fois prix Nobel. Il crée l'échelle d'électronégativité des éléments.", ["Électronégativité (1re)", "Polarité des liaisons et des molécules"]],
+  ["August Kekulé", "1829–1896", "August_Kekulé", "Chimiste allemand. Il montre que le carbone forme quatre liaisons et propose la structure cyclique du benzène.", ["Tétravalence du carbone (1re)", "Formules développées et semi-développées"]],
+  ["Hans Christian Ørsted", "1777–1851", "Hans_Christian_Ørsted", "Physicien danois. En 1820, il observe qu'un courant électrique dévie l'aiguille d'une boussole.", ["Champ magnétique créé par un courant (1re)", "Lien entre électricité et magnétisme"]],
+  ["Charles-Augustin Coulomb", "1736–1806", "Charles-Augustin_Coulomb", "Physicien français. Avec sa balance de torsion, il établit la loi d'interaction entre charges électriques.", ["Loi de Coulomb (1re)", "Charge électrique, unité coulomb", "Champ électrique"]],
+  ["James Prescott Joule", "1818–1889", "James_Prescott_Joule", "Physicien anglais. Il montre l'équivalence entre travail mécanique et chaleur.", ["Énergie et unité joule", "Effet Joule (1re)", "Premier principe de la thermodynamique (Tle)"]],
+  ["Sadi Carnot", "1796–1832", "Nicolas_Léonard_Sadi_Carnot", "Physicien français, fondateur de la thermodynamique : il étudie le rendement des machines à vapeur.", ["Conversion d'énergie et rendement (1re)", "Machines thermiques", "Bilans énergétiques"]],
+  ["Lord Kelvin", "1824–1907", "William_Thomson_(Lord_Kelvin)", "Physicien britannique. Il définit l'échelle de température absolue, qui part du zéro absolu.", ["Température absolue, kelvin (2nde)", "Zéro absolu", "Thermodynamique"]],
+  ["Anders Celsius", "1701–1744", "Anders_Celsius", "Astronome suédois. Il propose en 1742 l'échelle de température centésimale, fondée sur l'eau.", ["Température en degrés Celsius", "Changements d'état de l'eau (2nde)"]],
+  ["Christian Doppler", "1803–1853", "Christian_Doppler", "Physicien autrichien. Il prédit que la fréquence d'une onde perçue dépend du mouvement de la source.", ["Effet Doppler (Tle)", "Mesure de vitesses (radars, astronomie)"]],
+  ["Thomas Young", "1773–1829", "Thomas_Young_(physicien)", "Savant anglais. Son expérience des fentes prouve la nature ondulatoire de la lumière.", ["Interférences (Tle)", "Fentes d'Young", "Nature ondulatoire de la lumière"]],
+  ["Augustin Fresnel", "1788–1827", "Augustin_Fresnel", "Physicien français. Il explique la diffraction par la théorie ondulatoire et invente la lentille des phares.", ["Diffraction (Tle)", "Lumière : modèle ondulatoire"]],
+  ["Willebrord Snell", "1580–1626", "Willebrord_Snell", "Astronome et mathématicien néerlandais. Il découvre en 1621 la loi de la réfraction de la lumière.", ["Lois de Snell-Descartes (2nde)", "Indice de réfraction", "Réfraction de la lumière"]],
+  ["René Descartes", "1596–1650", "René_Descartes", "Philosophe et savant français. Il publie en 1637 les lois de la réflexion et de la réfraction de la lumière.", ["Lois de Snell-Descartes (2nde)", "Réflexion et réfraction", "Repère cartésien"]],
+  ["Louis de Broglie", "1892–1987", "Louis_de_Broglie", "Physicien français, prix Nobel 1929. Il associe une onde à toute particule en mouvement.", ["Dualité onde-particule (Tle)", "Longueur d'onde de de Broglie λ = h/p"]],
+  ["Heinrich Hertz", "1857–1894", "Heinrich_Hertz", "Physicien allemand. Il produit et détecte les premières ondes radio en 1887.", ["Ondes électromagnétiques (2nde)", "Fréquence, unité hertz", "Effet photoélectrique"]],
+  ["Joseph John Thomson", "1856–1940", "Joseph_John_Thomson", "Physicien anglais, prix Nobel 1906. Il découvre l'électron en 1897.", ["Électron et modèle de l'atome (2nde)", "Particule chargée dans un champ électrique (Tle)"]],
+  ["Robert Millikan", "1868–1953", "Robert_Andrews_Millikan", "Physicien américain, prix Nobel 1923. Son expérience des gouttelettes d'huile mesure la charge de l'électron.", ["Charge élémentaire e (Tle)", "Mouvement dans un champ électrique"]],
+  ["Henri Becquerel", "1852–1908", "Henri_Becquerel", "Physicien français, prix Nobel 1903. Il découvre la radioactivité de l'uranium en 1896.", ["Radioactivité (1re)", "Unité becquerel (Bq)", "Activité d'un échantillon (Tle)"]],
+  ["Jacques Charles", "1746–1823", "Jacques_Charles", "Physicien et aéronaute français. Il étudie la dilatation des gaz chauffés et vole en ballon à hydrogène.", ["Lois des gaz (Tle)", "Masse volumique d'un gaz"]],
+  ["August Beer", "1825–1863", "August_Beer", "Physicien allemand. Il relie l'absorption de la lumière par une solution à sa concentration.", ["Loi de Beer-Lambert (1re)", "Dosage par spectrophotométrie", "Absorbance"]],
+  ["Archimède", "vers -287 – -212", "Archimède", "Savant grec de Syracuse. Il énonce le principe de la poussée exercée par un fluide sur un corps immergé.", ["Poussée d'Archimède (Tle)", "Masse volumique", "Statique des fluides"]],
+  ["Evangelista Torricelli", "1608–1647", "Evangelista_Torricelli", "Physicien italien. Il invente le baromètre à mercure en 1643 et mesure la pression atmosphérique.", ["Pression atmosphérique (2nde)", "Baromètre", "Écoulement par un orifice"]],
+  ["Ole Rømer", "1644–1710", "Ole_Christensen_Rømer", "Astronome danois. En observant Io, satellite de Jupiter, il montre en 1676 que la lumière a une vitesse finie.", ["Vitesse de la lumière (2nde)", "Propagation de la lumière"]],
+  ["Hippolyte Fizeau", "1819–1896", "Hippolyte_Fizeau", "Physicien français. Il mesure la vitesse de la lumière sur Terre en 1849 avec une roue dentée.", ["Vitesse de la lumière (2nde)", "Effet Doppler-Fizeau (Tle)"]],
+  ["Joseph Fourier", "1768–1830", "Joseph_Fourier", "Mathématicien et physicien français. Il étudie la propagation de la chaleur et décompose les signaux en sinusoïdes.", ["Transferts thermiques (Tle)", "Spectre d'un son (2nde)", "Flux thermique"]],
+  ["Émilie du Châtelet", "1706–1749", "Émilie_du_Châtelet", "Mathématicienne et physicienne française. Elle traduit Newton et défend l'idée que l'énergie d'un corps dépend du carré de sa vitesse.", ["Énergie cinétique Ec = ½·m·v² (1re)", "Conservation de l'énergie"]],
+  ["Lise Meitner", "1878–1968", "Lise_Meitner", "Physicienne autrichienne. Elle explique en 1939 la fission nucléaire de l'uranium.", ["Fission nucléaire (1re)", "Énergie nucléaire", "Radioactivité"]],
+  ["Irène Joliot-Curie", "1897–1956", "Irène_Joliot-Curie", "Chimiste et physicienne française, prix Nobel 1935 avec Frédéric Joliot, pour la radioactivité artificielle.", ["Radioactivité artificielle (Tle)", "Transformations nucléaires", "Isotopes"]],
+  ["Henry Cavendish", "1731–1810", "Henry_Cavendish", "Physicien et chimiste britannique. Il identifie le dihydrogène et mesure la constante de gravitation.", ["Constante de gravitation G", "Dihydrogène et composition de l'eau"]],
+  ["Jean Perrin", "1870–1942", "Jean_Perrin", "Physicien français, prix Nobel 1926. Ses mesures prouvent l'existence des atomes et déterminent le nombre d'Avogadro.", ["Constante d'Avogadro (2nde)", "Réalité des atomes et des molécules"]],
+  ["Jöns Jacob Berzelius", "1779–1848", "Jöns_Jacob_Berzelius", "Chimiste suédois. Il invente la notation chimique moderne avec des symboles d'une ou deux lettres.", ["Symboles des éléments (2nde)", "Formules chimiques"]],
+  ["John Dalton", "1766–1844", "John_Dalton", "Chimiste anglais. Il propose en 1808 la théorie atomique : la matière est faite d'atomes.", ["Modèle de l'atome (2nde)", "Pressions partielles des gaz"]]
+];
+const cleJour = d => { const x = new Date(d); x.setHours(12, 0, 0, 0); return Math.floor(x / 864e5); };
+function scientifiqueDuJour(){ const j = cleJour(now()), n = SCIENTIFIQUES.length; return SCIENTIFIQUES[((j * 37) % n + n) % n]; }
+const PHOTOS = {};
+async function photoWiki(titre){
+  if (PHOTOS[titre] !== undefined) return PHOTOS[titre];
+  try { const c = JSON.parse(localStorage.getItem("pp_wiki_" + titre) || "null"); if (c && c.t > Date.now() - 30 * 864e5) return PHOTOS[titre] = c.u; } catch (_) {}
+  PHOTOS[titre] = null;
+  try { const r = await fetch("https://fr.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titre)); if (r.ok) { const j = await r.json(); const u = (j.thumbnail && j.thumbnail.source) || (j.originalimage && j.originalimage.source) || ""; PHOTOS[titre] = u; try { localStorage.setItem("pp_wiki_" + titre, JSON.stringify({ u, t: Date.now() })); } catch (_) {} } } catch (_) {}
+  return PHOTOS[titre];
+}
+function blocScientifique(){
+  const [nom, dates, titre, bio, notions] = scientifiqueDuJour(), url = "https://fr.wikipedia.org/wiki/" + encodeURIComponent(titre), ph = PHOTOS[titre];
+  if (ph === undefined) photoWiki(titre).then(u => { document.querySelectorAll(`.sciphoto[data-t="${CSS.escape(titre)}"]`).forEach(z => { if (u) z.innerHTML = `<img src="${esc(u)}" alt="Portrait de ${esc(nom)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(initials(nom))}'}))"><em>${icon("ext")} Wikipédia</em>`; }); });
+  return `<section class="sciday"><a class="sciphoto" data-t="${esc(titre)}" href="${url}" target="_blank" rel="noopener" title="Lire sa biographie sur Wikipédia">${ph ? `<img src="${esc(ph)}" alt="Portrait de ${esc(nom)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(initials(nom))}'}))">` : `<span>${esc(initials(nom))}</span>`}<em>${icon("ext")} Wikipédia</em></a>
+    <div class="scitx"><small class="scilbl">${icon("atom")} Scientifique du jour</small><h2><a href="${url}" target="_blank" rel="noopener">${esc(nom)}</a> <span>${esc(dates)}</span></h2><p>${esc(bio)}</p>
+      <div class="scinot"><b>Au programme :</b>${notions.map(n => `<span>${esc(n)}</span>`).join("")}</div></div></section>`;
+}
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
@@ -4794,7 +4911,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   if (fresh && !S.prof && !pj && route().v === "accueil" && actives().length === 1) history.replaceState(null, "", ICI + "#/classe/" + encodeURIComponent(actives()[0].id));
   render();
   chargerNotifs().catch(() => {});
-  if (!S.prof) sb.rpc("pp_visite").then(() => {}, () => {});
+  sb.rpc("pp_visite").then(() => {}, () => {}); demarrerPresence();
   if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
   if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
   setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
