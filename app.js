@@ -209,12 +209,14 @@ function vLogin(message, info){
     <button class="btn" id="loginBtn">Se connecter</button>
     <p class="muted" style="margin:0;font-size:.82rem">Tu passeras par la page Microsoft habituelle pour taper ton mot de passe, puis tu reviendras ici.</p>
     ${logos.replace('class="logos"', 'class="logos" style="justify-content:center;border-top:1px solid var(--line);padding-top:14px"')}
+    ${S.public ? `<a href="#/" data-act="pubretour" class="linkbtn" style="justify-self:center">${icon("left")} Retour à l'accueil</a>` : ""}
   </div></div>`;
   const btn = document.getElementById("loginBtn"), inp = document.getElementById("mail");
   const lancer = async () => {
     const m = inp.value.trim().toLowerCase(), err = document.getElementById("mailErr");
     if (m && !m.endsWith("@" + CFG.domaine)) { err.hidden = false; err.textContent = "Cette adresse n'appartient pas au lycée. Utilise ton adresse en @" + CFG.domaine + "."; return; }
     btn.disabled = true; btn.textContent = "Redirection vers Microsoft…";
+    try { localStorage.setItem("pp_fresh", "1"); } catch (_) {}
     const { error } = await sb.auth.signInWithOAuth({ provider: "azure", options: { scopes: "openid email profile", redirectTo: ICI, queryParams: m ? { login_hint: m } : { prompt: "select_account" } } });
     if (error) { btn.disabled = false; btn.textContent = "Se connecter"; err.hidden = false; err.textContent = "La connexion n'a pas pu démarrer : " + error.message; }
   };
@@ -2579,10 +2581,75 @@ async function importerZip(files){
   if (corr) log(corr + " fichier" + (corr > 1 ? "s" : "") + " portant le même nom dans plusieurs cours ont été remplacés par la version du bon cours.");
   S.cache = {}; await rafraichir(); I.busy = false; log(n + " fichier" + (n > 1 ? "s" : "") + " copiés. Les liens Drive restants n'ont pas été trouvés dans le zip."); render();
 }
+/* ---------- page d'accueil publique (visiteur non connecté) ---------- */
+const PUB = { classes: [], charge: false };
+const ROUTES_PUBLIQUES = ["accueil", "outils"];
+async function chargerPublic(){
+  try {
+    const { data, error } = await sb.rpc("pp_accueil_public");
+    if (error) throw error;
+    PUB.classes = (data && data.classes) || [];
+    const g = (data && data.reglages) || {};
+    appliquerReglages({ prof: g.prof || {}, liensUtiles: g.liensUtiles, outils: g.outils });
+  } catch (_) { PUB.classes = []; appliquerReglages(); }
+  PUB.charge = true;
+}
+/* bouton « Se connecter » : directement la page Microsoft, puis retour sur la page demandée */
+async function connecter(suite){
+  try { localStorage.setItem("pp_fresh", "1"); if (suite) localStorage.setItem("pp_next", suite); else localStorage.removeItem("pp_next"); } catch (_) {}
+  document.querySelectorAll('[data-act="pubconnect"]').forEach(b => { b.disabled = true; b.textContent = "Redirection vers Microsoft…"; });
+  const { error } = await sb.auth.signInWithOAuth({ provider: "azure", options: { scopes: "openid email profile", redirectTo: ICI, queryParams: { prompt: "select_account" } } });
+  if (error) { toast("La connexion n'a pas pu démarrer : " + error.message); renderPublic(); }
+}
+const btnConnexion = (txt = "Se connecter", cls2 = "") => `<button class="btn ${cls2}" data-act="pubconnect">${icon("logout")} ${txt}</button>`;
+function topbarPublic(){
+  return `<header class="topbar pubtop">
+    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a></div>
+    <span class="spacer"></span>
+    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    ${btnConnexion("Se connecter", "pubbtn")}
+  </header>`;
+}
+function cartePublique(c){
+  return `<article class="ccard pubcard" style="--bb:var(${C(c.couleur).b})">
+    <div style="position:relative">
+      <a class="banner" href="#/classe/${esc(c.id)}" data-act="pubcours" data-c="${esc(c.id)}">${bannerArt(c)}<h2>${esc(c.nom)}</h2>${c.section ? `<p>${esc(c.section)}</p>` : ""}<span class="teacher">${esc(R().prof.nom)}</span></a>
+      ${avatarP(R().prof.nom, "lg ph")}
+    </div>
+    <div class="body"><span class="muted">Connecte-toi pour ouvrir ce cours.</span></div>
+  </article>`;
+}
+const blocOutils = () => R().outils.map(g => `<section class="theme" style="--c:var(--${esc(g.couleur)})"><div class="themehead"><h2>${esc(g.matiere)}</h2></div>${g.liens.map(([n, d, u]) => `<div class="work"><a class="workrow" href="${esc(u)}" target="_blank" rel="noopener" style="padding:10px 8px;gap:16px"><span class="ico pale">${icon("links", "")}</span><span class="tt">${esc(n)}<br><small class="muted" style="font-weight:400">${esc(d)}</small></span><span class="muted">↗</span></a></div>`).join("")}</section>`).join("");
+function vPublic(r){
+  if (r.v === "outils") return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">Boîte à outils</h1><a class="linkbtn" href="#/">${icon("left")} Accueil</a></div>${blocOutils()}${pageFoot()}</div>`;
+  return `<div class="page wide home">
+    <section class="pubhero">
+      <div><h1>Bienvenue sur l'espace de cours de M. ${esc(R().prof.nom)}</h1>
+      <p class="muted">Cours, documents, devoirs et questionnaires de physique-chimie, SNT et sciences de l'ingénieur. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
+      ${btnConnexion("Se connecter avec Microsoft 365", "pubbig")}
+    </section>
+    <section class="homepanel"><div class="homehead"><h1>Cours</h1></div>
+      ${PUB.classes.length ? `<div class="cards">${PUB.classes.map(cartePublique).join("")}</div>` : `<p class="muted" style="margin:0">Connecte-toi pour voir tes cours.</p>`}</section>
+    <section class="homepanel"><div class="homehead"><h1>Boîte à outils</h1></div>${blocOutils()}</section>
+    ${pageFoot()}</div>`;
+}
+function renderPublic(){
+  const r = route();
+  if (!ROUTES_PUBLIQUES.includes(r.v)) { demanderConnexion(location.hash); return; }
+  app.innerHTML = topbarPublic() + `<div class="shell pubshell"><main class="content">${vPublic(r)}</main></div>`;
+  const pg = app.querySelector("main.content > .page"); if (pg) pg.insertAdjacentHTML("afterbegin", pageHead());
+  document.title = (r.v === "outils" ? "Boîte à outils · " : "") + "PhysiquePro";
+}
+/* page protégée demandée sans être connecté : on garde l'adresse pour y revenir après la connexion */
+function demanderConnexion(suite){
+  try { if (suite && suite !== "#/" && suite !== "#") localStorage.setItem("pp_next", suite); } catch (_) {}
+  vLogin("Connecte-toi avec ton compte Microsoft 365 du lycée pour ouvrir cette page.", true);
+}
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
 async function render(){
+  if (S.public) { renderPublic(); return; }
   const id = ++renderId, r = route();
   try {
     if (r.v === "editer") {
@@ -2668,6 +2735,9 @@ document.addEventListener("click", async e => {
   const act = a.dataset.act, r = route();
   if (["INPUT"].includes(a.tagName) && ["pick", "pickall", "cibletous", "cibleun", "bonne", "ans", "inscr", "bonnecase", "anscase", "repchoix"].includes(act)) { /* traité par « change » */ if (act !== "pick" && act !== "pickall") return; }
   switch (act) {
+    case "pubconnect": e.preventDefault(); connecter(); return;
+    case "pubcours": e.preventDefault(); connecter("#/classe/" + encodeURIComponent(a.dataset.c)); return;
+    case "pubretour": e.preventDefault(); try { localStorage.removeItem("pp_next"); } catch (_) {} if (location.hash && location.hash !== "#/") location.hash = "/"; else renderPublic(); return;
     case "drawer": S.drawer = !S.drawer; render(); return;
     case "bell": { const o = !S.bell; fermerMenus(); S.bell = o; render(); if (o) chargerNotifs(); return; }
     case "toutlu": { const { data, error } = await sb.rpc("pp_vu"); if (error) { toast("Action impossible : " + error.message); return; } S.profil.vu_le = data || now().toISOString(); await chargerNotifs(); return; }
@@ -3016,9 +3086,15 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   if (location.search) history.replaceState(null, "", ICI + location.hash);
   const rj = route();
   if (rj.v === "rejoindre" && rj.a) { try { localStorage.setItem("pp_join", rj.a); } catch (_) {} }
-  if (!session) { vLogin(rj.v === "rejoindre" ? "Connecte-toi avec ton compte Microsoft 365 du lycée : tu rejoindras ensuite le cours automatiquement." : undefined, rj.v === "rejoindre"); return; }
-  let pj = null; try { pj = localStorage.getItem("pp_join"); localStorage.removeItem("pp_join"); } catch (_) {}
+  if (!session) {
+    S.public = true; await chargerPublic();
+    if (rj.v === "rejoindre") { vLogin("Connecte-toi avec ton compte Microsoft 365 du lycée : tu rejoindras ensuite le cours automatiquement.", true); return; }
+    renderPublic(); return;
+  }
+  let pj = null, suite = null, fresh = false;
+  try { pj = localStorage.getItem("pp_join"); localStorage.removeItem("pp_join"); suite = localStorage.getItem("pp_next"); localStorage.removeItem("pp_next"); fresh = localStorage.getItem("pp_fresh") === "1"; localStorage.removeItem("pp_fresh"); } catch (_) {}
   if (pj && route().v !== "rejoindre") history.replaceState(null, "", ICI + "#/rejoindre/" + encodeURIComponent(pj));
+  else if (suite && /^#\/[\w%\-\/.]*$/.test(suite) && route().v === "accueil") history.replaceState(null, "", ICI + suite);
   S.user = session.user;
   const { data: profil, error } = await sb.from("profiles").select("*").eq("id", S.user.id).maybeSingle();
   if (error || !profil) { vLogin("Ton profil n'a pas pu être chargé. Déconnecte-toi puis reconnecte-toi."); await sb.auth.signOut(); return; }
@@ -3031,6 +3107,8 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   try { await chargerTout(); } catch (e) { app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger tes données : ${esc(e.message)}</div></div>`; return; }
   if (S.prof) S.nom = R().prof.nom;
   try { S.recent = localStorage.getItem("pp_recent") === "1"; } catch (_) {}
+  /* juste après la connexion : un élève inscrit dans un seul cours arrive directement dans ce cours */
+  if (fresh && !S.prof && !pj && route().v === "accueil" && actives().length === 1) history.replaceState(null, "", ICI + "#/classe/" + encodeURIComponent(actives()[0].id));
   render();
   chargerNotifs().catch(() => {});
   if (S.prof) setTimeout(async () => { await transfererRendus(true); await genererCopies(true); }, 4000);
