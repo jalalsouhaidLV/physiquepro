@@ -242,7 +242,8 @@ function topbar(r){
     <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof || S.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <nav class="quick" aria-label="Liens rapides favoris">${liensFavoris().map(lienRapide).join("")}</nav>
+    ${lanceurApps()}
     ${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
       ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
@@ -320,7 +321,7 @@ function vAccueil(){
   const list = actives();
   if (!list.length) return `<div class="page">${S.prof ? `<div class="emptystate"><b>Aucun cours actif.</b><span>Crée ton premier cours avec le bouton + en haut de la page.</span><div><button class="btn" data-act="newclass">${icon("plus")} Créer un cours</button></div></div>` :
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
-  return `<div class="page wide home">${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
+  return `<div class="page wide home">${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
     <section class="homepanel"><div class="homehead"><h1>Cours</h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
     <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${pageFoot()}</div>`;
 }
@@ -3616,7 +3617,7 @@ function ouvrirCote(cle, url, nom){
     const fin = () => { voile.hidden = true; document.documentElement.classList.remove("side-drag"); grip.removeEventListener("pointermove", bouge); grip.removeEventListener("pointerup", fin); grip.removeEventListener("pointercancel", fin); if (o.mode === "fenetre") spFenetre(); };
     grip.addEventListener("pointermove", bouge); grip.addEventListener("pointerup", fin); grip.addEventListener("pointercancel", fin); });
   if (o.mode === "fenetre") spFenetre();
-  document.querySelectorAll(".quick a.qside").forEach(a => a.classList.toggle("on", a.dataset.cle === cle));
+  document.querySelectorAll("a.qside").forEach(a => a.classList.toggle("on", a.dataset.cle === cle));
   return true;
 }
 function fermerCote(){
@@ -3624,11 +3625,162 @@ function fermerCote(){
   if (SP.fen && !SP.fen.closed) { try { SP.fen.close(); } catch (_) {} } SP.fen = null;
   const p = document.getElementById("sidePanel"); if (p) p.remove(); SP.cle = null;
   document.documentElement.classList.remove("side-open", "side-gauche", "side-droite");
-  document.querySelectorAll(".quick a.qside").forEach(a => a.classList.remove("on"));
+  document.querySelectorAll("a.qside").forEach(a => a.classList.remove("on"));
 }
 window.addEventListener("resize", () => { if (document.getElementById("sidePanel")) { if (window.innerWidth <= 760) fermerCote(); else spAppliquer(); } });
-document.addEventListener("click", e => { const a = e.target.closest && e.target.closest(".quick a.qside"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a.qside"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
   if (window.innerWidth <= 760) return; e.preventDefault(); e.stopPropagation(); ouvrirCote(a.dataset.cle, a.getAttribute("href"), a.textContent.trim()); }, true);
+/* =====================================================================
+   PhysiquePro · améliorations « pro » (barre d'applications, recherche,
+   tableau de bord, semaine, correction rapide, thème, etc.)
+   ===================================================================== */
+
+/* ---------- #2 Barre du haut : favoris + lanceur « Applications » ---------- */
+IC.apps = '<circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>';
+IC.star = '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>';
+const FAVORIS_DEFAUT = ["Pronote Verdun", "Lycée Verdun", "WhatsApp Web", "E-mail Outlook", "OneDrive", "NumWorks"];
+const FAVORIS_MAX = 8;
+const cleFavoris = () => "pp_favoris_" + (S.user && S.user.id);
+const liensVisibles = () => R().liensUtiles.filter(l => l.nom && (!l.prof || S.prof));
+function favorisNoms(){
+  let f = null; try { f = JSON.parse(localStorage.getItem(cleFavoris()) || "null"); } catch (_) {}
+  const noms = liensVisibles().map(l => l.nom);
+  if (!Array.isArray(f)) f = FAVORIS_DEFAUT.filter(n => noms.includes(n));
+  return f.filter(n => noms.includes(n));
+}
+const liensFavoris = () => { const f = favorisNoms(); return liensVisibles().filter(l => f.includes(l.nom)); };
+function basculerFavori(nom){
+  let f = favorisNoms();
+  if (f.includes(nom)) f = f.filter(n => n !== nom);
+  else { if (f.length >= FAVORIS_MAX) { toast(`${FAVORIS_MAX} favoris au maximum : retire d'abord une étoile.`); return; } f.push(nom); }
+  try { localStorage.setItem(cleFavoris(), JSON.stringify(f)); } catch (_) {}
+}
+const classesLien = l => `${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}`;
+const lienRapide = l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${classesLien(l)}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}" title="${esc(l.nom)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`;
+function lanceurApps(){
+  const L = liensVisibles(), f = favorisNoms();
+  return `<div class="dd apps"><button class="ib appsbtn" data-act="apps" title="Toutes les applications" aria-label="Toutes les applications" aria-expanded="${!!S.apps}">${icon("apps")}</button>
+    ${S.apps ? `<div class="dd-menu appsmenu" role="menu"><div class="appstete"><b>Applications</b><small>★ = affichée dans la barre du haut</small></div>
+      <div class="appsgrille">${L.map(l => `<div class="apptuile${f.includes(l.nom) ? " fav" : ""}"><a href="${esc(l.url)}" target="_blank" rel="noopener" class="${classesLien(l).replace("qordi", "")}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>
+        <button class="appetoile" data-act="favori" data-nom="${esc(l.nom)}" title="${f.includes(l.nom) ? "Retirer de la barre du haut" : "Afficher dans la barre du haut"}" aria-label="${f.includes(l.nom) ? "Retirer " : "Ajouter "}${esc(l.nom)} ${f.includes(l.nom) ? "de" : "à"} la barre du haut" aria-pressed="${f.includes(l.nom)}">${icon("star")}</button></div>`).join("")}</div></div>` : ""}</div>`;
+}
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest(".appsmenu a")) setTimeout(() => { if (S.apps) { S.apps = false; render(); } }, 50); });
+
+/* ---------- #8 Tableau de bord (accueil) ---------- */
+IC.search = '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/>';
+IC.flask = IC.flask || '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/>';
+IC.week = '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2"/>';
+const premierPrenom = () => { const n = String(S.nom || "").trim().split(/\s+/); const p = n.find(x => x !== x.toUpperCase()) || n[0] || ""; return p; };
+const salut = () => { const h = now().getHours(); return h < 5 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir"; };
+let tdbCharge = false;
+function chargerPourTableau(){
+  if (tdbCharge) return; tdbCharge = true;
+  const L = [];
+  if (!S.rdv && typeof chargerRdv === "function") L.push(chargerRdv().catch(() => {}));
+  if (S.prof && !S.demandes && typeof chargerDemandes === "function") L.push(chargerDemandes().catch(() => {}));
+  if (L.length) Promise.all(L).then(() => { if (route().v === "accueil" && !S.modal) render(); });
+}
+const tuile = (href, ic, n, lib, ton, sous) => `<a class="kpi ${ton || ""}" href="${href}"><span class="kpiic">${icon(ic)}</span><span class="kpitxt"><b>${n}</b><span>${lib}</span>${sous ? `<small>${sous}</small>` : ""}</span></a>`;
+function blocTableauDeBord(){
+  chargerPourTableau();
+  const t = now(), dans7 = new Date(+t + 7 * 864e5), aujourdhui = d => sameDay(D(d), t);
+  const vis = o => !o.brouillon && cls(o.classe_id) && !cls(o.classe_id).archive;
+  let tuiles = "";
+  if (S.prof) {
+    const dvs = S.devoirs.filter(vis), acor = dvs.reduce((a, d) => a + aCorriger(d), 0);
+    const premier = actives().find(c => dvs.some(d => d.classe_id === c.id && aCorriger(d) > 0));
+    const urg = typeof nbUrgents === "function" ? nbUrgents() : 0, alertes = typeof alertesEleves === "function" ? alertesEleves().length : 0;
+    const crs = S.rdv ? S.rdv.creneaux.filter(c => aujourdhui(c.debut)) : [], rdvJour = S.rdv ? S.rdv.resa.filter(r => crs.some(c => c.id === r.creneau_id)).length : null;
+    const tps = (S.demandes || []).filter(x => x.date_tp && D(x.date_tp) >= new Date(+t - 864e5 / 2) && D(x.date_tp) <= dans7);
+    const prochain = dvs.filter(d => d.date_limite && D(d.date_limite) > t).sort((a, b) => D(a.date_limite) - D(b.date_limite))[0];
+    tuiles = tuile(premier ? `#/classe/${esc(premier.id)}/corriger` : "#/todo", "check", acor, acor > 1 ? "copies à corriger" : "copie à corriger", acor ? "warn" : "ok", premier && acor ? esc(premier.nom) : acor ? "" : "Tout est corrigé")
+      + tuile("#/urgences", "urgent", urg, urg > 1 ? "messages urgents" : "message urgent", urg ? "bad" : "ok", urg ? "non lu" + (urg > 1 ? "s" : "") : "Rien de nouveau")
+      + tuile("#/rendezvous", "rdv", rdvJour == null ? "…" : rdvJour, "rendez-vous aujourd'hui", rdvJour ? "info" : "", crs.length ? crs.length + " créneau" + (crs.length > 1 ? "x" : "") + " prévu" + (crs.length > 1 ? "s" : "") : "")
+      + tuile("#/suivi", "alerte", alertes, alertes > 1 ? "élèves à surveiller" : "élève à surveiller", alertes ? "warn" : "ok", alertes ? "décrochage possible" : "Tout va bien")
+      + tuile("#/preparateur", "flask", S.demandes ? tps.length : "…", "TP cette semaine", tps.some(x => x.statut === "brouillon") ? "warn" : "", tps.length ? tps.filter(x => x.statut === "prete").length + " prêt(s) · " + tps.filter(x => x.statut === "brouillon").length + " à envoyer" : "")
+      + (prochain ? tuile(`#/devoir/${prochain.id}`, "cal", fmtShort(D(prochain.date_limite)), "prochaine échéance", "", esc(prochain.titre)) : "");
+  } else {
+    const dvs = S.devoirs.filter(d => vis(d) && D(d.publie_le) <= t);
+    const semaine = dvs.filter(d => d.date_limite && D(d.date_limite) > t && D(d.date_limite) <= dans7 && etat(d, moi()).t === "Attribué").length;
+    const manq = dvs.filter(d => etat(d, moi()).t === "Manquant").length;
+    const notes = dvs.filter(d => { const e = etat(d, moi()); return e.t === "Noté" && e.c && D(e.c.modifie_le || e.c.cree_le || 0) > new Date(+t - 7 * 864e5); }).length;
+    const rep = typeof reponsesNonVues === "function" ? reponsesNonVues() : 0;
+    const maResa = S.rdv ? S.rdv.resa.filter(r => r.eleve === S.user.id).map(r => S.rdv.creneaux.find(c => c.id === r.creneau_id)).filter(c => c && D(c.debut) > t).sort((a, b) => D(a.debut) - D(b.debut))[0] : null;
+    tuiles = tuile("#/semaine", "week", semaine, "à rendre cette semaine", semaine ? "info" : "ok", semaine ? "" : "Rien d'urgent")
+      + tuile("#/todo", "alerte", manq, manq > 1 ? "travaux manquants" : "travail manquant", manq ? "bad" : "ok", manq ? "à rattraper" : "Aucun retard")
+      + tuile("#/todo", "grade", notes, notes > 1 ? "nouvelles notes" : "nouvelle note", notes ? "info" : "", "ces 7 derniers jours")
+      + (rep ? tuile("#", "urgent", rep, rep > 1 ? "réponses de " + esc(nomProfCourt()) : "réponse de " + esc(nomProfCourt()), "bad", "Message urgent").replace('href="#"', 'href="#" data-act="urgchoix"') : "")
+      + (maResa ? tuile("#/rendezvous", "rdv", fmtShort(D(maResa.debut)), "prochain rendez-vous", "info", fmtT(D(maResa.debut))) : "");
+  }
+  return `<section class="tdb"><div class="tdbhead"><div><h1>${salut()} ${esc(premierPrenom())}</h1><p>${esc(fmtD(t).replace(/^./, m => m.toUpperCase()))}</p></div>
+      <button class="tdbsearch" data-act="recherche" aria-label="Rechercher (Ctrl+K)">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
+    <div class="kpis">${tuiles}</div></section>`;
+}
+
+/* ---------- #7 Recherche universelle (Ctrl+K) ---------- */
+function indexRecherche(){
+  const L = [], t = now();
+  const pages = [["#/", "home", "Accueil"], ["#/agenda", "cal", "Agenda"], ["#/semaine", "week", "Ma semaine"], [S.prof ? "#/todo" : "#/todo", "todo", S.prof ? "Toutes les copies à corriger" : "À faire"], ["#/rendezvous", "rdv", "Rendez-vous"],
+    ["#/outils", "tools", "Boîte à outils"], ["#/physique", "flask", "Outils de physique (unités, tableau périodique, constantes, courbes)"], ["#/simulations", "eye", "Simulations (PhET, GeoGebra…)"], ["#/revisions", "quiz", "Fiches de révision et flashcards"], ["#/admin/profil", "gear", "Paramètres"]];
+  if (S.prof) pages.push(["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/preparateur", "flask", "Demande de matériel au préparateur"], ["#/archives", "archive", "Cours archivés"]);
+  pages.forEach(([h, ic, n]) => L.push({ t: "Page", ic, n, h }));
+  L.push({ t: "Action", ic: "note", n: "Ouvrir le Coin Perso", act: "coinperso" });
+  if (S.prof) { L.push({ t: "Action", ic: "plus", n: "Créer un cours", act: "newclass" }); actives().forEach(c => { L.push({ t: "Action", ic: "devoir", n: "Nouveau devoir · " + c.nom, h: `#/editer/devoir/new/${c.id}` }); L.push({ t: "Action", ic: "support", n: "Nouvelle documentation · " + c.nom, h: `#/editer/documentation/new/${c.id}` }); }); }
+  else L.push({ t: "Action", ic: "plus", n: "Rejoindre un cours", act: "join" });
+  S.classes.forEach(c => L.push({ t: c.archive ? "Cours archivé" : "Cours", ic: "people", n: c.nom, s: c.section, h: `#/classe/${c.id}`, c: c.couleur }));
+  S.devoirs.filter(d => S.prof || (!d.brouillon && D(d.publie_le) <= t)).forEach(d => { const c = cls(d.classe_id); L.push({ t: d.brouillon ? "Brouillon" : d.type === "question" ? "Question" : "Devoir", ic: d.type === "question" ? "question" : "devoir", n: d.titre, s: c ? c.nom : "", h: `#/devoir/${d.id}`, c: c && c.couleur }); });
+  S.quiz.filter(q => S.prof || !q.brouillon).forEach(q => { const c = cls(q.classe_id); L.push({ t: "Questionnaire", ic: "quiz", n: q.titre, s: c ? c.nom : "", h: `#/quiz/${q.id}`, c: c && c.couleur }); });
+  Object.entries(S.cache).forEach(([cid, data]) => (data.supports || []).forEach(s => { const c = cls(cid); L.push({ t: "Documentation", ic: "support", n: s.titre, s: c ? c.nom : "", h: `#/classe/${cid}/travaux`, c: c && c.couleur }); }));
+  if (S.prof) (S.toutesInscriptions || []).forEach(e => { const c = cls(e.classe_id); if (c && !c.archive) L.push({ t: "Élève", ic: "people", n: e.nom || nomDepuisEmail(e.email), s: c.nom + " · " + e.email, eleve: e.email, cid: c.id, c: c.couleur }); });
+  liensVisibles().forEach(l => L.push({ t: "Application", ic: "links", n: l.nom, url: l.url, cle: l.icone, logo: LOGOS_RAPIDES[l.icone] }));
+  return L;
+}
+const RCH = { L: [], i: 0, res: [] };
+function ouvrirRecherche(){
+  if (document.getElementById("rechBox")) return;
+  RCH.L = indexRecherche(); RCH.i = 0;
+  const box = document.createElement("div"); box.id = "rechBox";
+  box.innerHTML = `<div class="rechvoile"></div><div class="rech" role="dialog" aria-modal="true" aria-label="Recherche">
+    <div class="rechin">${icon("search")}<input type="search" placeholder="Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}, une page, une application…" aria-label="Rechercher" autocomplete="off" spellcheck="false"><kbd>Échap</kbd></div>
+    <div class="rechres" role="listbox"></div>
+    <div class="rechpied"><span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span><span><kbd>Entrée</kbd> ouvrir</span><span><kbd>Ctrl</kbd><kbd>K</kbd> partout sur le site</span></div></div>`;
+  document.body.appendChild(box);
+  const inp = box.querySelector("input"), zone = box.querySelector(".rechres");
+  const dessiner = () => {
+    const q = sansAccent(inp.value.trim()), mots = q.split(/\s+/).filter(Boolean);
+    let res = mots.length ? RCH.L.map(x => { const h = sansAccent(x.n + " " + (x.s || "") + " " + x.t); if (!mots.every(m => h.includes(m))) return null; const n = sansAccent(x.n); return { x, sc: (n.startsWith(mots[0]) ? 0 : 10) + (x.t === "Page" || x.t === "Cours" ? 0 : 3) + n.length / 100 }; }).filter(Boolean).sort((a, b) => a.sc - b.sc).map(o => o.x)
+      : RCH.L.filter(x => x.t === "Cours" || x.t === "Page").slice(0, 14);
+    RCH.res = res.slice(0, 40); RCH.i = Math.min(RCH.i, Math.max(0, RCH.res.length - 1));
+    zone.innerHTML = RCH.res.length ? RCH.res.map((x, i) => `<button class="rechit${i === RCH.i ? " sel" : ""}" data-i="${i}" role="option" aria-selected="${i === RCH.i}" ${x.c ? `style="--c:var(${C(x.c).c})"` : ""}>
+        <span class="rechic">${x.logo ? `<img src="${esc(x.logo)}" alt="">` : icon(x.ic)}</span><span class="rechtx"><b>${esc(x.n)}</b>${x.s ? `<small>${esc(x.s)}</small>` : ""}</span><span class="rechtype">${esc(x.t)}</span></button>`).join("")
+      : `<p class="rechvide">Aucun résultat pour « ${esc(inp.value)} ».</p>`;
+    const s = zone.querySelector(".sel"); if (s) s.scrollIntoView({ block: "nearest" });
+  };
+  const choisir = i => { const x = RCH.res[i]; if (!x) return; fermerRecherche();
+    if (x.url) { const a = document.querySelector(`.quick a[data-cle="${x.cle}"]`); if (a) a.click(); else window.open(x.url, "_blank", "noopener"); return; }
+    if (x.eleve) { S.suiviC = x.cid; go("/suivi"); setTimeout(() => { S.open = "sv" + x.eleve; render(); }, 60); return; }
+    if (x.act) { const b = document.createElement("a"); b.dataset.act = x.act; b.href = "#"; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); return; }
+    if (x.h) location.hash = x.h.replace(/^#/, ""); };
+  inp.addEventListener("input", () => { RCH.i = 0; dessiner(); });
+  inp.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { e.preventDefault(); RCH.i = Math.min(RCH.i + 1, RCH.res.length - 1); dessiner(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); RCH.i = Math.max(RCH.i - 1, 0); dessiner(); }
+    else if (e.key === "Enter") { e.preventDefault(); choisir(RCH.i); }
+    else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); fermerRecherche(); } });
+  zone.addEventListener("click", e => { const b = e.target.closest(".rechit"); if (b) choisir(Number(b.dataset.i)); });
+  box.querySelector(".rechvoile").addEventListener("click", fermerRecherche);
+  dessiner(); setTimeout(() => inp.focus(), 20);
+}
+function fermerRecherche(){ const b = document.getElementById("rechBox"); if (b) b.remove(); }
+document.addEventListener("keydown", e => {
+  if (!S.user) return;
+  if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) { e.preventDefault(); document.getElementById("rechBox") ? fermerRecherche() : ouvrirRecherche(); return; }
+  if (e.key === "/" && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "") && !(document.activeElement && document.activeElement.isContentEditable)) { e.preventDefault(); ouvrirRecherche(); }
+});
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="recherche"]'); if (a) { e.preventDefault(); e.stopPropagation(); fermerMenus(); ouvrirRecherche(); } }, true);
+
+/* vues supplémentaires (routes #/semaine, #/physique, #/simulations, #/revisions) : complétées plus bas */
+const VUES_PRO = {};
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -3698,7 +3850,7 @@ async function render(){
       content = vAccueil();
     } else {
       if (!S.prof && r.v === "accueil" && !actives().length && !S.joinAuto && !S.modal) { S.joinAuto = true; S.modal = {kind:"join"}; }
-      content = ({agenda:vAgenda, todo:vTodo, outils:vOutils, archives:vArchives})[r.v]?.(r) ?? vAccueil();
+      content = ({agenda:vAgenda, todo:vTodo, outils:vOutils, archives:vArchives, ...VUES_PRO})[r.v]?.(r) ?? vAccueil();
     }
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + (S.modal ? vModal() : "");
@@ -3717,13 +3869,13 @@ function apresRendu(foc){
   if (S.modal && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox]), .modal textarea"); if (f) f.focus(); return; }
   if (foc && document.getElementById(foc) && !["edHtml", "anHtml"].includes(foc)) { const el = document.getElementById(foc); el.focus(); if (el.setSelectionRange && el.type === "text") { const n = el.value.length; el.setSelectionRange(n, n); } }
 }
-const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; S.bell = false; };
+const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; S.bell = false; S.apps = false; };
 
 /* ---------- clics ---------- */
 document.addEventListener("click", async e => {
   const a = e.target.closest("[data-act]");
   if (!a) {
-    if ((S.dd || S.me || S.menu || S.bell) && !e.target.closest(".dd")) { fermerMenus(); render(); }
+    if ((S.dd || S.me || S.menu || S.bell || S.apps) && !e.target.closest(".dd")) { fermerMenus(); render(); }
     return;
   }
   const act = a.dataset.act, r = route();
@@ -3739,6 +3891,8 @@ document.addEventListener("click", async e => {
       const data = { ...reglagesData(), prof: { nom: n, titre: R().prof.titre } };
       const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() }); if (error) { toast("Enregistrement impossible : " + error.message); return; }
       appliquerReglages(data); S.nom = n; S.adm = null; toast("Nom modifié"); render(); return; }
+    case "apps": { e.preventDefault(); const o = !S.apps; fermerMenus(); S.apps = o; render(); return; }
+    case "favori": { e.preventDefault(); e.stopPropagation(); basculerFavori(a.dataset.nom); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
     case "logout": e.preventDefault(); await sb.auth.signOut(); location.replace(ICI); return;
