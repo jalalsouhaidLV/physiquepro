@@ -154,6 +154,7 @@ async function chargerTout(){
   appliquerReglages(reg && !reg.error && reg.data ? reg.data.data : null);
   for (const r of res) if (r.error) throw r.error;
   [S.classes, S.devoirs, S.rendus, S.corrections, S.quiz, S.resultats] = res.slice(0, 6).map(r => r.data);
+  try { const cp = await sb.from("copies").select("*"); S.copies = cp.error ? [] : cp.data; } catch (_) { S.copies = []; }
   if (S.prof) {
     S.nbEleves = {}; S.toutesInscriptions = res[6].data;
     res[6].data.forEach(x => S.nbEleves[x.classe_id] = (S.nbEleves[x.classe_id] || 0) + 1);
@@ -389,12 +390,12 @@ function carteRes(r, ctx = {}){
   const nom = r.label || r.path || r.url || "", fam = familleRes(r.od || r.path ? nom : (r.label && /\.\w{2,5}$/.test(r.label) ? r.label : ""));
   const sous = fam ? TYPE_RES[fam][0] : r.url ? String(r.url).replace(/^https?:\/\//, "") : "Fichier";
   const tip = appOffice(nom) ? `title="Ouvrir dans ${appOffice(nom)} en ligne"` : `title="${esc(nom)}"`;
-  const copie = !S.prof && appOffice(nom) && (r.path || r.od || /sharepoint\.com|1drv\.ms|onedrive/i.test(r.url || ""));
+  const office = !S.prof && appOffice(nom) && r.od, copie = office ? copieDe(r, ctx) : null;
   let lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
   let tip2 = tip;
-  if (copie) { lien = `href="#" data-act="copieoffice" data-r="${esc(JSON.stringify({ url: r.url || "", path: r.path || "", bucket: r.bucket || "", label: nom }))}" data-ctx="${esc(JSON.stringify(ctx))}"`; tip2 = `title="Ouvrir ma copie modifiable dans ${appOffice(nom)} en ligne"`; }
+  if (copie) { lien = `href="${esc(copie.web)}" target="_blank" rel="noopener"`; tip2 = `title="Ouvrir ma copie modifiable dans ${appOffice(nom)} en ligne"`; }
   const dl = r.path ? btnDl(r.bucket || "documents", r.path, r.label) : r.url && /sharepoint\.com/i.test(r.url) && fam ? `<a class="dlbtn" href="${esc(r.url + (r.url.includes("?") ? "&" : "?") + "download=1")}" target="_blank" rel="noopener" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom)}">${icon("down")}</a>` : "";
-  return `<div class="rcard"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${copie ? " · modifiable en ligne" : ""}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
+  return `<div class="rcard"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${copie ? " · ma copie modifiable" : office ? " · lecture seule" : ""}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
 }
 const carteYoutube = r => carteRes(r);
 function ressources(list, ctx = {}){
@@ -488,7 +489,7 @@ function workItem(it){
   const cible = obj.eleves ? `<span class="pill">${obj.eleves.length} élève${obj.eleves.length > 1 ? "s" : ""}</span>` : "";
   if (it.k === "support") {
     right = `<span class="dt">Publié le ${fmtShort(it.date)}</span>`;
-    detail = `${texteUtile(obj.description) ? `<div class="richtext wkdesc">${rich(obj.description)}</div>` : ""}${ressources(obj.ressources, { classe: obj.classe_id }) || (texteUtile(obj.description) ? "" : `<span class="muted">Aucun fichier joint.</span>`)}`;
+    detail = `${texteUtile(obj.description) ? `<div class="richtext wkdesc">${rich(obj.description)}</div>` : ""}${ressources(obj.ressources, { classe: obj.classe_id, support: obj.id }) || (texteUtile(obj.description) ? "" : `<span class="muted">Aucun fichier joint.</span>`)}`;
   } else if (it.k === "devoir") {
     const d = obj;
     right = S.prof ? `<span class="dt">${d.date_limite ? dueOf(d).replace("Échéance : ", "") : "Publié le " + fmtShort(it.date)}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : etat(d, moi()).t === "Noté" ? fmtNote(etat(d, moi()).note) + "/" + d.points : d.date_limite ? dueOf(d).replace("Échéance : ", "") : ""}</span>`;
@@ -664,7 +665,7 @@ function vDevoir(r){
   } else {
     const cam = (S.cache[c.id] ? S.cache[c.id].eleves : []).filter(x => x.email !== moi());
     work = `${d.mode === "binome" ? `<div class="field"><label for="partenaire">Mon binôme</label><select id="partenaire"><option value="">Choisir…</option>${cam.map(x => `<option value="${esc(x.email)}" ${S.partenaire === x.email ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>` : ""}
-      ${copiesDe(d.id).filter(x => !S.files.some(f => f.name === x.nom)).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie de <b>${esc(x.nom)}</b></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="linkbtn">Ouvrir</a><button class="btn ghost sm" data-act="joindrecopie" data-id="${esc(x.id)}" data-nom="${esc(x.nom)}">Joindre</button></div>`).join("")}
+      ${copiesEleve("devoir", d.id, moi()).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie modifiable : <b>${esc(x.nom)}</b><small class="muted" style="display:block">Tes modifications sont enregistrées automatiquement et ton professeur les voit.</small></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a></div>`).join("")}
       ${S.files.length ? `<ul class="files">${S.files.map((f, i) => `<li><span>${esc(f.name)}</span><span><span class="mono muted">${tailleTxt(f.size)}</span> <button data-act="rmfile" data-i="${i}" aria-label="Retirer ${esc(f.name)}">✕</button></span></li>`).join("")}</ul>` : ""}
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
@@ -777,6 +778,7 @@ function vDevoirProf(d, c){
         ${(rd.fichiers || []).length ? `<div><button class="btn ghost sm" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="0">${icon("expand")} Ouvrir dans la visionneuse</button></div>` : ""}
         ${blocNotation(d, rd, cr)}`
       : `<p class="muted" style="margin:0">${ouvert(d) ? "Cet élève n'a pas encore rendu son travail." : "Cet élève n'a rien rendu avant la date limite."}</p>`}
+      ${copiesEleve("devoir", d.id, sel).length ? `<div class="copierow" style="flex-direction:column;align-items:stretch">${copiesEleve("devoir", d.id, sel).map(x => `<div style="display:flex;gap:8px;align-items:center">${icon("edit")}<span style="flex:1">Copie de l'élève : <b>${esc(x.nom)}</b></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a></div>`).join("")}</div>` : ""}
       ${vCP(d.id, sel)}`;
   }
   return tabs + `<div class="page wide" style="--c:var(${k.c})">
@@ -1040,6 +1042,7 @@ async function enregistrer(mode, programme){
   if (aussi.length) { const n = await publierAussi(kk, aussi, row, bonnesQ); await rafraichir(); toast("Aussi publié dans " + n + " autre" + (n > 1 ? "s" : "") + " cours"); }
   else toast(mode === "draft" ? "Brouillon enregistré" : mode === "schedule" ? "Publication programmée" : !nouveau ? "Modifications enregistrées" : ({devoir:"Devoir publié", questionnaire:"Questionnaire publié", documentation:"Documentation publiée", question:"Question publiée"})[typ]);
   go("/classe/" + classe + "/travaux");
+  if (mode !== "draft") setTimeout(() => genererCopies(true), 1500);
 }
 
 /* ---------- annonces du flux ---------- */
@@ -2340,6 +2343,49 @@ async function joindreCopie(id, nom){
     S.files.push(new File([blob], nom, { type: blob.type || "application/octet-stream" })); render(); toast("« " + nom + " » ajouté à ton travail");
   } catch (e) { toast("Impossible de joindre la copie : " + (e.message || e)); }
 }
+
+/* ---------- copies modifiables créées par le professeur pour chaque élève (comme Classroom) ---------- */
+const copiesEleve = (objet, id, email) => (S.copies || []).filter(x => x.objet === objet && String(x.objet_id) === String(id) && x.eleve_email === email);
+function copieDe(r, ctx){
+  if (!r.od || !r.od.id) return null;
+  return (S.copies || []).find(x => x.source === r.od.id && x.eleve_email === moi() && (ctx.devoir ? x.objet === "devoir" && String(x.objet_id) === String(ctx.devoir) : ctx.support ? x.objet === "support" && String(x.objet_id) === String(ctx.support) : true)) || null;
+}
+let copiesEnCours = false;
+async function genererCopies(silencieux){
+  if (!S.prof || !odActif() || copiesEnCours) return;
+  copiesEnCours = true;
+  try {
+    const visible = o => !o.brouillon && D(o.publie_le) <= now();
+    const office = o => (o.ressources || []).filter(r => r.od && r.od.id && appOffice(r.label || ""));
+    const lots = [];
+    for (const d of S.devoirs) if (visible(d) && d.type !== "question" && office(d).length) lots.push({ objet: "devoir", o: d });
+    for (const c of actives()) { const data = await chargerClasse(c.id); (data.supports || []).forEach(sp => { if (visible(sp) && office(sp).length) lots.push({ objet: "support", o: sp }); }); }
+    const faits = new Set((S.copies || []).map(x => x.objet + ":" + x.objet_id + ":" + x.source + ":" + x.eleve_email));
+    const taches = [];
+    for (const l of lots) {
+      const el = elevesDuDevoir(l.o, inscritsDe(l.o.classe_id));
+      for (const r of office(l.o)) for (const e of el) if (!faits.has(l.objet + ":" + l.o.id + ":" + r.od.id + ":" + e.email)) taches.push({ ...l, r, e });
+    }
+    if (!taches.length) return;
+    await jetonGraph(!silencieux);
+    const cache = {};
+    let n = 0;
+    for (const t of taches) {
+      try {
+        if (!cache[t.r.od.id]) { const it = await graph("/me/drive/items/" + encodeURIComponent(t.r.od.id), {}, false); cache[t.r.od.id] = await (await fetch(it["@microsoft.graph.downloadUrl"])).blob(); }
+        const nom = nomOD(t.r.label || "document"), nomE = nomOD(t.e.nom || t.e.email.split("@")[0]);
+        const item = await odPut(cheminOD([OD_RACINE, ...dossierTravail(t.o.classe_id, t.o.theme_id, t.o.titre), "Copies élèves", nomE + " - " + nom]), cache[t.r.od.id]);
+        await graph("/me/drive/items/" + item.id + "/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipients: [{ email: t.e.email }], roles: ["write"], requireSignIn: true, sendInvitation: false }) }, false);
+        const row = { classe_id: t.o.classe_id, objet: t.objet, objet_id: t.o.id, source: t.r.od.id, eleve_email: t.e.email, nom, od_id: item.id, web: item.webUrl };
+        const { data, error } = await sb.from("copies").insert(row).select().single(); if (error) throw error;
+        S.copies.push(data); n++;
+        if (n === 1 || n % 5 === 0) toast("Copies modifiables pour les élèves : " + n + " / " + taches.length);
+      } catch (e) { console.warn("copie élève", e); if (/42P01|copies/.test(e.message || "")) break; }
+    }
+    if (n) toast(n + " copie" + (n > 1 ? "s modifiables créées" : " modifiable créée") + " pour les élèves");
+  } catch (e) { if (!silencieux) toast("Copies élèves : " + (e.message || e)); }
+  finally { copiesEnCours = false; }
+}
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
 const META_CR = /^(Aucune date limite|Date limite.*|À rendre.*|Échéance.*|\d+|Remis|Rendus?|Attribués?|Notés?|Afficher les instructions|Afficher le support|Afficher le devoir|Afficher la question|Modifier le support|Modifier le devoir|Modifier la question|PDF|Microsoft Word|Microsoft Excel|Microsoft PowerPoint|Google (Docs|Sheets|Slides|Forms|Drive|Dessins)|Formulaires Google|Image|Vidéo|YouTube|Vidéo YouTube.*|Lien|Dossier|\d+ minutes?|\d+:\d+)$/i;
@@ -2929,6 +2975,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   try { S.recent = localStorage.getItem("pp_recent") === "1"; } catch (_) {}
   render();
   chargerNotifs().catch(() => {});
+  if (S.prof) setTimeout(() => genererCopies(true), 4000);
   setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });
 })();
