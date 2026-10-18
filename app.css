@@ -931,3 +931,4 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .menubtn{position:relative}
 .menubtn .urgdot{display:none;position:absolute;top:4px;right:2px;min-width:17px;height:17px;border-radius:9px;background:var(--bad);color:#fff;font-size:.64rem;font-weight:700;place-items:center;padding:0 4px;pointer-events:none}
 @media (max-width:600px){.topbar .urgbtn{display:none}.menubtn .urgdot{display:grid}}
+.ccard .banner h2{max-width:100%;font-size:1.25rem;position:relative;z-index:1}
