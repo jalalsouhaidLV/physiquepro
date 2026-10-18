@@ -1073,3 +1073,13 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 @media (max-width:1100px){#coinPerso{left:16px}}
 @media (max-width:600px){#coinPerso{left:8px;right:8px;width:auto;top:70px;height:min(70vh,520px)}}
 @media (max-width:600px){.quick a.qordi{display:none}}
+/* compteur « À corriger » dans l'onglet du cours */
+.tabs .tcount{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:10px;background:#d93025;color:#fff;font-size:.72rem;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}
+/* barre du haut sur une page de cours : le nom du cours se raccourcit, les raccourcis gardent leur place */
+.topbar .crumbs{flex:0 1 auto}
+.topbar .crumbs .cur{min-width:0;max-width:clamp(110px,calc(100vw - 1190px),360px)}
+.topbar .crumbs .cur{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.quick a{flex-shrink:0}
+.quick .ql{white-space:nowrap}
+@media (max-width:1600px){.topbar:has(.crumbs .cur) .toplogo{display:none}}
+.crumbs .curnom{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}

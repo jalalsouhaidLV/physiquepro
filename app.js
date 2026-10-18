@@ -237,7 +237,7 @@ function quickIcon(k){
 function topbar(r){
   let crumb = "";
   const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : r.v === "quiz" ? cls((S.quiz.find(q => String(q.id) === r.a) || {}).classe_id) : null;
-  if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none">${esc(c.nom)}<small>${esc(c.section)}</small></a>`;
+  if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none" title="${esc(c.nom)}"><span class="curnom">${esc(c.nom)}</span><small>${esc(c.section)}</small></a>`;
   return `<header class="topbar">
     <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
@@ -258,7 +258,7 @@ function drawer(r){
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
     <a class="it coinit" href="#" data-act="coinperso" ${document.getElementById("coinPerso") ? 'aria-current="page"' : ""}>${icon("note")}<span class="lbl">Coin Perso</span></a>
     <hr>
-    <a class="it" href="#/todo" ${cur("todo")}>${icon(S.prof ? "check" : "todo")}<span class="lbl">${S.prof ? "À corriger" : "À faire"}</span></a>
+    ${S.prof ? "" : `<a class="it" href="#/todo" ${cur("todo")}>${icon("todo")}<span class="lbl">À faire</span></a>`}
     ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl lbl2">Demande de matériel au Préparateur de Labo</span></a>` : ""}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt().replace(/[A-ZÀ-Ý]{2,}/g, m => m.charAt(0) + m.slice(1).toLowerCase())}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
@@ -355,6 +355,7 @@ function teamsVisible(c){ return c.teams_url && (S.prof || c.teams_visible); }
 function classTabs(c, tab){
   const T = []; if (fluxVisible(c)) T.push(["flux", "Flux"]);
   T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "Mes notes"]);
+  if (S.prof) { const n = S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon).reduce((a, d) => a + aCorriger(d), 0); T.push(["corriger", `À corriger${n ? ` <span class="tcount">${n}</span>` : ""}`]); }
   return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}${ongletUrgent(c)}</div>
     <div class="tabicons">
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
@@ -425,7 +426,7 @@ function asideClasse(c){
     ${(c.liens && c.liens.length) || S.prof ? `<div class="box"><div class="boxhead"><h3>${S.prof ? "Liens de la classe" : "Liens utiles pour toi"}</h3>${S.prof ? `<button class="ib sm" data-act="editliens" data-c="${esc(c.id)}" aria-label="Modifier les liens" title="Modifier les liens">${icon("edit")}</button>` : ""}</div>
       <div class="classlinks">${(c.liens || []).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${icon("links")}<span>${esc(l.nom)}</span></a>`).join("")}</div>
       ${S.prof && !(c.liens || []).length ? `<span class="muted" style="font-size:.82rem">Ajoute des liens utiles : manuel, simulateur, Capytale…</span>` : ""}</div>` : ""}
-    <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueOf(d).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" class="uplink">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à remettre dans les jours qui viennent</span>`}<a class="linkbtn" href="#/todo">Tout afficher</a></div>
+    <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueOf(d).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" class="uplink">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à remettre dans les jours qui viennent</span>`}<a class="linkbtn" href="${S.prof ? `#/classe/${esc(c.id)}/corriger` : "#/todo"}">Tout afficher</a></div>
     ${!S.prof && c.moyenne_visible ? `<div class="box"><h3>Ma moyenne</h3><span class="grade">${moyenneEleve(c) == null ? "–" : fmtNote(moyenneEleve(c))}<small>/20</small></span><span class="muted" style="font-size:.78rem">Calculée sur les notes rendues par ton professeur.</span></div>` : ""}
     ${teamsVisible(c) ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="btn ghost" href="${esc(c.teams_url)}" target="_blank" rel="noopener" style="text-decoration:none">Rejoindre</a>${S.prof ? `<span class="muted" style="font-size:.78rem">${icon("eye")} ${c.teams_visible ? "Visible par les élèves" : "Masqué aux élèves"}</span>` : ""}</div>`
       : S.prof ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="linkbtn" href="#/classe/${esc(c.id)}/parametres">Ajouter le lien de la visio</a></div>` : ""}
@@ -642,9 +643,9 @@ function vMesNotes(c){
 }
 function vClasse(r, data){
   const c = cls(r.a); if (!c) return `<div class="page"><div class="emptystate"><b>Cours introuvable.</b><a href="#/">Retour à l'accueil</a></div></div>`;
-  let tab = ["flux", "travaux", "personnes", "notes"].includes(r.t) ? r.t : (fluxVisible(c) ? "flux" : "travaux");
+  let tab = ["flux", "travaux", "personnes", "notes"].concat(S.prof ? ["corriger"] : []).includes(r.t) ? r.t : (fluxVisible(c) ? "flux" : "travaux");
   if (tab === "flux" && !fluxVisible(c)) tab = "travaux";
-  const inner = tab === "flux" ? vFlux(c, data) : tab === "personnes" ? vPersonnes(c, data) : tab === "notes" ? (S.prof ? vNotes(c, data) : vMesNotes(c)) : vTravaux(c, data);
+  const inner = tab === "flux" ? vFlux(c, data) : tab === "personnes" ? vPersonnes(c, data) : tab === "notes" ? (S.prof ? vNotes(c, data) : vMesNotes(c)) : tab === "corriger" ? vCorrigerClasse(c) : vTravaux(c, data);
   return classTabs(c, tab) + inner;
 }
 /* ---------- commentaires privés ---------- */
@@ -824,6 +825,15 @@ function cleNom(n){
   const w = String(n || "").trim().split(/\s+/).filter(Boolean), up = w.filter(x => x.length > 1 && x === x.toUpperCase() && /\p{L}/u.test(x));
   if (up.length && up.length < w.length) return { nom: up.join(" ").toLowerCase(), prenom: w.filter(x => !up.includes(x)).join(" ").toLowerCase() };
   return { prenom: (w[0] || "").toLowerCase(), nom: w.slice(1).join(" ").toLowerCase() };
+}
+/* ---------- à corriger d'un seul cours (onglet du cours, vue prof) ---------- */
+function vCorrigerClasse(c){
+  const ds = S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon).slice().reverse();
+  const tri = ds.filter(d => aCorriger(d) > 0).concat(ds.filter(d => !(aCorriger(d) > 0)));
+  const total = ds.reduce((a, d) => a + aCorriger(d), 0);
+  return `<div class="page" style="max-width:860px;--c:var(${C(c.couleur).c})">${ds.length ? `<section class="group"><header><span style="color:var(--c)">${total ? `${total} copie${total > 1 ? "s" : ""} à corriger` : "Tout est corrigé ✓"}</span><span class="muted mono">${ds.length} devoir${ds.length > 1 ? "s" : ""}</span></header>
+      ${tri.map(d => `<div class="work"><a class="workrow" href="#/devoir/${d.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon("devoir", "")}</span><span class="tt">${esc(d.titre)}<br><small class="muted" style="font-weight:400">${dueOf(d)}</small></span>${statsDevoir(d, false)}</a></div>`).join("")}</section>`
+    : `<div class="emptystate"><b>Aucun devoir dans ce cours pour l'instant.</b></div>`}${pageFoot()}</div>`;
 }
 /* ---------- à faire / à corriger ---------- */
 function vTodo(){
