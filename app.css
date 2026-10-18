@@ -1061,7 +1061,7 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 #coinPerso .cphead b{font-size:1rem}
 #coinPerso .cpetat{margin-left:auto;font-size:.75rem;opacity:.75}
 #coinPerso .ib{color:#3b3200}
-#coinPerso .cptxt{flex:1;border:0;outline:0;resize:none;background:transparent;color:inherit;padding:12px 16px;font:500 1rem/1.55 "Segoe Print","Bradley Hand","Comic Sans MS",var(--sans,system-ui),sans-serif;
+#coinPerso .cptxt{flex:1;border:0;outline:0;resize:none;background:transparent;color:inherit;padding:12px 16px;font:400 15px/1.55 var(--body);
   background-image:linear-gradient(transparent calc(1.55em - 1px),rgba(120,100,0,.18) 1px);background-size:100% 1.55em;background-attachment:local}
 #coinPerso .cptxt::placeholder{color:#8a7a1a}
 #coinPerso .cpliens{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 12px;border-top:1px dashed #d8c235;max-height:30%;overflow:auto}
@@ -1083,3 +1083,15 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .quick .ql{white-space:nowrap}
 @media (max-width:1600px){.topbar:has(.crumbs .cur) .toplogo{display:none}}
 .crumbs .curnom{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+
+/* élève : « Message urgent » dans le menu */
+.drawer .it.urgeleve,.drawer .it.urgeleve .i{color:#c5221f}
+.drawer .it.urgeleve .lbl{font-weight:600}
+/* raccourcis du haut : toutes les icônes ont le même cadre, entouré de vert comme Pronote */
+.quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){box-sizing:border-box;width:64px;min-width:64px;height:34px;padding:3px 5px;border-radius:9px;background:#fff;color:var(--q);box-shadow:0 0 0 2px #1E8C45}
+.quick .qlogo,.quick a.main .qlogo{height:26px;width:52px;max-width:none;object-fit:contain}
+.quick a.main .ql{font-weight:600}
+@media (max-width:760px){.quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){width:44px;min-width:44px;height:30px;padding:3px}.quick .qlogo,.quick a.main .qlogo{height:22px;width:36px}}
+@media (max-width:400px){.quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){width:38px;min-width:38px;height:28px;padding:2px}.quick .qlogo,.quick a.main .qlogo{height:20px;width:32px}}
+.urgchoix{display:grid;gap:8px;margin:4px 0}
+.urgchoix .btn{justify-content:flex-start;text-align:left;border-left:4px solid var(--c);white-space:normal;height:auto;min-height:40px;padding:8px 14px}

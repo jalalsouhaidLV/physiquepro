@@ -260,6 +260,7 @@ function drawer(r){
     <hr>
     ${S.prof ? "" : `<a class="it" href="#/todo" ${cur("todo")}>${icon("todo")}<span class="lbl">À faire</span></a>`}
     ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl lbl2">Demande de matériel au Préparateur de Labo</span></a>` : ""}
+    ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span></a>` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt().replace(/[A-ZÀ-Ý]{2,}/g, m => m.charAt(0) + m.slice(1).toLowerCase())}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
     ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
@@ -1322,6 +1323,7 @@ function vModal(){
   else if (m.kind === "demande") { body = modalDemande(m) + `<label class="check"><input type="checkbox" id="dmEnvoi" ${m.x.statut && m.x.statut !== "brouillon" ? "" : "checked"}> Ouvrir Outlook pour l'envoyer au préparateur</label>`; ok = "Enregistrer"; }
   else if (m.kind === "prep") { body = `<h2>${icon("flask")} Adresse du préparateur</h2><p class="muted" style="margin:0">Les demandes de matériel lui seront adressées par Outlook.</p><div class="field"><label for="dmPrep">Adresse e-mail</label><input id="dmPrep" type="email" value="${esc(emailPrep())}" placeholder="prenom.nom@${esc(CFG.domaine)}"></div>`; }
   else if (m.kind === "rdv") { body = modalRdv(); ok = "Créer les créneaux"; }
+  else if (m.kind === "urgchoix") { body = `<h2>${icon("urgent")} Message urgent à ${esc(nomProfCourt())}</h2><p class="muted" style="margin:0">Pour quel cours ?</p><div class="urgchoix">${actives().map(c => `<button class="btn tonal" data-act="urgent" data-c="${esc(c.id)}" style="--c:var(${C(c.couleur).c})">${esc(c.nom)}${supUrg(reponsesNonVues(c.id))}</button>`).join("")}</div><div style="display:flex;justify-content:flex-end"><button class="btn ghost" data-act="mclose">Annuler</button></div>`; foot = false; }
   else if (m.kind === "urgent") { body = modalUrgent(m); ok = "Envoyer"; }
   else if (m.kind === "urgprof") { body = modalUrgProf(m); ok = "Envoyer"; }
   else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = m.ok || "Supprimer"; }
@@ -3713,7 +3715,8 @@ document.addEventListener("click", async e => {
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
     case "coinperso": e.preventDefault(); if (window.innerWidth < 1100) { S.drawer = false; render(); } await ouvrirCoinPerso(); return;
-    case "urgent": e.preventDefault(); fermerMenus(); S.modal = {kind:"urgent", classe:a.dataset.c}; marquerReponsesVues(); marquerMessagesProfLus(a.dataset.c); render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
+    case "urgchoix": e.preventDefault(); fermerMenus(); if (window.innerWidth < 1100) S.drawer = false; S.modal = {kind:"urgchoix"}; render(); return;
+    case "urgent": e.preventDefault(); fermerMenus(); if (window.innerWidth < 1100) S.drawer = false; S.modal = {kind:"urgent", classe:a.dataset.c}; marquerReponsesVues(); marquerMessagesProfLus(a.dataset.c); render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
     case "dmnew": case "dmprep": case "dmedit": case "dmsend": case "dmprint": case "dmstat": case "dmsuppr": e.preventDefault(); fermerMenus(); await actionDemande(act, a); return;
     case "rdvnew": case "rdvresa": case "rdvannule": case "rdvretire": case "rdvsuppr": e.preventDefault(); a.disabled = true; await actionRdv(act, a); return;
     case "alertesouv": S.alertesOuv = !S.alertesOuv; render(); return;
