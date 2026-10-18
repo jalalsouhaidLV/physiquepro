@@ -111,7 +111,7 @@ const ICI = location.origin + location.pathname;
 
 /* ---------- réglages du site (modifiables dans Administration) ---------- */
 const COULEURS = [["pc","Bleu"],["snt","Vert"],["si","Rouge"],["tech","Ocre"],["pix","Bleu pétrole"]];
-const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["logo-numworks","Logo NumWorks (calculatrice)"],["logo-copilot","Logo Copilot M365"],["logo-gemini","Logo Gemini"],["logo-notebook","Logo Gemini Notebook"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
+const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["logo-numworks","Logo NumWorks (calculatrice)"],["logo-copilot","Logo Copilot M365"],["logo-gemini","Logo Gemini"],["logo-notebook","Logo Gemini Notebook"],["logo-youtube","Logo YouTube"],["logo-atena","Logo Atena"],["logo-orion","Logo Orion"],["logo-magistere","Logo Magistère"],["logo-calendrier","Logo Excel (calendrier)"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
 const clone = o => JSON.parse(JSON.stringify(o));
 function appliquerReglages(d){
   d = d || {};
@@ -228,7 +228,7 @@ function vLogin(message, info){
 const messageErreur = desc => /Database error saving new user|non autoris/i.test(desc) ? "Cette adresse n'est pas autorisée : seules les adresses @" + esc(CFG.domaine) + " peuvent se connecter." : "La connexion a échoué : " + esc(desc);
 
 /* ---------- barre du haut ---------- */
-const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png", "logo-numworks": "logo-numworks.png", "logo-copilot": "logo-copilot.png", "logo-gemini": "logo-gemini.svg", "logo-notebook": "logo-notebook.svg" };
+const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png", "logo-numworks": "logo-numworks.png", "logo-copilot": "logo-copilot.png", "logo-gemini": "logo-gemini.svg", "logo-notebook": "logo-notebook.svg", "logo-youtube": "logo-youtube.png", "logo-atena": "logo-atena.png", "logo-orion": "logo-orion.png", "logo-magistere": "logo-magistere.png", "logo-calendrier": "logo-excel.png" };
 function quickIcon(k){
   if (LOGOS_RAPIDES[k]) return `<img class="qlogo" src="${LOGOS_RAPIDES[k]}" alt="">`;
   if (k === "pronote") return `<b class="qp">P</b>`;
@@ -3572,6 +3572,11 @@ const COTE_A_COTE = {
   "logo-gemini":   { titre: "Gemini", mode: "fenetre" },
   "logo-notebook": { titre: "Gemini Notebook", mode: "fenetre" },
   "logo-claude":   { titre: "Claude", mode: "fenetre" },
+  "logo-youtube":  { titre: "YouTube", mode: "fenetre" },
+  "logo-atena":    { titre: "Atena · AEFE", mode: "fenetre" },
+  "logo-orion":    { titre: "Orion · AEFE", mode: "fenetre" },
+  "logo-magistere":{ titre: "M@gistère", mode: "cadre" },
+  "logo-calendrier":{ titre: "Calendrier dynamique 2026-2027", mode: "cadre", remplacer: true },
   "logo-whatsapp": { titre: "WhatsApp Web", mode: "fenetre" }
 };
 const SP = { cle: null, url: "", fen: null, veille: null };
@@ -3606,9 +3611,11 @@ function ouvrirCote(cle, url, nom){
   const logo = LOGOS_RAPIDES[cle] || "";
   p.innerHTML = `<div class="sidegrip" title="Glisse pour changer la largeur" aria-hidden="true"></div>
     <div class="sidehead">${logo ? `<img src="${esc(logo)}" alt="" width="22" height="22">` : ""}<b>${esc(o.titre || nom)}</b>
+      ${o.remplacer && S.prof ? `<label class="ib sm" title="Remplacer le fichier Excel" aria-label="Remplacer le fichier Excel" style="cursor:pointer">${icon("upload")}<input type="file" accept=".xlsx,.xls" data-calfile="1" hidden></label>` : ""}
       <button class="ib sm" data-sp="cote" title="Mettre de l'autre côté" aria-label="Mettre le panneau de l'autre côté">${icon("swap")}</button>
       <a class="ib sm" href="${esc(url)}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet">${icon("ext")}</a>
       <button class="ib sm" data-sp="fermer" title="Fermer" aria-label="Fermer ${esc(o.titre)}">${icon("x")}</button></div>
+    ${o.mode === "televerser" ? `<div class="sidefen"><img src="logo-excel.png" alt="" width="64" height="64"><b>Aucun calendrier pour l'instant</b><p>Choisis le fichier Excel du calendrier dynamique : il sera rangé dans ton espace privé (invisible des élèves) et s'affichera ici.</p><label class="btn">${icon("upload")} Choisir le fichier Excel<input type="file" accept=".xlsx,.xls" data-calfile="1" hidden></label></div>` : ""}
     ${o.mode === "cadre" ? `<div class="sidevue"${o.virtuel ? ` data-virtuel="${o.virtuel}"` : ""}><iframe src="${esc(url)}" title="${esc(o.titre)}" allow="clipboard-read; clipboard-write; fullscreen; microphone; camera" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
       : `<div class="sidefen"><img src="${esc(logo)}" alt="" width="56" height="56"><b>${esc(o.titre)} s'ouvre dans une fenêtre placée ici.</b>
           <p>${esc(o.titre)} n'accepte pas d'être affiché à l'intérieur d'un autre site : il s'ouvre donc dans sa propre fenêtre, posée sur ce panneau. Tu peux la déplacer et la redimensionner librement.</p>
@@ -3639,7 +3646,7 @@ function fermerCote(){
   document.querySelectorAll("a.qside").forEach(a => a.classList.remove("on"));
 }
 window.addEventListener("resize", () => { if (document.getElementById("sidePanel")) { if (window.innerWidth <= 760) fermerCote(); else spAppliquer(); } });
-document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a.qside"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a.qside"); if (!a || a.dataset.cle === "logo-calendrier" || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
   if (window.innerWidth <= 760) return; e.preventDefault(); e.stopPropagation(); ouvrirCote(a.dataset.cle, a.getAttribute("href"), a.textContent.trim()); }, true);
 
 /* Coin Perso ancré à droite, sur toute la hauteur : la page se resserre, rien n'est caché */
@@ -3666,7 +3673,7 @@ IC.apps = '<circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx
 IC.star = '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>';
 const FAVORIS_DEFAUT = ["Pronote Verdun", "Lycée Verdun", "WhatsApp Web", "E-mail Outlook", "OneDrive", "NumWorks"];
 const FAVORIS_MAX = 24;
-const cleFavoris = () => "pp_favoris2_" + (S.user && S.user.id);
+const cleFavoris = () => "pp_favoris3_" + (S.user && S.user.id);
 const liensVisibles = () => R().liensUtiles.filter(l => l.nom && (!l.prof || S.prof));
 function favorisNoms(){
   let f = null; try { f = JSON.parse(localStorage.getItem(cleFavoris()) || "null"); } catch (_) {}
@@ -4337,6 +4344,21 @@ document.addEventListener("pointerup", e => { if (!DM.el || e.pointerId !== DM.p
 document.addEventListener("click", e => { if (DM.bloque && e.target.closest && e.target.closest(".drawer")) { e.preventDefault(); e.stopPropagation(); } }, true);
 document.addEventListener("dragstart", e => { if (e.target.closest && e.target.closest(".drawer a.itcours")) e.preventDefault(); });
 
+
+
+/* ---------- Calendrier dynamique (Excel privé du prof, affiché à côté de la page) ---------- */
+const CAL_CHEMIN = "prof/calendrier-dynamique.xlsx";
+async function ouvrirCalendrier(forcer){
+  if (SP.cle === "logo-calendrier" && !forcer) { fermerCote(); return; }
+  const { data, error } = await sb.storage.from("documents").createSignedUrl(CAL_CHEMIN, 3600);
+  if (error || !data || !data.signedUrl) { COTE_A_COTE["logo-calendrier"].mode = "televerser"; SP.cle = null; ouvrirCote("logo-calendrier", "#", "Calendrier"); return; }
+  COTE_A_COTE["logo-calendrier"].mode = "cadre"; SP.cle = null;
+  ouvrirCote("logo-calendrier", "https://view.officeapps.live.com/op/embed.aspx?src=" + encodeURIComponent(data.signedUrl), "Calendrier");
+}
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('a.qside[data-cle="logo-calendrier"]'); if (!a || e.ctrlKey || e.metaKey) return; e.preventDefault(); e.stopImmediatePropagation(); if (S.apps) { S.apps = false; render(); } ouvrirCalendrier(); }, true);
+document.addEventListener("change", async e => { const i = e.target; if (!i.dataset || !i.dataset.calfile || !i.files[0]) return; const f = i.files[0];
+  toast("Envoi du calendrier…"); const { error } = await sb.storage.from("documents").upload(CAL_CHEMIN, f, { upsert: true, contentType: f.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  if (error) { toast("Envoi impossible : " + error.message); return; } toast("Calendrier enregistré"); ouvrirCalendrier(true); });
 /* ---------- Scientifique du jour : 90 hommes et 90 femmes, en alternance (programme de Physique-Chimie 2nde, 1re, Tle) ---------- */
 /* format : [nom, dates, titre Wikipédia (ou null : recherche par le nom), biographie, notions du programme] */
 const SCI_HOMMES = [

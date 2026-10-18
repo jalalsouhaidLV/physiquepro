@@ -27,6 +27,11 @@ window.PHYSIQUEPRO = {
     { nom: "Copilot", url: "https://m365.cloud.microsoft/fr-fr/", icone: "logo-copilot", couleur: "#7B61FF", ordi: true },
     { nom: "Gemini", url: "https://gemini.google.com/app", icone: "logo-gemini", couleur: "#4285F4", ordi: true },
     { nom: "Notebook", url: "https://notebook.google.com/trynow", icone: "logo-notebook", couleur: "#1A73E8", ordi: true },
+    { nom: "YouTube", url: "https://www.youtube.com/", icone: "logo-youtube", couleur: "#FF0000", ordi: true },
+    { nom: "Atena", url: "https://atena.aefe.fr/", icone: "logo-atena", couleur: "#2B3990", prof: true },
+    { nom: "Orion", url: "https://orion.aefe.fr/", icone: "logo-orion", couleur: "#3C4BA0", prof: true },
+    { nom: "Calendrier", url: "#calendrier", icone: "logo-calendrier", couleur: "#1D6F42", prof: true, ordi: true },
+    { nom: "Magistère", url: "https://mlf.magistere.apps.education.fr/login/index.php", icone: "logo-magistere", couleur: "#1F6FE5", prof: true },
     { nom: "NumWorks", url: "https://www.numworks.com/fr/emulateur/graphique/", icone: "logo-numworks", couleur: "#FFB531" }
   ],
 
