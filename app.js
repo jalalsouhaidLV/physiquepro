@@ -2798,7 +2798,7 @@ function vPublic(r){
   return `<div class="page wide home">
     <section class="pubhero">
       <div><h1>Bienvenue sur l'espace de cours de M. ${esc(R().prof.nom)}</h1>
-      <p class="muted">Cours, documents, devoirs et ressources de Physique-Chimie, SNT Sciences Numériques et Technologie, Sciences de l'Ingénieur SI, et Technologie. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
+      <p class="muted">Cours, documents, devoirs et ressources de Physique-Chimie, SNT (Sciences Numériques et Technologie), SI (Sciences de l'Ingénieur), et Technologie. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
       ${btnConnexion("Se connecter avec Microsoft 365", "pubbig")}
     </section>
     <section class="homepanel"><div class="homehead"><h1>Cours</h1></div>
