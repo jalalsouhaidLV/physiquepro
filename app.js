@@ -294,7 +294,7 @@ function carte(c, archivee){
     <div class="body">${body}</div>
     <div class="cfoot">
       ${S.prof ? `<a class="ib" href="#/classe/${esc(c.id)}/notes" title="Notes" aria-label="Notes de ${esc(c.nom)}">${icon("grade")}</a>` : `<a class="ib" href="#/todo" title="Mes travaux" aria-label="Mes travaux">${icon("todo")}</a>`}
-      ${c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive de ${esc(c.nom)}">${icon("folder")}</a>` : ""}
+      ${S.prof && c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive de ${esc(c.nom)}">${icon("folder")}</a>` : ""}
       ${menu}
     </div></article>`;
 }
@@ -346,7 +346,7 @@ function classTabs(c, tab){
     <div class="tabicons">
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
       <a class="ib" href="#/agenda/${esc(c.id)}" title="Agenda du cours" aria-label="Agenda du cours">${icon("cal")}</a>
-      ${c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive du cours">${icon("folder")}</a>` : ""}
+      ${S.prof && c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive du cours">${icon("folder")}</a>` : ""}
       ${S.prof ? `<a class="ib" href="#/classe/${esc(c.id)}/parametres" title="Paramètres du cours" aria-label="Paramètres du cours">${icon("gear")}</a>` : ""}
     </div></div>`;
 }
@@ -1067,7 +1067,7 @@ async function enregistrer(mode, programme){
   if (aussi.length) { const n = await publierAussi(kk, aussi, row, bonnesQ); await rafraichir(); toast("Aussi publié dans " + n + " autre" + (n > 1 ? "s" : "") + " cours"); }
   else toast(mode === "draft" ? "Brouillon enregistré" : mode === "schedule" ? "Publication programmée" : !nouveau ? "Modifications enregistrées" : ({devoir:"Devoir publié", questionnaire:"Questionnaire publié", documentation:"Documentation publiée", question:"Question publiée"})[typ]);
   go("/classe/" + classe + "/travaux");
-  if (mode !== "draft") setTimeout(() => genererCopies(true), 1500);
+  setTimeout(async () => { await synchroPartages(true); if (mode !== "draft") await genererCopies(true); }, 800);
 }
 
 /* ---------- annonces du flux ---------- */
@@ -1516,6 +1516,7 @@ function admSite(){
       <div class="setrow"><span><b>Connexion à OneDrive</b><small class="muted">${S.odOk ? "Connecté." : "À faire une fois : Microsoft te demande ton accord."}</small></span><button class="btn ghost sm" data-act="odconnect">${icon("nuage")} ${S.odOk ? "Vérifier" : "Connecter OneDrive"}</button></div>
       <label class="switch"><span><b>Ranger mes documents dans OneDrive</b><small class="muted">Les nouveaux documents joints vont dans OneDrive au lieu du stockage de PhysiquePro.</small></span><input type="checkbox" data-ad="onedrive" ${A.onedrive ? "checked" : ""}><i aria-hidden="true"></i></label>
       <div class="setrow"><span><b>Documents déjà publiés</b><small class="muted">Copie dans OneDrive les documents importés avant l'activation, puis met à jour les liens.</small></span><button class="btn ghost sm" data-act="odmigrer" ${S.odBusy ? "disabled" : ""}>${S.odBusy ? "Copie en cours… " + (S.odN || 0) : "Ranger dans OneDrive"}</button></div>
+      <div class="setrow"><span><b>Confidentialité des dossiers</b><small class="muted">Les élèves ne voient jamais tes dossiers OneDrive : seulement les fichiers publiés pour eux sur le site. Les fichiers des brouillons restent privés jusqu'à leur publication. Vérification automatique à chaque ouverture du site.</small></span><button class="btn ghost sm" data-act="odconf">${icon("key")} Vérifier maintenant</button></div>
     </section>
     <section class="edcard"><h2>${icon("comment")} Remarques de correction</h2>
       <p class="muted" style="margin:0;font-size:.85rem">Une remarque par ligne. Elles s'insèrent en un clic quand tu notes un travail.</p>
@@ -2474,6 +2475,73 @@ async function transfererRendus(silencieux){
   } catch (e) { if (!silencieux) toast("Transfert des rendus : " + (e.message || e)); }
   finally { transfertEnCours = false; }
 }
+
+/* ---------- confidentialité OneDrive ----------
+   1) Les dossiers (classe, thèmes, activités) ne sont jamais partagés avec les élèves ni avec tout le lycée :
+      un élève n'accède qu'aux fichiers publiés pour lui, par les liens du site.
+   2) Les fichiers d'un élément en BROUILLON n'ont aucun lien de partage ; le lien est (re)créé à la publication. */
+let confEnCours = false;
+const permsOD = async id => ((await graph("/me/drive/items/" + encodeURIComponent(id) + "/permissions", {}, false)) || {}).value || [];
+const suppPermOD = (id, p) => graph("/me/drive/items/" + encodeURIComponent(id) + "/permissions/" + encodeURIComponent(p.id), { method: "DELETE" }, false);
+const emailsDe = p => [p.grantedToV2, ...(p.grantedToIdentitiesV2 || [])].filter(Boolean).map(g => ((g.user || g.siteUser || {}).email || "").toLowerCase()).filter(Boolean);
+async function dossiersPrives(eleves){
+  let n = 0;
+  const racine = await graph("/me/drive/root:/" + encodeURIComponent(OD_RACINE), {}, false);
+  const pile = [racine.id];
+  while (pile.length) {
+    const id = pile.shift();
+    for (const p of await permsOD(id)) {
+      if (p.inheritedFrom || (p.roles || []).includes("owner")) continue;
+      const large = p.link && ["organization", "anonymous"].includes(p.link.scope);
+      const versEleve = emailsDe(p).some(e => eleves.has(e));
+      if (large || versEleve) { try { await suppPermOD(id, p); n++; } catch (e) { console.warn("partage dossier", e); } }
+    }
+    let url = "/me/drive/items/" + encodeURIComponent(id) + "/children?$select=id,name,folder&$top=200";
+    while (url) { const j = await graph(url, {}, false); (j.value || []).forEach(x => { if (x.folder) pile.push(x.id); }); url = j["@odata.nextLink"] || null; }
+  }
+  return n;
+}
+async function fichiersBrouillons(){
+  let fermes = 0, ouverts = 0;
+  const lots = S.devoirs.map(o => ({ table: "devoirs", o }));
+  for (const c of S.classes) { const data = await chargerClasse(c.id); (data.supports || []).forEach(o => lots.push({ table: "supports", o })); }
+  for (const { table, o } of lots) {
+    const res = o.ressources || []; if (!res.some(r => r.od && r.od.id)) continue;
+    let change = false;
+    for (const r of res) {
+      if (!r.od || !r.od.id) continue;
+      try {
+        if (o.brouillon && !r.prive) {
+          for (const p of await permsOD(r.od.id)) if (p.link && !p.inheritedFrom) await suppPermOD(r.od.id, p);
+          r.prive = true; r.url = r.od.web || r.url; change = true; fermes++;
+        } else if (!o.brouillon && r.prive) {
+          const lien = await graph("/me/drive/items/" + encodeURIComponent(r.od.id) + "/createLink", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "view", scope: "organization" }) }, false);
+          r.url = lien.link.webUrl; delete r.prive; change = true; ouverts++;
+        }
+      } catch (e) { console.warn("partage fichier", r.label, e); }
+    }
+    if (change) { const { error } = await sb.from(table).update({ ressources: res }).eq("id", o.id); if (error) console.warn("maj ressources", error); }
+  }
+  return { fermes, ouverts };
+}
+async function synchroPartages(silencieux, dossiers){
+  if (!S.prof || !odActif() || confEnCours) return;
+  confEnCours = true;
+  try {
+    await jetonGraph(!silencieux);
+    const f = await fichiersBrouillons();
+    let nd = 0, dernier = 0;
+    try { dernier = Number(localStorage.getItem("pp_conf_dossiers") || 0); } catch (_) {}
+    if (dossiers || Date.now() - dernier > 12 * 3600e3) {
+      const el = new Set((S.toutesInscriptions || []).map(x => String(x.email).toLowerCase()));
+      nd = await dossiersPrives(el);
+      try { localStorage.setItem("pp_conf_dossiers", String(Date.now())); } catch (_) {}
+    }
+    if (f.fermes || f.ouverts) S.cache = {};
+    if (!silencieux || nd || f.fermes || f.ouverts) toast([nd ? nd + " partage" + (nd > 1 ? "s" : "") + " de dossier retiré" + (nd > 1 ? "s" : "") : "", f.fermes ? f.fermes + " fichier" + (f.fermes > 1 ? "s" : "") + " de brouillon rendu" + (f.fermes > 1 ? "s" : "") + " privé" + (f.fermes > 1 ? "s" : "") : "", f.ouverts ? f.ouverts + " fichier" + (f.ouverts > 1 ? "s" : "") + " publié" + (f.ouverts > 1 ? "s" : "") + " pour les élèves" : ""].filter(Boolean).join(" · ") || "OneDrive : dossiers et brouillons déjà privés ✓");
+  } catch (e) { if (!silencieux) toast("Confidentialité OneDrive : " + (e.message || e)); }
+  finally { confEnCours = false; }
+}
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
 const META_CR = /^(Aucune date limite|Date limite.*|À rendre.*|Échéance.*|\d+|Remis|Rendus?|Attribués?|Notés?|Afficher les instructions|Afficher le support|Afficher le devoir|Afficher la question|Modifier le support|Modifier le devoir|Modifier la question|PDF|Microsoft Word|Microsoft Excel|Microsoft PowerPoint|Google (Docs|Sheets|Slides|Forms|Drive|Dessins)|Formulaires Google|Image|Vidéo|YouTube|Vidéo YouTube.*|Lien|Dossier|\d+ minutes?|\d+:\d+)$/i;
@@ -2864,7 +2932,7 @@ document.addEventListener("click", async e => {
     case "suppr": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"suppr", k:a.dataset.k, id:a.dataset.id, classe:r.a, titre:"Supprimer « " + a.dataset.titre + " » ?", texte:a.dataset.k === "devoir" ? "Les travaux rendus par les élèves, leurs notes et les commentaires privés de ce devoir seront aussi supprimés. Cette action est définitive." : a.dataset.k === "quiz" ? "Les réponses des élèves seront aussi supprimées. Cette action est définitive." : "Cette action est définitive."}; render(); return;
     case "publier": { e.preventDefault(); S.menu = null; const table = a.dataset.k === "devoir" ? "devoirs" : a.dataset.k === "support" ? "supports" : "quiz";
       const { error } = await sb.from(table).update({ brouillon: false, publie_le: now().toISOString() }).eq("id", a.dataset.id); if (error) { toast("Publication impossible : " + error.message); return; }
-      await rafraichir(r.a); render(); toast("Publié"); return; }
+      await rafraichir(r.a); await synchroPartages(true); await rafraichir(r.a); render(); toast("Publié"); return; }
     case "reutiliser": e.preventDefault(); S.menu = null; S.modal = {kind:"reutiliser", k:a.dataset.k, id:a.dataset.id, classe:r.a}; render(); return;
     case "reutiliserdepuis": e.preventDefault(); S.menu = null; S.modal = {kind:"reutiliser", k:"depuis", classe:a.dataset.c}; render(); return;
     case "mclose": if (S.modal && S.modal.busy) return; S.modal = null; render(); return;
@@ -2951,6 +3019,7 @@ document.addEventListener("click", async e => {
 
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
+    case "odconf": e.preventDefault(); toast("Vérification de la confidentialité OneDrive…"); await synchroPartages(false, true); await rafraichir(); render(); return;
     case "voirstat": { e.preventDefault(); S.swFiltre = a.dataset.f === "anoter" ? "anoter" : a.dataset.f; S.ptab = "travaux"; S.sel = null; fermerMenus();
       if (r.v === "devoir" && r.a === a.dataset.d) render(); else go("/devoir/" + a.dataset.d); return; }
     case "quitter": e.preventDefault(); S.menu = null; { const c = cls(a.dataset.c); S.modal = {kind:"confirm", action:"quitter", classe:a.dataset.c, ok:"Quitter", titre:"Quitter « " + (c ? c.nom : "ce cours") + " » ?", texte:"Tu ne verras plus ce cours ni ses travaux. Tes travaux déjà rendus restent chez ton professeur. Pour revenir plus tard, il te faudra le code du cours."}; } render(); return;
@@ -3149,7 +3218,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   if (fresh && !S.prof && !pj && route().v === "accueil" && actives().length === 1) history.replaceState(null, "", ICI + "#/classe/" + encodeURIComponent(actives()[0].id));
   render();
   chargerNotifs().catch(() => {});
-  if (S.prof) setTimeout(async () => { await transfererRendus(true); await genererCopies(true); }, 4000);
+  if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
   if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
   setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });
