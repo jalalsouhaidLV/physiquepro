@@ -2871,6 +2871,7 @@ function vPublic(r){
       <p class="muted">Cours, documents, devoirs et ressources de Physique-Chimie, SNT (Sciences Numériques et Technologie), SI (Sciences de l'Ingénieur), et Technologie. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
       ${btnConnexion("Se connecter avec Microsoft 365", "pubbig")}
     </section>
+    ${blocScientifique()}
     <section class="homepanel"><div class="homehead"><h1>Cours</h1></div>
       ${PUB.classes.length ? `<div class="cards">${PUB.classes.map(cartePublique).join("")}</div>` : `<p class="muted" style="margin:0">Connecte-toi pour voir tes cours.</p>`}</section>
     <section class="homepanel"><div class="homehead"><h1>Boîte à outils</h1></div>${blocOutils()}</section>
@@ -3520,11 +3521,11 @@ async function ouvrirCoinPerso(){
   if (ov) { fermerCoinPerso(); return; }
   await chargerCoinPerso();
   ov = document.createElement("div"); ov.id = "coinPerso"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Coin Perso");
-  ov.innerHTML = `<div class="cphead" title="Glisse ici pour déplacer le Coin Perso">${icon("note")}<b>Coin Perso</b><span class="cpdrag">${icon("cpdrag")}</span><span class="cpetat">Enregistré ✓</span><button class="ib sm" data-cp="fermer" aria-label="Fermer le Coin Perso" title="Fermer">${icon("x")}</button></div>
+  ov.innerHTML = `<div class="cpgrip" title="Glisse pour changer la largeur" aria-hidden="true"></div><div class="cphead">${icon("note")}<b>Coin Perso</b><span class="cpetat">Enregistré ✓</span><button class="ib sm" data-cp="fermer" aria-label="Fermer le Coin Perso" title="Fermer">${icon("x")}</button></div>
     ${barreCoin()}
     <div class="cptxt" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Notes du Coin Perso" data-ph="Écris ici ce que tu veux : remarques, idées, liens (https://…), listes… Tout s'enregistre tout seul. Toi seul vois ce coin."></div>
     <div class="cpliens" hidden></div>`;
-  document.body.appendChild(ov); geoCoin(ov); deplacableCoin(ov);
+  document.body.appendChild(ov); dockerCoin(ov);
   const ed = ov.querySelector(".cptxt"); ed.innerHTML = CP.html; ed.classList.toggle("vide", !ed.textContent.trim()); majLiensCoin();
   ed.addEventListener("input", cpModifie);
   ed.addEventListener("blur", () => { cpGarderSel(); if (CP.t) sauverCoin(); });
@@ -3555,7 +3556,7 @@ async function ouvrirCoinPerso(){
   setTimeout(() => { ed.focus(); const s = window.getSelection(), r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); s.removeAllRanges(); s.addRange(r); cpGarderSel(); }, 30);
   document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.setAttribute("aria-current", "page"));
 }
-function fermerCoinPerso(){ const ov = document.getElementById("coinPerso"); if (!ov) return; if (CP.t) sauverCoin(); memoGeo(ov); ov.remove(); CP.sel = null; document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.removeAttribute("aria-current")); }
+function fermerCoinPerso(){ const ov = document.getElementById("coinPerso"); if (!ov) return; if (CP.t) sauverCoin(); ov.remove(); document.documentElement.classList.remove("cp-open"); CP.sel = null; document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.removeAttribute("aria-current")); }
 window.addEventListener("beforeunload", () => { if (CP.t) { try { localStorage.setItem("pp_coin_" + S.user.id, CP.html); } catch (_) {} sauverCoin(); } });
 
 /* ---------- Écran partagé : NumWorks, Pronote, ChatGPT, Claude, WhatsApp Web s'ouvrent à côté de la page ----------
@@ -3638,6 +3639,21 @@ function fermerCote(){
 window.addEventListener("resize", () => { if (document.getElementById("sidePanel")) { if (window.innerWidth <= 760) fermerCote(); else spAppliquer(); } });
 document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a.qside"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
   if (window.innerWidth <= 760) return; e.preventDefault(); e.stopPropagation(); ouvrirCote(a.dataset.cle, a.getAttribute("href"), a.textContent.trim()); }, true);
+
+/* Coin Perso ancré à droite, sur toute la hauteur : la page se resserre, rien n'est caché */
+const cpLargeur = () => { let w = 400; try { w = Number(localStorage.getItem("pp_cp_w")) || 400; } catch (_) {} return Math.round(Math.min(Math.max(w, 280), Math.max(300, window.innerWidth - 360))); };
+function appliquerLargeurCoin(){ document.documentElement.style.setProperty("--cp-w", cpLargeur() + "px"); }
+function dockerCoin(ov){
+  appliquerLargeurCoin(); document.documentElement.classList.add("cp-open");
+  if (window.innerWidth > 600 && S.drawer && window.innerWidth - cpLargeur() - (document.getElementById("sidePanel") ? spGeo().w : 0) < 1000) { S.drawer = false; render(); }
+  const grip = ov.querySelector(".cpgrip");
+  grip.addEventListener("pointerdown", e => { e.preventDefault(); grip.setPointerCapture(e.pointerId); document.documentElement.classList.add("side-drag");
+    const bord = ov.getBoundingClientRect().right;
+    const bouge = ev => { const w = Math.min(Math.max(bord - ev.clientX, 280), window.innerWidth - 360); try { localStorage.setItem("pp_cp_w", Math.round(w)); } catch (_) {} appliquerLargeurCoin(); };
+    const fin = () => { document.documentElement.classList.remove("side-drag"); grip.removeEventListener("pointermove", bouge); grip.removeEventListener("pointerup", fin); grip.removeEventListener("pointercancel", fin); };
+    grip.addEventListener("pointermove", bouge); grip.addEventListener("pointerup", fin); grip.addEventListener("pointercancel", fin); });
+}
+window.addEventListener("resize", () => { if (document.getElementById("coinPerso")) appliquerLargeurCoin(); });
 /* =====================================================================
    PhysiquePro · améliorations « pro » (barre d'applications, recherche,
    tableau de bord, semaine, correction rapide, thème, etc.)
@@ -3647,13 +3663,13 @@ document.addEventListener("click", e => { const a = e.target.closest && e.target
 IC.apps = '<circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>';
 IC.star = '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>';
 const FAVORIS_DEFAUT = ["Pronote Verdun", "Lycée Verdun", "WhatsApp Web", "E-mail Outlook", "OneDrive", "NumWorks"];
-const FAVORIS_MAX = 8;
-const cleFavoris = () => "pp_favoris_" + (S.user && S.user.id);
+const FAVORIS_MAX = 13;
+const cleFavoris = () => "pp_favoris2_" + (S.user && S.user.id);
 const liensVisibles = () => R().liensUtiles.filter(l => l.nom && (!l.prof || S.prof));
 function favorisNoms(){
   let f = null; try { f = JSON.parse(localStorage.getItem(cleFavoris()) || "null"); } catch (_) {}
   const noms = liensVisibles().map(l => l.nom);
-  if (!Array.isArray(f)) f = FAVORIS_DEFAUT.filter(n => noms.includes(n));
+  if (!Array.isArray(f)) f = noms.slice(0, FAVORIS_MAX);
   return f.filter(n => noms.includes(n));
 }
 const liensFavoris = () => { const f = favorisNoms(); return liensVisibles().filter(l => f.includes(l.nom)); };
@@ -4319,8 +4335,9 @@ document.addEventListener("pointerup", e => { if (!DM.el || e.pointerId !== DM.p
 document.addEventListener("click", e => { if (DM.bloque && e.target.closest && e.target.closest(".drawer")) { e.preventDefault(); e.stopPropagation(); } }, true);
 document.addEventListener("dragstart", e => { if (e.target.closest && e.target.closest(".drawer a.itcours")) e.preventDefault(); });
 
-/* ---------- Scientifique du jour (programme de Physique-Chimie 2nde, 1re, Tle) ---------- */
-const SCIENTIFIQUES = [
+/* ---------- Scientifique du jour : 90 hommes et 90 femmes, en alternance (programme de Physique-Chimie 2nde, 1re, Tle) ---------- */
+/* format : [nom, dates, titre Wikipédia (ou null : recherche par le nom), biographie, notions du programme] */
+const SCI_HOMMES = [
   ["Isaac Newton", "1643–1727", "Isaac_Newton", "Physicien et mathématicien anglais. Ses Principia (1687) unifient la chute des corps sur Terre et le mouvement des planètes.", ["Principe d'inertie (2nde)", "Deuxième loi de Newton (Tle)", "Gravitation universelle", "Décomposition de la lumière blanche"]],
   ["Amedeo Avogadro", "1776–1856", "Amedeo_Avogadro", "Physicien et chimiste italien. Il propose en 1811 que des volumes égaux de gaz, dans les mêmes conditions, contiennent le même nombre de molécules.", ["Quantité de matière et mole (2nde)", "Constante d'Avogadro", "Volume molaire d'un gaz"]],
   ["Daniel Bernoulli", "1700–1782", "Daniel_Bernoulli", "Physicien et mathématicien suisse, fondateur de l'hydrodynamique. Il relie vitesse, pression et altitude dans un fluide en écoulement.", ["Relation de Bernoulli (Tle)", "Écoulement d'un fluide, débit", "Pression d'un fluide"]],
@@ -4328,7 +4345,6 @@ const SCIENTIFIQUES = [
   ["Blaise Pascal", "1623–1662", "Blaise_Pascal", "Savant et philosophe français. Il prouve que la pression de l'air diminue avec l'altitude (expérience du Puy de Dôme, 1648).", ["Pression (2nde)", "Loi fondamentale de la statique des fluides (1re)", "Unité : le pascal"]],
   ["Antoine Lavoisier", "1743–1794", "Antoine_Lavoisier", "Chimiste français, père de la chimie moderne. « Rien ne se perd, rien ne se crée, tout se transforme. »", ["Conservation de la masse (2nde)", "Équation de réaction ajustée", "Rôle du dioxygène dans la combustion"]],
   ["Dmitri Mendeleïev", "1834–1907", "Dmitri_Mendeleïev", "Chimiste russe. En 1869, il classe les éléments par masse croissante et propriétés, en laissant des cases pour des éléments encore inconnus.", ["Tableau périodique (2nde)", "Familles chimiques", "Électrons de valence"]],
-  ["Marie Curie", "1867–1934", "Marie_Curie", "Physicienne et chimiste franco-polonaise, seule personne récompensée par deux prix Nobel scientifiques (physique 1903, chimie 1911).", ["Radioactivité (1re)", "Décroissance radioactive (Tle)", "Découverte du polonium et du radium"]],
   ["Ernest Rutherford", "1871–1937", "Ernest_Rutherford", "Physicien néo-zélandais. Avec la feuille d'or, il montre que l'atome possède un noyau minuscule, dense et chargé positivement.", ["Modèle de l'atome (2nde)", "Noyau, proton", "Rayonnements α et β"]],
   ["Niels Bohr", "1885–1962", "Niels_Bohr", "Physicien danois, prix Nobel 1922. Son modèle de l'atome explique les spectres de raies par des niveaux d'énergie quantifiés.", ["Niveaux d'énergie de l'atome (1re)", "Spectres d'émission et d'absorption", "Quantification de l'énergie"]],
   ["Max Planck", "1858–1947", "Max_Planck", "Physicien allemand, prix Nobel 1918, fondateur de la physique quantique : l'énergie est échangée par « quanta ».", ["Constante de Planck h (1re)", "Énergie d'un photon E = h·ν", "Rayonnement du corps noir"]],
@@ -4373,29 +4389,163 @@ const SCIENTIFIQUES = [
   ["Ole Rømer", "1644–1710", "Ole_Christensen_Rømer", "Astronome danois. En observant Io, satellite de Jupiter, il montre en 1676 que la lumière a une vitesse finie.", ["Vitesse de la lumière (2nde)", "Propagation de la lumière"]],
   ["Hippolyte Fizeau", "1819–1896", "Hippolyte_Fizeau", "Physicien français. Il mesure la vitesse de la lumière sur Terre en 1849 avec une roue dentée.", ["Vitesse de la lumière (2nde)", "Effet Doppler-Fizeau (Tle)"]],
   ["Joseph Fourier", "1768–1830", "Joseph_Fourier", "Mathématicien et physicien français. Il étudie la propagation de la chaleur et décompose les signaux en sinusoïdes.", ["Transferts thermiques (Tle)", "Spectre d'un son (2nde)", "Flux thermique"]],
-  ["Émilie du Châtelet", "1706–1749", "Émilie_du_Châtelet", "Mathématicienne et physicienne française. Elle traduit Newton et défend l'idée que l'énergie d'un corps dépend du carré de sa vitesse.", ["Énergie cinétique Ec = ½·m·v² (1re)", "Conservation de l'énergie"]],
-  ["Lise Meitner", "1878–1968", "Lise_Meitner", "Physicienne autrichienne. Elle explique en 1939 la fission nucléaire de l'uranium.", ["Fission nucléaire (1re)", "Énergie nucléaire", "Radioactivité"]],
-  ["Irène Joliot-Curie", "1897–1956", "Irène_Joliot-Curie", "Chimiste et physicienne française, prix Nobel 1935 avec Frédéric Joliot, pour la radioactivité artificielle.", ["Radioactivité artificielle (Tle)", "Transformations nucléaires", "Isotopes"]],
   ["Henry Cavendish", "1731–1810", "Henry_Cavendish", "Physicien et chimiste britannique. Il identifie le dihydrogène et mesure la constante de gravitation.", ["Constante de gravitation G", "Dihydrogène et composition de l'eau"]],
   ["Jean Perrin", "1870–1942", "Jean_Perrin", "Physicien français, prix Nobel 1926. Ses mesures prouvent l'existence des atomes et déterminent le nombre d'Avogadro.", ["Constante d'Avogadro (2nde)", "Réalité des atomes et des molécules"]],
   ["Jöns Jacob Berzelius", "1779–1848", "Jöns_Jacob_Berzelius", "Chimiste suédois. Il invente la notation chimique moderne avec des symboles d'une ou deux lettres.", ["Symboles des éléments (2nde)", "Formules chimiques"]],
-  ["John Dalton", "1766–1844", "John_Dalton", "Chimiste anglais. Il propose en 1808 la théorie atomique : la matière est faite d'atomes.", ["Modèle de l'atome (2nde)", "Pressions partielles des gaz"]]
+  ["John Dalton", "1766–1844", "John_Dalton", "Chimiste anglais. Il propose en 1808 la théorie atomique : la matière est faite d'atomes.", ["Modèle de l'atome (2nde)", "Pressions partielles des gaz"]],
+  ["Joseph Black", "1728–1799", null, "Chimiste écossais. Il découvre le dioxyde de carbone (« air fixe ») et introduit la notion de chaleur latente.", ["Dioxyde de carbone", "Changements d'état et énergie (2nde)", "Chaleur latente"]],
+  ["Joseph Priestley", "1733–1804", null, "Chimiste et théologien anglais. Il isole le dioxygène en 1774 et invente l'eau gazeuse.", ["Dioxygène", "Gaz et transformations chimiques (2nde)"]],
+  ["Carl Wilhelm Scheele", "1742–1786", null, "Pharmacien et chimiste suédois. Il découvre le dioxygène, le chlore et de nombreux acides organiques.", ["Dioxygène et dichlore", "Acides carboxyliques (1re)"]],
+  ["Humphry Davy", "1778–1829", null, "Chimiste anglais. Grâce à l'électrolyse, il isole le sodium, le potassium et le calcium ; il invente une lampe de sécurité pour les mineurs.", ["Électrolyse (Tle)", "Métaux alcalins (2nde)"]],
+  ["Friedrich Wöhler", "1800–1882", null, "Chimiste allemand. En 1828, il synthétise l'urée à partir d'un composé minéral : la chimie organique n'est plus réservée au vivant.", ["Synthèse organique (Tle)", "Chimie organique (1re)"]],
+  ["Louis Pasteur", "1822–1895", null, "Chimiste et biologiste français. Il découvre que certaines molécules existent sous deux formes images l'une de l'autre dans un miroir.", ["Stéréochimie, molécules images", "Fermentation, catalyse"]],
+  ["Marcellin Berthelot", "1827–1907", null, "Chimiste français, pionnier de la synthèse organique et de la thermochimie.", ["Synthèse organique (Tle)", "Énergie libérée par une réaction"]],
+  ["Henry Le Chatelier", "1850–1936", null, "Chimiste français. Il énonce le principe de déplacement des équilibres chimiques.", ["Équilibre chimique (Tle)", "Évolution d'un système chimique"]],
+  ["Jacobus van 't Hoff", "1852–1911", null, "Chimiste néerlandais, premier prix Nobel de chimie (1901), pour ses travaux sur la cinétique et les équilibres.", ["Cinétique chimique (Tle)", "Atome de carbone tétraédrique", "Pression osmotique"]],
+  ["Fritz Haber", "1868–1934", null, "Chimiste allemand, prix Nobel 1918. Il met au point la synthèse de l'ammoniac à partir du diazote de l'air.", ["Catalyse (Tle)", "Synthèse de l'ammoniac", "Rendement d'une synthèse"]],
+  ["Wilhelm Ostwald", "1853–1932", null, "Chimiste germano-balte, prix Nobel 1909 pour ses travaux sur la catalyse et les vitesses de réaction.", ["Catalyse (Tle)", "Loi de dilution, acides faibles"]],
+  ["Paul Sabatier", "1854–1941", null, "Chimiste français, prix Nobel 1912. Il découvre l'hydrogénation catalytique avec le nickel.", ["Catalyse hétérogène (Tle)", "Chimie organique"]],
+  ["Victor Grignard", "1871–1935", null, "Chimiste français, prix Nobel 1912. Ses réactifs permettent d'allonger les chaînes carbonées.", ["Modification de la chaîne carbonée (Tle)", "Synthèse organique"]],
+  ["Joseph Proust", "1754–1826", null, "Chimiste français. Il énonce la loi des proportions définies : un composé a toujours la même composition.", ["Proportions dans une réaction (2nde)", "Stœchiométrie"]],
+  ["Stanislao Cannizzaro", "1826–1910", null, "Chimiste italien. Il fait accepter l'hypothèse d'Avogadro et distingue clairement atomes et molécules.", ["Masse molaire (2nde)", "Atomes et molécules"]],
+  ["Robert Bunsen", "1811–1899", null, "Chimiste allemand. Avec Kirchhoff, il fonde la spectroscopie et découvre le césium et le rubidium.", ["Spectres de raies (2nde)", "Test de flamme", "Bec Bunsen"]],
+  ["Léon Foucault", "1819–1868", null, "Physicien français. Son pendule du Panthéon (1851) démontre la rotation de la Terre ; il mesure aussi la vitesse de la lumière.", ["Référentiels et mouvements (2nde)", "Vitesse de la lumière", "Pendule"]],
+  ["Pierre Curie", "1859–1906", null, "Physicien français, prix Nobel 1903 avec Marie Curie et Henri Becquerel. Il découvre la piézoélectricité.", ["Radioactivité (1re)", "Piézoélectricité, capteurs", "Magnétisme"]],
+  ["Frédéric Joliot-Curie", "1900–1958", null, "Physicien français, prix Nobel de chimie 1935 avec Irène Joliot-Curie pour la radioactivité artificielle.", ["Radioactivité artificielle (Tle)", "Réaction en chaîne, fission"]],
+  ["Enrico Fermi", "1901–1954", null, "Physicien italien, prix Nobel 1938. Il construit le premier réacteur nucléaire en 1942.", ["Réactions nucléaires (1re)", "Neutrons", "Énergie nucléaire"]],
+  ["Werner Heisenberg", "1901–1976", null, "Physicien allemand, prix Nobel 1932, l'un des fondateurs de la mécanique quantique.", ["Physique quantique (Tle)", "Principe d'incertitude"]],
+  ["Erwin Schrödinger", "1887–1961", null, "Physicien autrichien, prix Nobel 1933. Son équation décrit le comportement ondulatoire des particules.", ["Dualité onde-particule (Tle)", "Mécanique quantique"]],
+  ["James Chadwick", "1891–1974", null, "Physicien anglais, prix Nobel 1935 pour la découverte du neutron en 1932.", ["Neutron et noyau atomique (2nde)", "Isotopes"]],
+  ["Wilhelm Röntgen", "1845–1923", null, "Physicien allemand, premier prix Nobel de physique (1901), pour la découverte des rayons X.", ["Rayons X et spectre électromagnétique (2nde)", "Imagerie médicale"]],
+  ["Edwin Hubble", "1889–1953", null, "Astronome américain. Il montre que les galaxies s'éloignent d'autant plus vite qu'elles sont lointaines : l'Univers est en expansion.", ["Effet Doppler et décalage vers le rouge (Tle)", "Spectres des étoiles"]],
+  ["Nicolas Copernic", "1473–1543", null, "Astronome polonais. Il place le Soleil, et non la Terre, au centre du système des planètes.", ["Référentiel héliocentrique (2nde)", "Mouvement des planètes"]],
+  ["Benjamin Franklin", "1706–1790", null, "Savant et homme politique américain. Il montre que la foudre est un phénomène électrique et invente le paratonnerre.", ["Charges électriques (1re)", "Électrisation"]],
+  ["Luigi Galvani", "1737–1798", null, "Médecin et physicien italien. Ses expériences sur les cuisses de grenouille ouvrent la voie à l'étude de l'électricité.", ["Courant électrique", "Origine de la pile de Volta"]],
+  ["Nikola Tesla", "1856–1943", null, "Inventeur et ingénieur serbo-américain, pionnier du courant alternatif et du moteur électrique.", ["Courant alternatif", "Unité tesla du champ magnétique", "Conversion d'énergie"]],
+  ["Guglielmo Marconi", "1874–1937", null, "Physicien italien, prix Nobel 1909. Il réalise les premières transmissions par ondes radio à grande distance.", ["Ondes électromagnétiques (2nde)", "Transmission de l'information"]],
+  ["James Watt", "1736–1819", null, "Ingénieur écossais. Il perfectionne la machine à vapeur ; l'unité de puissance porte son nom.", ["Puissance, unité watt (2nde)", "Conversion d'énergie, rendement"]],
+  ["Rudolf Clausius", "1822–1888", null, "Physicien allemand. Il énonce les principes de la thermodynamique et introduit la notion d'entropie.", ["Premier principe de la thermodynamique (Tle)", "Transferts thermiques"]],
+  ["Ludwig Boltzmann", "1844–1906", null, "Physicien autrichien. Il explique la température et la pression d'un gaz par le mouvement des molécules.", ["Modèle du gaz parfait (Tle)", "Constante de Boltzmann", "Description microscopique d'un gaz"]],
+  ["Hermann von Helmholtz", "1821–1894", null, "Physicien et physiologiste allemand. Il formule le principe de conservation de l'énergie et étudie l'acoustique.", ["Conservation de l'énergie (1re)", "Son et perception (2nde)"]],
+  ["Richard Feynman", "1918–1988", null, "Physicien américain, prix Nobel 1965 pour l'électrodynamique quantique, célèbre pour ses talents de pédagogue.", ["Interaction lumière-matière", "Photon (Tle)"]]
+];
+const SCI_FEMMES = [
+  ["Marie Curie", "1867–1934", "Marie_Curie", "Physicienne et chimiste franco-polonaise, seule personne récompensée par deux prix Nobel scientifiques (physique 1903, chimie 1911).", ["Radioactivité (1re)", "Décroissance radioactive (Tle)", "Découverte du polonium et du radium"]],
+  ["Émilie du Châtelet", "1706–1749", "Émilie_du_Châtelet", "Mathématicienne et physicienne française. Elle traduit Newton et défend l'idée que l'énergie d'un corps dépend du carré de sa vitesse.", ["Énergie cinétique Ec = ½·m·v² (1re)", "Conservation de l'énergie"]],
+  ["Lise Meitner", "1878–1968", "Lise_Meitner", "Physicienne autrichienne. Elle explique en 1939 la fission nucléaire de l'uranium.", ["Fission nucléaire (1re)", "Énergie nucléaire", "Radioactivité"]],
+  ["Irène Joliot-Curie", "1897–1956", "Irène_Joliot-Curie", "Chimiste et physicienne française, prix Nobel 1935 avec Frédéric Joliot, pour la radioactivité artificielle.", ["Radioactivité artificielle (Tle)", "Transformations nucléaires", "Isotopes"]],
+  ["Hypatie d'Alexandrie", "vers 355–415", null, "Mathématicienne, astronome et philosophe grecque d'Alexandrie. On lui attribue le perfectionnement de l'astrolabe et de l'hydromètre.", ["Mesure de la masse volumique (hydromètre)", "Astronomie"]],
+  ["Marie Meurdrac", "vers 1610–1680", null, "Chimiste française. Son livre « La chimie charitable et facile, en faveur des dames » (1666) est l'un des premiers traités de chimie écrits par une femme.", ["Techniques de laboratoire", "Extraction et préparation de solutions"]],
+  ["Laura Bassi", "1711–1778", null, "Physicienne italienne, première femme à obtenir une chaire de physique dans une université européenne (Bologne).", ["Mécanique newtonienne", "Électricité"]],
+  ["Marie-Anne Paulze Lavoisier", "1758–1836", null, "Chimiste française, collaboratrice d'Antoine Lavoisier. Elle traduit, illustre et publie ses travaux.", ["Conservation de la masse (2nde)", "Combustion"]],
+  ["Elizabeth Fulhame", "XVIIIe siècle", null, "Chimiste écossaise. Dans son livre de 1794, elle décrit pour la première fois le principe de la catalyse.", ["Catalyse (Tle)", "Oxydoréduction"]],
+  ["Caroline Herschel", "1750–1848", null, "Astronome germano-britannique. Elle découvre plusieurs comètes et nébuleuses avec son frère William.", ["Observation du ciel", "Lumière des étoiles"]],
+  ["Sophie Germain", "1776–1831", null, "Mathématicienne française autodidacte. Elle remporte en 1816 le prix de l'Académie des sciences pour sa théorie des surfaces élastiques.", ["Vibrations et ondes", "Élasticité"]],
+  ["Mary Somerville", "1780–1872", null, "Scientifique écossaise. Ses livres de vulgarisation font connaître la physique et l'astronomie de son temps.", ["Gravitation", "Lumière et magnétisme"]],
+  ["Jane Marcet", "1769–1858", null, "Autrice britannique. Ses « Conversations sur la chimie » (1805) ont appris la chimie à des milliers d'élèves, dont Michael Faraday.", ["Transformations chimiques (2nde)", "Vulgarisation scientifique"]],
+  ["Ada Lovelace", "1815–1852", null, "Mathématicienne anglaise. Elle écrit en 1843 ce que l'on considère comme le premier programme informatique.", ["Algorithmes et programmation (SNT)", "Machine analytique"]],
+  ["Maria Mitchell", "1818–1889", null, "Astronome américaine. Elle découvre une comète en 1847 et devient la première femme professeure d'astronomie aux États-Unis.", ["Observation astronomique", "Mesures et incertitudes"]],
+  ["Eunice Foote", "1819–1888", null, "Scientifique américaine. En 1856, elle montre que le dioxyde de carbone retient la chaleur du Soleil : c'est la première trace de l'effet de serre.", ["Effet de serre", "Dioxyde de carbone", "Transferts thermiques"]],
+  ["Ellen Swallow Richards", "1842–1911", null, "Chimiste américaine, première femme admise au MIT. Elle analyse la qualité de l'eau potable.", ["Analyse chimique de l'eau", "Dosages"]],
+  ["Williamina Fleming", "1857–1911", null, "Astronome écossaise. Elle classe plus de 10 000 étoiles d'après leur spectre et découvre la nébuleuse de la Tête de Cheval.", ["Spectres des étoiles (2nde)", "Classification spectrale"]],
+  ["Hertha Ayrton", "1854–1923", null, "Physicienne et ingénieure britannique. Elle étudie l'arc électrique et la formation des rides de sable par les vagues.", ["Électricité, arc électrique", "Ondes à la surface de l'eau"]],
+  ["Agnes Pockels", "1862–1935", null, "Physicienne allemande autodidacte. Elle mesure la tension superficielle des liquides dans sa cuisine.", ["Tension superficielle", "Interactions entre molécules (1re)"]],
+  ["Annie Jump Cannon", "1863–1941", null, "Astronome américaine. Elle crée la classification des étoiles O, B, A, F, G, K, M, toujours utilisée.", ["Spectres des étoiles (2nde)", "Température d'une étoile"]],
+  ["Henrietta Leavitt", "1868–1921", null, "Astronome américaine. Elle relie la luminosité des étoiles céphéides à leur période, ce qui permet de mesurer les distances dans l'Univers.", ["Mesure de distances", "Période d'un phénomène"]],
+  ["Clara Immerwahr", "1870–1915", null, "Chimiste allemande, première femme docteure en chimie de l'université de Breslau.", ["Chimie des solutions", "Électrochimie"]],
+  ["Harriet Brooks", "1876–1933", null, "Physicienne canadienne, première physicienne nucléaire du Canada. Elle découvre le recul radioactif et participe à l'étude du radon.", ["Radioactivité (1re)", "Gaz radon"]],
+  ["Emmy Noether", "1882–1935", null, "Mathématicienne allemande. Son théorème relie chaque loi de conservation à une symétrie de la nature.", ["Conservation de l'énergie (1re)", "Conservation de la quantité de mouvement"]],
+  ["Ida Noddack", "1896–1978", null, "Chimiste allemande. Elle découvre le rhénium et propose dès 1934 l'idée de la fission du noyau.", ["Éléments chimiques", "Fission nucléaire"]],
+  ["Marietta Blau", "1894–1970", null, "Physicienne autrichienne. Elle utilise des plaques photographiques pour observer les traces des particules.", ["Particules et noyaux", "Rayonnement cosmique"]],
+  ["Katharine Burr Blodgett", "1898–1979", null, "Physicienne et chimiste américaine. Elle invente le verre antireflet grâce à des couches très minces.", ["Interférences en lumière (Tle)", "Couches minces"]],
+  ["Hertha Sponer", "1895–1968", null, "Physicienne allemande, spécialiste de la spectroscopie moléculaire.", ["Spectroscopie", "Niveaux d'énergie (1re)"]],
+  ["Cecilia Payne-Gaposchkin", "1900–1979", null, "Astronome anglo-américaine. Elle montre en 1925 que les étoiles sont composées surtout d'hydrogène et d'hélium.", ["Spectres des étoiles (2nde)", "Composition de l'Univers"]],
+  ["Kathleen Lonsdale", "1903–1971", null, "Cristallographe irlandaise. Elle prouve par les rayons X que la molécule de benzène est plane.", ["Structure des molécules (1re)", "Diffraction des rayons X"]],
+  ["Maria Goeppert Mayer", "1906–1972", null, "Physicienne germano-américaine, prix Nobel 1963 pour le modèle en couches du noyau atomique.", ["Structure du noyau", "Stabilité des noyaux (Tle)"]],
+  ["Melitta Bentz", "1873–1950", null, "Inventrice allemande. Elle invente en 1908 le filtre à café en papier.", ["Filtration (2nde)", "Séparation des mélanges"]],
+  ["Chien-Shiung Wu", "1912–1997", null, "Physicienne sino-américaine. Son expérience de 1956 montre que la désintégration β ne respecte pas la symétrie miroir.", ["Radioactivité β (1re)", "Physique nucléaire"]],
+  ["Dorothy Hodgkin", "1910–1994", null, "Chimiste britannique, prix Nobel 1964. Elle détermine par rayons X la structure de la pénicilline et de la vitamine B12.", ["Structure des molécules", "Diffraction (Tle)"]],
+  ["Grace Hopper", "1906–1992", null, "Informaticienne et officière de marine américaine. Elle crée le premier compilateur et popularise le mot « bug ».", ["Programmation (SNT)", "Langages informatiques"]],
+  ["Hedy Lamarr", "1914–2000", null, "Actrice et inventrice austro-américaine. Elle co-invente l'étalement de spectre par saut de fréquence, à l'origine du Wi-Fi et du Bluetooth.", ["Ondes et fréquences (2nde)", "Transmission de l'information"]],
+  ["Marguerite Perey", "1909–1975", null, "Physicienne française, élève de Marie Curie. Elle découvre le francium en 1939.", ["Radioactivité (1re)", "Tableau périodique : le francium"]],
+  ["Yvette Cauchois", "1908–1999", null, "Physicienne française, spécialiste de la spectroscopie des rayons X et du rayonnement synchrotron.", ["Rayons X", "Spectroscopie"]],
+  ["Rosalind Franklin", "1920–1958", null, "Chimiste britannique. Sa photographie par diffraction des rayons X révèle la structure en double hélice de l'ADN.", ["Diffraction (Tle)", "Structure des molécules"]],
+  ["Gertrude Elion", "1918–1999", null, "Chimiste américaine, prix Nobel de médecine 1988 pour la mise au point de nombreux médicaments.", ["Synthèse organique (Tle)", "Molécules du vivant"]],
+  ["Rosalyn Yalow", "1921–2011", null, "Physicienne américaine, prix Nobel 1977. Elle utilise des isotopes radioactifs pour doser des hormones dans le sang.", ["Isotopes radioactifs (1re)", "Dosages"]],
+  ["Katherine Johnson", "1918–2020", null, "Mathématicienne afro-américaine de la NASA. Elle calcule les trajectoires des premiers vols spatiaux habités américains.", ["Mouvement dans un champ de gravitation (Tle)", "Lois de Kepler"]],
+  ["Mary Jackson", "1921–2005", null, "Ingénieure afro-américaine de la NASA, spécialiste de l'aérodynamique en soufflerie.", ["Écoulement des fluides (Tle)", "Forces exercées par l'air"]],
+  ["Dorothy Vaughan", "1910–2008", null, "Mathématicienne afro-américaine de la NASA. Elle apprend le langage FORTRAN à son équipe pour programmer les premiers ordinateurs.", ["Programmation (SNT)", "Calcul numérique"]],
+  ["Stephanie Kwolek", "1923–2014", null, "Chimiste américaine. Elle invente le Kevlar, une fibre cinq fois plus résistante que l'acier à masse égale.", ["Polymères", "Synthèse de matériaux"]],
+  ["Vera Rubin", "1928–2016", null, "Astronome américaine. En mesurant la vitesse de rotation des galaxies, elle apporte la preuve de l'existence de la matière noire.", ["Mouvements circulaires (Tle)", "Effet Doppler"]],
+  ["Margaret Burbidge", "1919–2020", null, "Astrophysicienne britannique. Elle explique comment les éléments chimiques sont fabriqués dans les étoiles.", ["Fusion nucléaire (1re)", "Origine des éléments chimiques"]],
+  ["Mildred Dresselhaus", "1930–2017", null, "Physicienne américaine surnommée « la reine du carbone » pour ses travaux sur le graphite et les nanotubes.", ["Le carbone et ses formes", "Conduction électrique"]],
+  ["Valentina Terechkova", "née en 1937", null, "Cosmonaute soviétique, première femme dans l'espace en 1963.", ["Satellites et orbites (Tle)", "Apesanteur"]],
+  ["Jocelyn Bell Burnell", "née en 1943", null, "Astrophysicienne nord-irlandaise. Elle découvre les pulsars en 1967 en analysant des signaux radio.", ["Ondes radio", "Signaux périodiques"]],
+  ["Margaret Hamilton", "née en 1936", null, "Informaticienne américaine. Elle dirige l'écriture du logiciel de navigation des missions Apollo.", ["Programmation (SNT)", "Fiabilité des logiciels"]],
+  ["Darleane Hoffman", "née en 1926", null, "Chimiste nucléaire américaine. Elle étudie les éléments lourds et confirme l'existence du seaborgium.", ["Éléments transuraniens", "Radioactivité"]],
+  ["Ruth Benerito", "1916–2013", null, "Chimiste américaine. Elle met au point le coton infroissable par traitement chimique des fibres.", ["Chimie des matériaux", "Liaisons chimiques"]],
+  ["Tu Youyou", "née en 1930", null, "Chimiste pharmaceutique chinoise, prix Nobel 2015. Elle extrait l'artémisinine d'une plante pour soigner le paludisme.", ["Extraction par solvant (2nde)", "Espèces chimiques naturelles"]],
+  ["Ada Yonath", "née en 1939", null, "Cristallographe israélienne, prix Nobel de chimie 2009 pour la structure du ribosome.", ["Structure des molécules", "Diffraction des rayons X"]],
+  ["Hélène Langevin-Joliot", "née en 1927", null, "Physicienne nucléaire française, petite-fille de Marie Curie, engagée pour la place des femmes en sciences.", ["Physique nucléaire", "Noyau atomique"]],
+  ["Sally Ride", "1951–2012", null, "Astronaute et physicienne américaine, première Américaine dans l'espace en 1983.", ["Mouvement des satellites (Tle)", "Lasers"]],
+  ["Mae Jemison", "née en 1956", null, "Médecin, ingénieure et astronaute américaine, première femme afro-américaine dans l'espace en 1992.", ["Exploration spatiale", "Apesanteur"]],
+  ["Claudie Haigneré", "née en 1957", null, "Médecin et astronaute française, première Française dans l'espace en 1996, puis ministre de la Recherche.", ["Exploration spatiale", "Mouvement en orbite (Tle)"]],
+  ["Shirley Ann Jackson", "née en 1946", null, "Physicienne américaine, première Afro-Américaine docteure du MIT. Ses recherches ont contribué aux télécommunications.", ["Physique des matériaux", "Télécommunications"]],
+  ["Françoise Combes", "née en 1952", null, "Astrophysicienne française, professeure au Collège de France, spécialiste de la formation des galaxies.", ["Galaxies", "Gravitation universelle"]],
+  ["Catherine Bréchignac", "née en 1946", null, "Physicienne française. Elle étudie les agrégats d'atomes et a présidé le CNRS.", ["Physique atomique", "Nanosciences"]],
+  ["Frances Arnold", "née en 1956", null, "Ingénieure chimiste américaine, prix Nobel 2018 pour l'évolution dirigée des enzymes.", ["Catalyse enzymatique (Tle)", "Chimie verte"]],
+  ["Andrea Ghez", "née en 1965", null, "Astrophysicienne américaine, prix Nobel 2020. Elle suit des étoiles en orbite autour du trou noir central de notre galaxie.", ["Lois de Kepler (Tle)", "Gravitation"]],
+  ["Donna Strickland", "née en 1959", null, "Physicienne canadienne, prix Nobel 2018 pour une méthode de production d'impulsions laser ultra-courtes et intenses.", ["Lasers", "Lumière et énergie"]],
+  ["Fabiola Gianotti", "née en 1960", null, "Physicienne italienne. Elle a annoncé la découverte du boson de Higgs en 2012 et dirige le CERN.", ["Particules élémentaires", "Masse et énergie"]],
+  ["Lisa Randall", "née en 1962", null, "Physicienne théoricienne américaine, spécialiste des particules et des dimensions supplémentaires.", ["Particules élémentaires", "Gravitation"]],
+  ["Emmanuelle Charpentier", "née en 1968", null, "Microbiologiste française, prix Nobel de chimie 2020 pour les « ciseaux moléculaires » CRISPR-Cas9.", ["Molécules du vivant", "Catalyse enzymatique"]],
+  ["Jennifer Doudna", "née en 1964", null, "Biochimiste américaine, prix Nobel de chimie 2020 avec Emmanuelle Charpentier pour CRISPR-Cas9.", ["Molécules du vivant", "Catalyse enzymatique"]],
+  ["Carolyn Bertozzi", "née en 1966", null, "Chimiste américaine, prix Nobel 2022 pour des réactions chimiques qui fonctionnent à l'intérieur des cellules vivantes.", ["Synthèse organique (Tle)", "Chimie click"]],
+  ["Anne L'Huillier", "née en 1958", null, "Physicienne franco-suédoise, prix Nobel 2023 pour des impulsions de lumière de l'ordre de l'attoseconde.", ["Lumière et électrons", "Ondes électromagnétiques"]],
+  ["Asima Chatterjee", "1917–2006", null, "Chimiste indienne. Elle étudie les molécules issues des plantes médicinales et met au point des médicaments contre l'épilepsie et le paludisme.", ["Extraction d'espèces naturelles (2nde)", "Chimie organique"]],
+  ["Bibha Chowdhuri", "1913–1991", null, "Physicienne indienne, pionnière de l'étude des rayons cosmiques.", ["Particules et rayonnements", "Physique nucléaire"]],
+  ["Toshiko Yuasa", "1909–1980", null, "Physicienne japonaise, première femme physicienne du Japon, spécialiste de la radioactivité β.", ["Radioactivité β (1re)", "Physique nucléaire"]],
+  ["Alice Ball", "1892–1916", null, "Chimiste afro-américaine. Elle met au point un traitement injectable contre la lèpre à partir d'une huile végétale.", ["Extraction et modification d'espèces chimiques", "Chimie organique"]],
+  ["Rachel Carson", "1907–1964", null, "Biologiste américaine. Son livre « Printemps silencieux » (1962) alerte sur les dangers des pesticides.", ["Chimie et environnement", "Pollution"]],
+  ["Inge Lehmann", "1888–1993", null, "Sismologue danoise. En étudiant les ondes sismiques, elle découvre que la Terre possède une graine solide.", ["Ondes mécaniques (Tle)", "Propagation des ondes"]],
+  ["Marie Tharp", "1920–2006", null, "Géologue et cartographe américaine. Elle réalise la première carte des fonds océaniques à partir de mesures par sonar.", ["Ondes sonores et sonar (2nde)", "Mesure de distances"]],
+  ["Maria Telkes", "1900–1995", null, "Physicienne et inventrice hongro-américaine, pionnière de l'énergie solaire thermique.", ["Énergie solaire", "Transferts thermiques (Tle)"]],
+  ["Edith Clarke", "1883–1959", null, "Ingénieure américaine, première femme ingénieure en électricité diplômée du MIT. Elle invente un calculateur pour les réseaux électriques.", ["Circuits électriques (2nde)", "Transport de l'électricité"]],
+  ["Lene Hau", "née en 1959", null, "Physicienne danoise. Elle a ralenti la lumière jusqu'à la vitesse d'un vélo, puis l'a arrêtée.", ["Vitesse de la lumière", "Interaction lumière-matière"]],
+  ["Nergis Mavalvala", "née en 1968", null, "Astrophysicienne pakistano-américaine, membre de l'équipe qui a détecté les ondes gravitationnelles en 2015.", ["Interférences (Tle)", "Ondes"]],
+  ["Gabriela González", "née en 1965", null, "Physicienne argentine. Elle a été porte-parole de la collaboration LIGO lors de la première détection d'ondes gravitationnelles.", ["Interférométrie (Tle)", "Ondes"]],
+  ["Sau Lan Wu", "née vers 1940", null, "Physicienne des particules sino-américaine, qui a participé aux découvertes du gluon et du boson de Higgs.", ["Particules élémentaires", "Accélérateurs"]],
+  ["Elsa Neumann", "1872–1902", null, "Physicienne allemande, première femme docteure de l'université de Berlin, pour ses travaux sur la polarisation électrique.", ["Électricité", "Piles et électrodes"]],
+  ["Patricia Bath", "1942–2019", null, "Ophtalmologue et inventrice américaine. Elle invente une sonde laser pour opérer la cataracte.", ["Lasers", "Optique de l'œil"]],
+  ["Katalin Karikó", "née en 1955", null, "Biochimiste hongroise, prix Nobel de médecine 2023 pour les travaux qui ont permis les vaccins à ARN messager.", ["Molécules du vivant", "Synthèse de molécules"]],
+  ["Hilde Levi", "1909–2003", null, "Physicienne germano-danoise, pionnière de l'utilisation des traceurs radioactifs en biologie.", ["Isotopes radioactifs", "Datation"]],
+  ["Ellen Ochoa", "née en 1958", null, "Ingénieure et astronaute américaine, première Hispano-Américaine dans l'espace, spécialiste des systèmes optiques.", ["Optique", "Exploration spatiale"]]
 ];
 const cleJour = d => { const x = new Date(d); x.setHours(12, 0, 0, 0); return Math.floor(x / 864e5); };
-function scientifiqueDuJour(){ const j = cleJour(now()), n = SCIENTIFIQUES.length; return SCIENTIFIQUES[((j * 37) % n + n) % n]; }
+/* jour pair : un homme, jour impair : une femme ; l'ordre est mélangé mais fixe */
+function scientifiqueDuJour(d){ const j = cleJour(d || now()), k = Math.floor(j / 2), L = j % 2 ? SCI_FEMMES : SCI_HOMMES, n = L.length; return L[((k * 37) % n + n) % n]; }
 const PHOTOS = {};
-async function photoWiki(titre){
-  if (PHOTOS[titre] !== undefined) return PHOTOS[titre];
-  try { const c = JSON.parse(localStorage.getItem("pp_wiki_" + titre) || "null"); if (c && c.t > Date.now() - 30 * 864e5) return PHOTOS[titre] = c.u; } catch (_) {}
-  PHOTOS[titre] = null;
-  try { const r = await fetch("https://fr.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titre)); if (r.ok) { const j = await r.json(); const u = (j.thumbnail && j.thumbnail.source) || (j.originalimage && j.originalimage.source) || ""; PHOTOS[titre] = u; try { localStorage.setItem("pp_wiki_" + titre, JSON.stringify({ u, t: Date.now() })); } catch (_) {} } } catch (_) {}
-  return PHOTOS[titre];
+async function infosWiki(nom, titre){
+  const cle = titre || nom; if (PHOTOS[cle] !== undefined) return PHOTOS[cle];
+  try { const c = JSON.parse(localStorage.getItem("pp_wiki2_" + cle) || "null"); if (c && c.t > Date.now() - 30 * 864e5) return PHOTOS[cle] = c; } catch (_) {}
+  PHOTOS[cle] = null;
+  const resume = async t => { const r = await fetch("https://fr.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(t)); if (!r.ok) return null; const j = await r.json(); if (j.type === "disambiguation") return null; return { u: (j.thumbnail && j.thumbnail.source) || "", lien: (j.content_urls && j.content_urls.desktop && j.content_urls.desktop.page) || "" }; };
+  try {
+    let x = await resume(titre || nom);
+    if (!x) { const r = await fetch("https://fr.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch=" + encodeURIComponent(nom)); const j = await r.json(); const t = j.query && j.query.search && j.query.search[0] && j.query.search[0].title; if (t) x = await resume(t); }
+    if (x) { x.t = Date.now(); PHOTOS[cle] = x; try { localStorage.setItem("pp_wiki2_" + cle, JSON.stringify(x)); } catch (_) {} }
+  } catch (_) {}
+  return PHOTOS[cle];
 }
+const lienWiki = (nom, titre) => titre ? "https://fr.wikipedia.org/wiki/" + encodeURIComponent(titre) : "https://fr.wikipedia.org/w/index.php?search=" + encodeURIComponent(nom) + "&go=Aller";
+const imgSci = (u, nom) => `<img src="${esc(u)}" alt="Portrait de ${esc(nom)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(initials(nom))}'}))">`;
 function blocScientifique(){
-  const [nom, dates, titre, bio, notions] = scientifiqueDuJour(), url = "https://fr.wikipedia.org/wiki/" + encodeURIComponent(titre), ph = PHOTOS[titre];
-  if (ph === undefined) photoWiki(titre).then(u => { document.querySelectorAll(`.sciphoto[data-t="${CSS.escape(titre)}"]`).forEach(z => { if (u) z.innerHTML = `<img src="${esc(u)}" alt="Portrait de ${esc(nom)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(initials(nom))}'}))"><em>${icon("ext")} Wikipédia</em>`; }); });
-  return `<section class="sciday"><a class="sciphoto" data-t="${esc(titre)}" href="${url}" target="_blank" rel="noopener" title="Lire sa biographie sur Wikipédia">${ph ? `<img src="${esc(ph)}" alt="Portrait de ${esc(nom)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(initials(nom))}'}))">` : `<span>${esc(initials(nom))}</span>`}<em>${icon("ext")} Wikipédia</em></a>
-    <div class="scitx"><small class="scilbl">${icon("atom")} Scientifique du jour</small><h2><a href="${url}" target="_blank" rel="noopener">${esc(nom)}</a> <span>${esc(dates)}</span></h2><p>${esc(bio)}</p>
+  const [nom, dates, titre, bio, notions] = scientifiqueDuJour(), cle = titre || nom, x = PHOTOS[cle], url = (x && x.lien) || lienWiki(nom, titre);
+  if (x === undefined) infosWiki(nom, titre).then(v => { document.querySelectorAll(`.sciday[data-t="${CSS.escape(cle)}"]`).forEach(z => {
+    if (v && v.u) { const p = z.querySelector(".sciphoto"); p.innerHTML = imgSci(v.u, nom) + `<em>${icon("ext")} Wikipédia</em>`; }
+    if (v && v.lien) z.querySelectorAll("a[data-wiki]").forEach(a => a.href = v.lien); }); });
+  return `<section class="sciday" data-t="${esc(cle)}"><a class="sciphoto" data-wiki="1" href="${esc(url)}" target="_blank" rel="noopener" title="Lire sa biographie sur Wikipédia">${x && x.u ? imgSci(x.u, nom) : `<span>${esc(initials(nom))}</span>`}<em>${icon("ext")} Wikipédia</em></a>
+    <div class="scitx"><small class="scilbl">${icon("atom")} Scientifique du jour</small><h2><a data-wiki="1" href="${esc(url)}" target="_blank" rel="noopener">${esc(nom)}</a> <span>${esc(dates)}</span></h2><p>${esc(bio)}</p>
       <div class="scinot"><b>Au programme :</b>${notions.map(n => `<span>${esc(n)}</span>`).join("")}</div></div></section>`;
 }
 /* ---------- rendu ---------- */

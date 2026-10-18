@@ -1529,3 +1529,23 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 .scinot b{color:var(--muted);font-weight:600;margin-right:2px}
 .scinot span{padding:3px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
 @media (max-width:600px){.sciday{flex-direction:column;align-items:flex-start;gap:12px;padding:14px}.sciphoto{width:96px;height:112px}}
+/* ---- Coin Perso ancré à droite, toute la hauteur (ordinateur) ---- */
+:root{--cp-w:400px}
+@media (min-width:601px){
+  #coinPerso{top:0!important;bottom:0;right:0;left:auto!important;width:var(--cp-w)!important;height:auto!important;min-width:0;max-width:none;border-radius:0;resize:none;box-shadow:-8px 0 24px rgba(60,50,0,.18);border-left:1px solid #e6d040;animation:cpslide .22s var(--ease);z-index:65}
+  html.cp-open body{margin-right:var(--cp-w)}
+  html.cp-open.side-open.side-droite body{margin-right:calc(var(--cp-w) + var(--side-w))}
+  html.side-open.side-droite #coinPerso{right:var(--side-w)}
+  #coinPerso .cphead{cursor:default}
+  html.cp-open .toplogo{display:none}
+  html.cp-open .quick .ql{display:none}
+  html.cp-open .quick a{min-width:0;padding:4px 3px}
+  html.cp-open .quick{scrollbar-width:thin}
+  html.cp-open .topbar .crumbs .sep,html.cp-open .topbar .crumbs .cur{display:none}
+  html.cp-open .topbar .crumbs{flex:0 0 auto}
+}
+#coinPerso .cpgrip{position:absolute;top:0;bottom:0;left:-5px;width:10px;z-index:3;cursor:col-resize;touch-action:none}
+#coinPerso .cpgrip::after{content:"";position:absolute;top:50%;left:3px;width:4px;height:44px;margin-top:-22px;border-radius:2px;background:#d8c235;opacity:.7}
+#coinPerso .cpgrip:hover::after{opacity:1;background:#b39b00}
+@media (max-width:600px){#coinPerso .cpgrip{display:none}}
+@keyframes cpslide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
