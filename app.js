@@ -2940,15 +2940,27 @@ const notifOk = () => typeof Notification !== "undefined" && Notification.permis
 const notifPossible = () => typeof Notification !== "undefined" && Notification.permission !== "denied";
 const cleNotif = () => "pp_urg_notif_" + (S.user && S.user.id);
 function clesUrgentes(){ return S.prof ? (S.urgents || []).filter(m => !m.lu).map(m => "m" + m.id) : (S.urgents || []).filter(m => m.reponse && m.repondu_le).map(m => "r" + m.id + "@" + m.repondu_le); }
-function bip(){ try { const A = new (window.AudioContext || window.webkitAudioContext)(), t = A.currentTime;
-  [[880, 0], [1320, .16]].forEach(([f, d]) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.25, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .14); o.connect(g).connect(A.destination); o.start(t + d); o.stop(t + d + .15); });
-  setTimeout(() => A.close(), 600); } catch (_) {} }
+/* son : le navigateur n'autorise le son qu'après un premier clic sur la page → on « déverrouille » au premier clic */
+let audioCtx = null;
+const ouvrirAudio = () => { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); } catch (_) {} };
+["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, ouvrirAudio, { capture: true, passive: true }));
+function bip(){ try { ouvrirAudio(); const A = audioCtx; if (!A) return; const t = A.currentTime + .05;
+  [[880, 0], [1320, .18], [880, .5], [1320, .68]].forEach(([f, d]) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.35, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .15); o.connect(g).connect(A.destination); o.start(t + d); o.stop(t + d + .16); });
+  } catch (_) {} }
+/* bandeau rouge dans la page, qui reste jusqu'à ce qu'on clique */
+function bandeauAlerte(titre, texte, ouvrir){
+  let z = document.getElementById("urgAlertes"); if (!z) { z = document.createElement("div"); z.id = "urgAlertes"; document.body.appendChild(z); }
+  const d = document.createElement("div"); d.className = "urgalerte"; d.setAttribute("role", "alert");
+  d.innerHTML = `<span class="ua-ico">${icon("urgent")}</span><div><b>${esc(titre)}</b><p>${esc(texte.slice(0, 160))}</p></div><button class="btn sm">Ouvrir</button><button class="ib sm" aria-label="Fermer">${icon("x")}</button>`;
+  const [b1, b2] = d.querySelectorAll("button"); b1.onclick = () => { d.remove(); ouvrir(); }; b2.onclick = () => d.remove();
+  z.appendChild(d);
+}
 /* titre de l'onglet qui clignote tant qu'on n'est pas revenu sur le site */
 let clignoT = null;
 function clignoter(msg){ clearInterval(clignoT); let on = false; const base = () => document.title.replace(/^⚠ .*? · /, "");
   clignoT = setInterval(() => { if (document.visibilityState === "visible" && document.hasFocus()) { clearInterval(clignoT); document.title = base(); titreAvecCompteur(); return; } on = !on; document.title = on ? "⚠ " + msg + " · " + base() : base(); }, 1000); }
 function notifier(titre, texte, ouvrir){
-  bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); toast(titre + " — " + texte.slice(0, 90));
+  bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); bandeauAlerte(titre, texte, ouvrir);
   if (!notifOk()) return;
   try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag: "pp-urgent-" + Date.now(), requireInteraction: true });
     n.onclick = () => { window.focus(); ouvrir(); n.close(); }; } catch (_) {}
