@@ -783,7 +783,7 @@ function vDevoirProf(d, c){
   const row = e => { const s = etat(d, e.email), cr = correctionDe(renduDe(d, e.email)); return `<button class="st" data-act="sel" data-n="${esc(e.email)}" aria-current="${sel === e.email}">${avatarP(e.nom, "sm")}<span class="nm">${esc(e.nom)}<small style="color:var(--${s.k === "bad" ? "bad" : s.k === "info" ? "accent" : "muted"})">${cr && cr.note != null && !cr.publiee ? "Brouillon" : s.t}${s.retard ? " · en retard" : ""}</small></span>${d.points != null ? `<span class="nt">${noteDe(e)}<span class="muted">/${d.points}</span></span>` : ""}</button>`; };
   let detail;
   if (!sel) {
-    detail = `<h2 style="font-size:1.3rem">${esc(d.titre)}</h2>${statsDevoir(d)}
+    detail = `<h2 style="font-size:1.3rem">${esc(d.titre)}</h2>${statsDevoir(d)}${statsAvancees(d)}
       <label class="accepte"><input type="checkbox" data-accepte="${d.id}" ${d.accepte !== false ? "checked" : ""}><i></i><span>${d.accepte !== false ? "Devoirs acceptés" : "Devoirs non acceptés"}</span>
         <span class="info" title="Quand les devoirs ne sont pas acceptés, les élèves ne peuvent plus rendre leur travail ni annuler leur envoi. Tu peux rouvrir la remise à tout moment.">${icon("question")}</span></label>
       ${d.accepte === false ? `<p class="muted" style="margin:-6px 0 0;font-size:.85rem">La remise est verrouillée : les élèves voient « Ton professeur n'accepte plus de devoirs pour ce travail ».</p>` : ""}
@@ -1294,8 +1294,8 @@ function vModal(){
   else if (m.kind === "autrescours") { body = `<h2>Ajouter à un autre cours</h2><p class="muted" style="margin:0">${m.emails.length} élève${m.emails.length > 1 ? "s" : ""} sélectionné${m.emails.length > 1 ? "s" : ""}.</p>
       <div class="ciblelist">${actives().filter(c => c.id !== m.from).map(c => `<label class="check"><input type="checkbox" class="mDest" value="${esc(c.id)}"> ${esc(c.nom)}</label>`).join("") || `<span class="muted">Aucun autre cours actif.</span>`}</div>`; ok = "Ajouter"; }
   else if (m.kind === "copiercours") { body = `<h2>Copier « ${esc(m.nom)} »</h2>
-      <div class="field"><label for="mNomCopie">Nom du nouveau cours</label><input id="mNomCopie" value="${esc("Copie de " + m.nom)}"></div>
-      <p class="muted" style="margin:0;font-size:.85rem">Comme dans Classroom : les thèmes, devoirs, questions, questionnaires et documentations sont copiés en <b>brouillon</b>. Les élèves, les annonces, les travaux rendus et les notes ne sont pas copiés.</p>`; ok = "Copier"; }
+      <div class="field"><label for="mNomCopie">Nom du nouveau cours</label><input id="mNomCopie" value="${esc(/(\d{2})-(\d{2})/.test(m.nom) ? m.nom.replace(/(\d{2})-(\d{2})/, (x, a, b) => String(+a + 1).padStart(2, "0") + "-" + String(+b + 1).padStart(2, "0")) : "Copie de " + m.nom)}"></div>
+      <p class="muted" style="margin:0;font-size:.85rem">Comme dans Classroom : les thèmes, devoirs, questions, questionnaires et documentations sont copiés en <b>brouillon</b>. Idéal pour préparer l'année suivante : l'année du nom (ex. 26-27) est avancée d'un an. Les élèves, les annonces, les travaux rendus et les notes ne sont pas copiés.</p>`; ok = "Copier"; }
   else if (m.kind === "newclass") { body = `<h2>Créer un cours</h2>
     <div class="field"><label for="mNom">Nom du cours *</label><input id="mNom" placeholder="ex. Ter. G2 SPE SPC 26-27"></div>
     <div class="field"><label for="mSection">Section</label><input id="mSection" placeholder="ex. Spécialité physique-chimie"></div>
@@ -2203,7 +2203,7 @@ function vSuivi(){
       ${lignes.map(l => `<tr class="suivirow ${l.manq ? "alerte" : ""}" data-act="toggle" data-id="sv${esc(l.e.email)}"><td class="first"><span class="who2">${avatarP(l.e.nom, "sm")}<b>${esc(l.e.nom)}</b></span></td>
         <td class="mono"><b>${l.moy == null ? "–" : fmtNote(arrondi1(l.moy))}</b></td><td>${l.rendus}/${l.n}</td><td>${l.manq ? `<span class="pill bad">${l.manq}</span>` : "0"}</td><td>${l.retard ? `<span class="pill">${l.retard}</span>` : "0"}</td><td class="muted">${l.dernier ? fmtShort(l.dernier) : "—"}</td></tr>
         ${S.open === "sv" + l.e.email ? `<tr><td colspan="6" class="suividetail">${l.et.length ? l.et.map(x => `<a href="#/devoir/${x.d.id}"><span class="pill ${x.s.k}">${x.s.t}${x.s.retard ? " · retard" : ""}</span> ${esc(x.d.titre)} ${x.s.t === "Noté" && x.s.note != null ? `<b class="mono">${fmtNote(x.s.note)}/${x.d.points}</b>` : ""}</a>`).join("") : `<span class="muted">Aucun devoir.</span>`}
-          <a href="${esc(outlookLink([l.e.email], "", ""))}" target="_blank" rel="noopener">${icon("mail")} Écrire à l'élève</a></td></tr>` : ""}`).join("")}
+          <a href="${esc(outlookLink([l.e.email], "", ""))}" target="_blank" rel="noopener">${icon("mail")} Écrire à l'élève</a><a href="#" data-act="bilanpdf" data-c="${esc(c.id)}" data-e="${esc(l.e.email)}">${icon("down")} Bilan PDF</a></td></tr>` : ""}`).join("")}
     </tbody></table></div>` : `<div class="emptystate"><b>Aucun élève dans ce cours.</b></div>`}${tableCompetencesClasse(c)}${pageFoot()}</div>`;
 }
 function exporterSuivi(cid){
@@ -3699,6 +3699,7 @@ function blocTableauDeBord(){
       + tuile("#/rendezvous", "rdv", rdvJour == null ? "…" : rdvJour, "rendez-vous aujourd'hui", rdvJour ? "info" : "", crs.length ? crs.length + " créneau" + (crs.length > 1 ? "x" : "") + " prévu" + (crs.length > 1 ? "s" : "") : "")
       + tuile("#/suivi", "alerte", alertes, alertes > 1 ? "élèves à surveiller" : "élève à surveiller", alertes ? "warn" : "ok", alertes ? "décrochage possible" : "Tout va bien")
       + tuile("#/preparateur", "flask", S.demandes ? tps.length : "…", "TP cette semaine", tps.some(x => x.statut === "brouillon") ? "warn" : "", tps.length ? tps.filter(x => x.statut === "prete").length + " prêt(s) · " + tps.filter(x => x.statut === "brouillon").length + " à envoyer" : "")
+      + (() => { const n = [...S.devoirs, ...S.quiz].filter(o => !o.brouillon && o.publie_le && D(o.publie_le) > t).length; return n ? tuile("#/programmes", "cal", n, n > 1 ? "publications programmées" : "publication programmée", "info", "apparaîtront automatiquement") : ""; })()
       + (prochain ? tuile(`#/devoir/${prochain.id}`, "cal", fmtShort(D(prochain.date_limite)), "prochaine échéance", "", esc(prochain.titre)) : "");
   } else {
     const dvs = S.devoirs.filter(d => vis(d) && D(d.publie_le) <= t);
@@ -3723,7 +3724,7 @@ function indexRecherche(){
   const L = [], t = now();
   const pages = [["#/", "home", "Accueil"], ["#/agenda", "cal", "Agenda"], ["#/semaine", "week", "Ma semaine"], [S.prof ? "#/todo" : "#/todo", "todo", S.prof ? "Toutes les copies à corriger" : "À faire"], ["#/rendezvous", "rdv", "Rendez-vous"],
     ["#/outils", "tools", "Boîte à outils"], ["#/physique", "flask", "Outils de physique (unités, tableau périodique, constantes, courbes)"], ["#/simulations", "eye", "Simulations (PhET, GeoGebra…)"], ["#/revisions", "quiz", "Fiches de révision et flashcards"], ["#/admin/profil", "gear", "Paramètres"]];
-  if (S.prof) pages.push(["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/preparateur", "flask", "Demande de matériel au préparateur"], ["#/archives", "archive", "Cours archivés"]);
+  if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/preparateur", "flask", "Demande de matériel au préparateur"], ["#/archives", "archive", "Cours archivés"]);
   pages.forEach(([h, ic, n]) => L.push({ t: "Page", ic, n, h }));
   L.push({ t: "Action", ic: "note", n: "Ouvrir le Coin Perso", act: "coinperso" });
   if (S.prof) { L.push({ t: "Action", ic: "plus", n: "Créer un cours", act: "newclass" }); actives().forEach(c => { L.push({ t: "Action", ic: "devoir", n: "Nouveau devoir · " + c.nom, h: `#/editer/devoir/new/${c.id}` }); L.push({ t: "Action", ic: "support", n: "Nouvelle documentation · " + c.nom, h: `#/editer/documentation/new/${c.id}` }); }); }
@@ -3886,6 +3887,87 @@ function panneauA11y(){
   setTimeout(() => { const f = box.querySelector(".thbtn.on"); if (f) f.focus(); }, 30);
 }
 document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="accessib"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); fermerMenus(); render(); panneauA11y(); }, true);
+
+/* ---------- #19 Statistiques d'un devoir ---------- */
+IC.chart = '<path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6M20 16v-9"/>';
+function statsAvancees(d){
+  const notes = rendusDe(d).map(r => correctionDe(r)).filter(c => c && c.note != null).map(c => Number(c.note));
+  const cors = rendusDe(d).map(r => correctionDe(r)).filter(Boolean);
+  if (!notes.length && !cors.some(c => c.competences)) return "";
+  const sur = d.points || 20, tri = notes.slice().sort((a, b) => a - b), n = tri.length;
+  const moy = n ? tri.reduce((a, b) => a + b, 0) / n : null, med = n ? (n % 2 ? tri[(n - 1) / 2] : (tri[n / 2 - 1] + tri[n / 2]) / 2) : null;
+  const et = n ? Math.sqrt(tri.reduce((a, x) => a + (x - moy) ** 2, 0) / n) : null;
+  const tranches = 5, pas = sur / tranches, H = [...Array(tranches)].map((_, i) => tri.filter(x => i === tranches - 1 ? x >= i * pas : x >= i * pas && x < (i + 1) * pas).length), hmax = Math.max(1, ...H);
+  const histo = n ? `<div class="histo" role="img" aria-label="Répartition des notes">${H.map((h, i) => `<div class="hcol"><span class="hval">${h || ""}</span><i style="height:${Math.round(h / hmax * 100)}%" class="${i < tranches / 2 - .5 ? "bas" : i >= tranches - 1 ? "haut" : ""}"></i><small>${fmtNote(i * pas)}–${fmtNote((i + 1) * pas)}</small></div>`).join("")}</div>` : "";
+  const G = d.grille && d.grille.length ? d.grille : null;
+  const crit = G ? G.map((g, i) => { const v = cors.map(c => c.grille && c.grille[i]).filter(x => x != null).map(Number); const m = v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; return { c: g.c, p: g.p, m, r: m == null ? null : m / g.p }; }) : [];
+  const comp = COMP.map(([k, l]) => { const v = cors.map(c => c.competences && c.competences[k]).filter(Boolean); if (!v.length) return null; const sc = v.reduce((a, x) => a + ({ A: 4, B: 3, C: 2, D: 1 }[x] || 0), 0) / v.length; return { k, l, sc, n: v.length, faibles: v.filter(x => x === "C" || x === "D").length }; }).filter(Boolean).sort((a, b) => a.sc - b.sc);
+  return `<details class="statsav" open><summary>${icon("chart")} <b>Statistiques</b> <span class="muted">${n} note${n > 1 ? "s" : ""} saisie${n > 1 ? "s" : ""}</span></summary>
+    ${n ? `<div class="statchiffres"><div><b>${fmtNote(Math.round(moy * 100) / 100)}</b><small>moyenne /${sur}</small></div><div><b>${fmtNote(med)}</b><small>médiane</small></div><div><b>${fmtNote(tri[0])} – ${fmtNote(tri[n - 1])}</b><small>min – max</small></div><div><b>${fmtNote(Math.round(et * 100) / 100)}</b><small>écart-type</small></div><div><b>${Math.round(tri.filter(x => x >= sur / 2).length / n * 100)} %</b><small>≥ la moyenne</small></div></div>${histo}` : ""}
+    ${crit.length ? `<div class="statbloc"><b>Critères de la grille</b>${crit.map(x => `<div class="critligne"><span>${esc(x.c)}</span><span class="critbar"><i style="width:${x.r == null ? 0 : Math.round(x.r * 100)}%" class="${x.r != null && x.r < .5 ? "bas" : ""}"></i></span><span class="mono">${x.m == null ? "–" : fmtNote(Math.round(x.m * 100) / 100)}/${x.p}</span></div>`).join("")}</div>` : ""}
+    ${comp.length ? `<div class="statbloc"><b>Compétences (de la moins à la plus acquise)</b>${comp.map(x => `<div class="critligne"><span>${esc(x.l)}</span><span class="critbar"><i style="width:${Math.round((x.sc - 1) / 3 * 100)}%" class="${x.sc < 2.5 ? "bas" : ""}"></i></span><span class="muted" style="font-size:.78rem">${x.faibles ? x.faibles + " élève(s) en C/D" : "acquise"}</span></div>`).join("")}
+      ${comp[0].sc < 2.5 ? `<p class="statconseil">${icon("alerte")} Remédiation conseillée : <b>${esc(comp[0].l)}</b>.</p>` : ""}</div>` : ""}
+    <div class="statactions"><button class="btn ghost sm" data-act="pronotecopier" data-d="${d.id}">${icon("copy")} Copier les notes pour Pronote</button><button class="btn ghost sm" data-act="pronotecsv" data-d="${d.id}">${icon("down")} Exporter (Excel)</button></div>
+  </details>`;
+}
+
+/* ---------- #12 Exports : notes pour Pronote, bilan PDF d'un élève ---------- */
+function lignesNotesDevoir(d){
+  const c = cls(d.classe_id), el = elevesDuDevoir(d, inscritsDe(d.classe_id)).slice();
+  el.sort((a, b) => { const x = cleNom(a.nom), y = cleNom(b.nom); return (x.nom + " " + x.prenom).localeCompare(y.nom + " " + y.prenom, "fr"); });
+  return el.map(e => { const s = etat(d, e.email), cr = s.r ? correctionDe(s.r) : null, k = cleNom(e.nom);
+    return { nom: k.nom.toUpperCase(), prenom: k.prenom.replace(/(^|[\s-])\S/g, m => m.toUpperCase()), email: e.email, note: cr && cr.note != null ? cr.note : null, statut: s.t }; });
+}
+document.addEventListener("click", async e => {
+  const a = e.target.closest && e.target.closest('[data-act="pronotecopier"],[data-act="pronotecsv"],[data-act="bilanpdf"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  if (a.dataset.act === "bilanpdf") { a.disabled = true; try { await bilanPdf(a.dataset.c, a.dataset.e); } catch (er) { toast("PDF impossible : " + (er.message || er)); } a.disabled = false; return; }
+  const d = S.devoirs.find(x => String(x.id) === a.dataset.d); if (!d) return; const L = lignesNotesDevoir(d);
+  if (a.dataset.act === "pronotecopier") {
+    const txt = L.map(x => x.note == null ? (x.statut === "Manquant" ? "Abs" : "") : String(x.note).replace(".", ",")).join("\n");
+    try { await navigator.clipboard.writeText(txt); toast(`${L.length} notes copiées (ordre alphabétique) : dans Pronote, clique dans la 1re case de la colonne puis Ctrl+V.`); } catch (_) { toast("Copie impossible : utilise plutôt l'export Excel."); }
+  } else {
+    const rows = [["Nom", "Prénom", "Note /" + (d.points || 20), "Statut", "Adresse"], ...L.map(x => [x.nom, x.prenom, x.note == null ? "" : String(x.note).replace(".", ","), x.statut, x.email])];
+    telecharger("notes-" + sansAccent(d.titre).replace(/[^a-z0-9]+/g, "-").slice(0, 40) + "-" + ymd(now()) + ".csv", csv(rows), "text/csv;charset=utf-8");
+  }
+}, true);
+async function bilanPdf(cid, email){
+  const c = cls(cid); if (!c) return; await chargerScript(JSPDF, () => window.jspdf);
+  const e = inscritsDe(cid).find(x => x.email === email) || { nom: nomDepuisEmail(email), email };
+  const uid = Object.keys(S.profils || {}).find(id => S.profils[id] === email);
+  const dv = S.devoirs.filter(d => d.classe_id === cid && !d.brouillon && D(d.publie_le) <= now() && (!d.eleves || d.eleves.includes(email)));
+  const m = moyenneDe(c, email, uid, false).moy;
+  const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" }), W = 210; let y = 18;
+  const coul = { pc: [42, 99, 194], snt: [61, 139, 44], si: [194, 53, 53], tech: [138, 106, 8] }[c.couleur] || [17, 100, 130];
+  doc.setFillColor(...coul); doc.rect(0, 0, W, 34, "F"); doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.text("Bilan de l'élève", 14, 15);
+  doc.setFontSize(11); doc.setFont("helvetica", "normal"); doc.text(`${c.nom}${c.section ? " · " + c.section : ""}`, 14, 23); doc.text(`Édité le ${now().toLocaleDateString("fr-FR")} · ${R().prof.nom}`, 14, 29);
+  y = 46; doc.setTextColor(11, 31, 40); doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.text(e.nom, 14, y);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(83, 105, 115); doc.text(e.email, 14, y + 6);
+  doc.setFontSize(26); doc.setTextColor(...coul); doc.setFont("helvetica", "bold"); doc.text(m == null ? "–" : fmtNote(arrondi1(m)), W - 14, y + 2, { align: "right" }); doc.setFontSize(10); doc.text("moyenne /20", W - 14, y + 8, { align: "right" });
+  const et = dv.map(d => ({ d, s: etat(d, email) }));
+  const rendus = et.filter(x => x.s.r).length, manq = et.filter(x => x.s.t === "Manquant").length, ret = et.filter(x => x.s.retard).length;
+  y += 18; doc.setTextColor(11, 31, 40); doc.setFontSize(10); doc.setFont("helvetica", "normal");
+  [["Travaux rendus", rendus + " / " + dv.length], ["Manquants", String(manq)], ["Rendus en retard", String(ret)]].forEach(([l, v], i) => { const x = 14 + i * 62; doc.setDrawColor(217, 228, 232); doc.roundedRect(x, y, 58, 16, 2, 2); doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.text(v, x + 4, y + 7); doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(l, x + 4, y + 13); });
+  y += 26; doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Détail des travaux", 14, y); y += 6;
+  doc.setFontSize(9); doc.setFillColor(233, 238, 246); doc.rect(14, y - 4, W - 28, 7, "F"); doc.text("Travail", 16, y); doc.text("Échéance", 120, y); doc.text("Statut", 150, y); doc.text("Note", W - 16, y, { align: "right" }); y += 7; doc.setFont("helvetica", "normal");
+  et.forEach(({ d, s }) => { if (y > 270) { doc.addPage(); y = 20; } const t = doc.splitTextToSize(d.titre, 100); doc.text(t, 16, y); doc.text(d.date_limite ? D(d.date_limite).toLocaleDateString("fr-FR") : "—", 120, y); doc.text(s.t + (s.retard ? " (retard)" : ""), 150, y);
+    doc.text(s.t === "Noté" && s.note != null ? fmtNote(s.note) + "/" + (d.points || 20) : "", W - 16, y, { align: "right" }); y += 5 * t.length + 2; doc.setDrawColor(235); doc.line(14, y - 3, W - 14, y - 3); });
+  const comps = {}; et.forEach(({ s }) => { const cr = s.c; if (cr && cr.publiee && cr.competences) Object.entries(cr.competences).forEach(([k, v]) => (comps[k] = comps[k] || []).push(v)); });
+  if (Object.keys(comps).length) { y += 6; if (y > 250) { doc.addPage(); y = 20; } doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Compétences", 14, y); y += 7; doc.setFontSize(9.5); doc.setFont("helvetica", "normal");
+    COMP.forEach(([k, l]) => { const v = comps[k]; if (!v) return; const sc = v.reduce((a, x) => a + ({ A: 4, B: 3, C: 2, D: 1 }[x] || 0), 0) / v.length; doc.text(l, 16, y); doc.setFillColor(233, 238, 246); doc.rect(80, y - 3, 90, 4, "F"); doc.setFillColor(...(sc < 2.5 ? [192, 57, 43] : coul)); doc.rect(80, y - 3, 90 * (sc - 1) / 3, 4, "F"); doc.text(v.join(" "), W - 16, y, { align: "right" }); y += 7; }); }
+  doc.setFontSize(8); doc.setTextColor(140); doc.text("PhysiquePro · Lycée franco-libanais Verdun", 14, 290);
+  doc.save(`bilan-${sansAccent(e.nom).replace(/[^a-z0-9]+/g, "-")}-${sansAccent(c.nom).replace(/[^a-z0-9]+/g, "-").slice(0, 30)}.pdf`);
+}
+
+/* ---------- #10 Publications programmées : liste sur une page ---------- */
+VUES_PRO.programmes = function(){
+  if (!S.prof) return VUES_PRO.semaine();
+  const t = now(), L = [...S.devoirs.map(d => ({ o: d, k: "devoir", h: "#/devoir/" + d.id })), ...S.quiz.map(q => ({ o: q, k: "quiz", h: "#/quiz/" + q.id }))].filter(x => !x.o.brouillon && x.o.publie_le && D(x.o.publie_le) > t).sort((a, b) => D(a.o.publie_le) - D(b.o.publie_le));
+  const sup = Object.entries(S.cache).flatMap(([cid, data]) => (data.supports || []).filter(s => !s.brouillon && s.publie_le && D(s.publie_le) > t).map(s => ({ o: { ...s, classe_id: cid }, k: "support", h: `#/classe/${cid}/travaux` })));
+  const tout = [...L, ...sup].sort((a, b) => D(a.o.publie_le) - D(b.o.publie_le));
+  return `<div class="page"><div class="homehead"><h1>Publications programmées</h1></div><p class="muted" style="margin:0">Ces éléments apparaîtront automatiquement aux élèves à la date indiquée. Pour programmer : dans l'éditeur, choisis « Programmer » au lieu de « Publier ».</p>
+    ${tout.length ? `<section class="group">${tout.map(x => { const c = cls(x.o.classe_id); return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${x.h}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(x.k === "quiz" ? "quiz" : x.k === "support" ? "support" : "devoir", "")}</span><span class="tt">${esc(x.o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${icon("cal")} ${fmtD(D(x.o.publie_le))}, ${fmtT(D(x.o.publie_le))}</span></a></div>`; }).join("")}</section>`
+      : `<div class="emptystate"><b>Aucune publication programmée.</b><span>Les documentations des cours que tu n'as pas encore ouverts dans cette session ne sont pas listées.</span></div>`}${pageFoot()}</div>`;
+};
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;

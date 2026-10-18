@@ -1357,3 +1357,25 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 :root[data-theme="dark"] #coinPerso{filter:saturate(.9) brightness(.95)}
 :root[data-theme="dark"] .cbadge{background:#0F2028;color:#F28B82}
 .thmenu ~ a{justify-content:flex-start!important;gap:10px}
+/* ---- #19 statistiques d'un devoir ---- */
+.statsav{border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px;background:var(--surface)}
+.statsav summary{cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none}
+.statsav summary::-webkit-details-marker{display:none}
+.statsav summary .i{width:18px;height:18px;color:var(--accent)}
+.statchiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin:12px 0}
+.statchiffres div{display:grid;padding:8px 10px;border-radius:var(--r);background:var(--surface-2)}
+.statchiffres b{font:700 1.15rem var(--display)}
+.statchiffres small{color:var(--muted);font-size:.72rem}
+.histo{display:flex;align-items:flex-end;gap:8px;height:140px;padding:8px 4px 0;border-bottom:1px solid var(--line)}
+.hcol{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px}
+.hcol i{width:100%;max-width:60px;min-height:2px;border-radius:6px 6px 0 0;background:var(--accent);transition:height .6s var(--ease)}
+.hcol i.bas{background:var(--bad)} .hcol i.haut{background:var(--ok)}
+.hcol small{font:500 .66rem var(--mono);color:var(--muted);white-space:nowrap;margin-bottom:-18px}
+.hval{font:700 .75rem var(--body)}
+.statbloc{display:grid;gap:6px;margin-top:22px}
+.critligne{display:grid;grid-template-columns:minmax(110px,170px) 1fr 120px;gap:10px;align-items:center;font-size:.85rem}
+.critbar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.critbar i{display:block;height:100%;border-radius:inherit;background:var(--ok)}
+.critbar i.bas{background:var(--bad)}
+.statconseil{margin:6px 0 0;padding:8px 10px;border-radius:var(--r);background:var(--warn-bg);color:var(--warn);font-size:.85rem;display:flex;gap:6px;align-items:center}
+.statactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
