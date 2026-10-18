@@ -258,7 +258,7 @@ function drawer(r){
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
     <a class="it" href="#/todo" ${cur("todo")}>${icon(S.prof ? "check" : "todo")}<span class="lbl">${S.prof ? "À corriger" : "À faire"}</span></a>
-    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl">Préparateur</span></a>` : ""}
+    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl lbl2">Demande de matériel au Préparateur de Labo</span></a>` : ""}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl">Rendez-vous</span></a>
     ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
@@ -2961,7 +2961,7 @@ function vPreparateur(){
         <button class="btn ghost sm" data-act="dmprint" data-id="${x.id}">${icon("print")} Imprimer</button>
         ${x.statut !== "prete" ? `<button class="btn ghost sm" data-act="dmstat" data-id="${x.id}" data-s="prete">${icon("check")} Matériel prêt</button>` : `<button class="btn ghost sm" data-act="dmstat" data-id="${x.id}" data-s="envoyee">Pas encore prêt</button>`}
         <button class="ib sm" data-act="dmsuppr" data-id="${x.id}" title="Supprimer" aria-label="Supprimer la demande">${icon("trash")}</button></div></article>`; };
-  return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">${icon("flask")} Demandes au préparateur</h1><button class="btn" data-act="dmnew">${icon("plus")} Nouvelle demande</button></div>
+  return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">${icon("flask")} Demande de matériel au Préparateur de Labo</h1><button class="btn" data-act="dmnew">${icon("plus")} Nouvelle demande</button></div>
     <p class="muted" style="margin:0">Prépare la liste des solutions et du matériel pour chaque TP, puis envoie-la en un clic par Outlook à ${emailPrep() ? "<b>" + esc(emailPrep()) + "</b>" : "ton préparateur (son adresse te sera demandée la première fois)"}.${emailPrep() ? ` <button class="linkbtn" data-act="dmprep">Changer l'adresse</button>` : ""}</p>
     ${L.length ? `<div class="urglist">${L.map(carte).join("")}</div>` : `<div class="emptystate"><b>Aucune demande pour l'instant.</b><span>Crée ta première demande, ou ouvre un TP et clique sur « Demande au préparateur ».</span></div>`}${pageFoot()}</div>`;
 }
@@ -3346,7 +3346,7 @@ async function render(){
     }
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + (S.modal ? vModal() : "");
-    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Préparateur", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
+    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
       document.title = (r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro"; }
     { const pg = app.querySelector("main.content > .page"); if (pg && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };

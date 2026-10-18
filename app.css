@@ -1014,3 +1014,5 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 :root[data-theme="dark"] .toplogo{background:#fff;border-radius:8px;padding:3px 6px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toplogo{background:#fff;border-radius:8px;padding:3px 6px}}
 @media (max-width:1250px){.toplogo{display:none}}
+.drawer .it .lbl.lbl2{white-space:normal;overflow:visible;line-height:1.2}
+.drawer .it:has(.lbl2){height:auto;min-height:48px;padding-top:6px;padding-bottom:6px}
