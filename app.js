@@ -111,7 +111,7 @@ const ICI = location.origin + location.pathname;
 
 /* ---------- réglages du site (modifiables dans Administration) ---------- */
 const COULEURS = [["pc","Bleu"],["snt","Vert"],["si","Rouge"],["tech","Ocre"],["pix","Bleu pétrole"]];
-const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
+const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["logo-numworks","Logo NumWorks (calculatrice)"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
 const clone = o => JSON.parse(JSON.stringify(o));
 function appliquerReglages(d){
   d = d || {};
@@ -227,7 +227,7 @@ function vLogin(message, info){
 const messageErreur = desc => /Database error saving new user|non autoris/i.test(desc) ? "Cette adresse n'est pas autorisée : seules les adresses @" + esc(CFG.domaine) + " peuvent se connecter." : "La connexion a échoué : " + esc(desc);
 
 /* ---------- barre du haut ---------- */
-const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png" };
+const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png", "logo-numworks": "logo-numworks.png" };
 function quickIcon(k){
   if (LOGOS_RAPIDES[k]) return `<img class="qlogo" src="${LOGOS_RAPIDES[k]}" alt="">`;
   if (k === "pronote") return `<b class="qp">P</b>`;
@@ -242,7 +242,7 @@ function topbar(r){
     <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof || S.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof || S.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}${l.icone === "logo-numworks" ? " qcalc" + (document.getElementById("calcPanel") ? " on" : "") : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
     ${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
       ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
@@ -2841,7 +2841,7 @@ function topbarPublic(){
   return `<header class="topbar pubtop">
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a></div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${l.icone === "logo-numworks" ? " qcalc" + (document.getElementById("calcPanel") ? " on" : "") : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
   </header>`;
 }
 function cartePublique(c){
@@ -3389,43 +3389,182 @@ async function actionRdv(act, a){
   if (act === "rdvretire") { const { error } = await sb.from("rdv_reservations").delete().eq("creneau_id", Number(a.dataset.c)).eq("eleve", a.dataset.e); if (error) return toast(error.message); await chargerRdv(); render(); return; }
   if (act === "rdvsuppr") { const s = S.rdv.series.find(x => String(x.id) === a.dataset.id); S.modal = { kind: "confirm", action: "rdvsuppr", id: s.id, titre: "Supprimer « " + s.titre + " » ?", texte: "Tous les créneaux et les inscriptions des élèves sont supprimés.", ok: "Supprimer" }; render(); return; }
 }
-/* ---------- Coin Perso : bloc-notes jaune personnel, enregistré tout seul ---------- */
+/* ---------- Coin Perso : bloc-notes jaune personnel, mis en forme, déplaçable, enregistré tout seul ---------- */
+IC.ext = '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>';
 IC.note = '<path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/>';
-const CP = { charge: false, txt: "", t: null, envoi: false };
+IC.cpb = '<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>';
+IC.cpi = '<path d="M10 5h8M6 19h8M14 5l-4 14"/>';
+IC.cpu = '<path d="M7 4v7a5 5 0 0 0 10 0V4M5 20h14"/>';
+IC.cps = '<path d="M5 12h14M16 6.5C15 5 13.6 4.5 12 4.5c-2.5 0-4 1.3-4 3.2M8 17.5c1 1.4 2.4 2 4 2 2.6 0 4.2-1.3 4.2-3.3"/>';
+IC.cphl = '<path d="m9 15 6-11 4 2.2-6 11z"/><path d="M8 17.5 9 15l4 2.2-2 1.8z"/>';
+IC.cpa = '<path d="M6 17 11 5h2l5 12M8 13h8"/>';
+IC.cpul = '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>';
+IC.cpol = '<path d="M10 6h10M10 12h10M10 18h10M4 4.5h1.5V9M4 9h3M4 14.5c.4-.6 1-.9 1.6-.9.8 0 1.4.5 1.4 1.2 0 1.1-3 2.2-3 3.7h3"/>';
+IC.cpal = '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>';
+IC.cpac = '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>';
+IC.cpar = '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>';
+IC.cpclr = '<path d="M6 17 11 5h2l2.6 6.2M8 13h5M14 15l6 6M20 15l-6 6"/>';
+IC.cplk = '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>';
+IC.cpdrag = '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>';
+const CP = { charge: false, html: "", t: null, sel: null };
+const CP_POLICES = [["", "Police du site"], ["Calibri, Carlito, sans-serif", "Calibri"], ["Arial, Helvetica, sans-serif", "Arial"], ["'Times New Roman', Times, serif", "Times New Roman"], ["Georgia, serif", "Georgia"], ["Verdana, sans-serif", "Verdana"], ["'Courier New', monospace", "Courier New"], ["'Comic Sans MS', 'Comic Neue', cursive", "Comic Sans MS"]];
+const CP_TAILLES = [10, 11, 12, 14, 16, 18, 20, 24, 28, 36];
+const CP_COULEURS = ["#000000", "#5f6368", "#c5221f", "#e8710a", "#f9ab00", "#188038", "#1a73e8", "#174ea6", "#9334e6", "#ffffff"];
+const CP_SURLIGN = ["#fff475", "#ccff90", "#a7ffeb", "#aecbfa", "#fdcfe8", "#ffd8a8", "transparent"];
+/* --- nettoyage : seules les mises en forme simples sont gardées (pas de script, pas d'image) --- */
+const CP_BALISES = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "SPAN", "FONT", "A", "UL", "OL", "LI", "DIV", "P", "BR", "H1", "H2", "H3", "BLOCKQUOTE", "SUB", "SUP"]);
+const CP_STYLES = ["color", "background-color", "font-family", "font-size", "font-weight", "font-style", "text-decoration", "text-decoration-line", "text-align"];
+function cpNettoyer(html){
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html"), racine = doc.body.firstChild;
+  const net = n => { [...n.childNodes].forEach(c => {
+    if (c.nodeType === 3) return;
+    if (c.nodeType !== 1 || /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|IMG|SVG|MATH|LINK|META|FORM|INPUT|TEXTAREA|BUTTON|SELECT)$/.test(c.tagName)) { c.remove(); return; }
+    if (!CP_BALISES.has(c.tagName)) { net(c); c.replaceWith(...c.childNodes); return; }
+    const garde = {};
+    if (c.tagName === "A") { const h = c.getAttribute("href") || ""; if (/^(https?:|mailto:)/i.test(h)) { garde.href = h; garde.target = "_blank"; garde.rel = "noopener"; } }
+    if (c.tagName === "FONT") ["color", "face", "size"].forEach(a => { const v = c.getAttribute(a); if (v && /^[#\w\s,'"-]{1,80}$/.test(v)) garde[a] = v; });
+    const st = []; CP_STYLES.forEach(p => { const v = c.style && c.style.getPropertyValue(p); if (v && !/url\(|expression|javascript/i.test(v)) st.push(`${p}:${v}`); });
+    [...c.attributes].forEach(a => c.removeAttribute(a.name));
+    Object.entries(garde).forEach(([k, v]) => c.setAttribute(k, v)); if (st.length) c.setAttribute("style", st.join(";"));
+    net(c);
+  }); };
+  net(racine); return racine.innerHTML;
+}
+/* anciennes notes en texte brut → HTML */
+const cpVersHtml = t => /<\/?(b|i|u|s|span|font|a|ul|ol|li|div|p|br|h[1-3]|strong|em)\b/i.test(t) ? cpNettoyer(t) : esc(t).replace(/\n/g, "<br>");
 async function chargerCoinPerso(){
   if (CP.charge) return;
-  try { const r = await sb.from("notes_perso").select("contenu").eq("id", S.user.id).maybeSingle(); CP.txt = (r.data && r.data.contenu) || ""; } catch (_) {}
-  try { const loc = localStorage.getItem("pp_coin_" + S.user.id); if (loc && !CP.txt) CP.txt = loc; } catch (_) {}
-  CP.charge = true;
+  let t = "";
+  try { const r = await sb.from("notes_perso").select("contenu").eq("id", S.user.id).maybeSingle(); t = (r.data && r.data.contenu) || ""; } catch (_) {}
+  try { const loc = localStorage.getItem("pp_coin_" + S.user.id); if (loc && !t) t = loc; } catch (_) {}
+  CP.html = cpVersHtml(t); CP.charge = true;
 }
 const liensDe = t => [...new Set((String(t).match(/https?:\/\/[^\s<>"']+/g) || []).map(u => u.replace(/[).,;!?]+$/, "")))];
-function majLiensCoin(){ const z = document.querySelector("#coinPerso .cpliens"); if (!z) return; const L = liensDe(CP.txt);
+function majLiensCoin(){ const z = document.querySelector("#coinPerso .cpliens"), ed = document.querySelector("#coinPerso .cptxt"); if (!z || !ed) return;
+  const L = [...new Set([...liensDe(ed.innerText), ...[...ed.querySelectorAll("a[href]")].map(a => a.getAttribute("href")).filter(h => /^https?:/i.test(h))])];
   z.innerHTML = L.length ? L.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${icon("links")}<span>${esc(u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</span></a>`).join("") : ""; z.hidden = !L.length; }
 function etatCoin(t){ const e = document.querySelector("#coinPerso .cpetat"); if (e) e.textContent = t; }
 async function sauverCoin(){
   clearTimeout(CP.t); CP.t = null;
-  try { localStorage.setItem("pp_coin_" + S.user.id, CP.txt); } catch (_) {}
-  const { error } = await sb.from("notes_perso").upsert({ id: S.user.id, contenu: CP.txt, modifie_le: now().toISOString() });
+  try { localStorage.setItem("pp_coin_" + S.user.id, CP.html); } catch (_) {}
+  const { error } = await sb.from("notes_perso").upsert({ id: S.user.id, contenu: CP.html, modifie_le: now().toISOString() });
   etatCoin(error ? "Non enregistré en ligne (gardé sur cet appareil)" : "Enregistré ✓");
 }
+/* position et taille mémorisées sur l'appareil */
+const cleGeo = () => "pp_coin_geo_" + (S.user && S.user.id);
+function geoCoin(ov){
+  if (window.innerWidth <= 600) return;
+  let g = null; try { g = JSON.parse(localStorage.getItem(cleGeo()) || "null"); } catch (_) {}
+  if (!g) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  const w = Math.min(Math.max(g.w || 0, 300), W - 16), h = Math.min(Math.max(g.h || 0, 240), H - 16);
+  ov.style.width = w + "px"; ov.style.height = h + "px";
+  ov.style.left = Math.min(Math.max(g.x, 8 - w + 120), W - 120) + "px"; ov.style.top = Math.min(Math.max(g.y, 8), H - 60) + "px";
+}
+function memoGeo(ov){ if (window.innerWidth <= 600) return; const r = ov.getBoundingClientRect(); try { localStorage.setItem(cleGeo(), JSON.stringify({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) })); } catch (_) {} }
+function deplacableCoin(ov){
+  const poignee = ov.querySelector(".cphead");
+  poignee.addEventListener("pointerdown", e => {
+    if (e.button !== 0 || e.target.closest("button,select,input,a") || window.innerWidth <= 600) return;
+    e.preventDefault(); const r = ov.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    ov.classList.add("drag"); poignee.setPointerCapture(e.pointerId);
+    const bouge = ev => { const W = window.innerWidth, H = window.innerHeight;
+      ov.style.left = Math.min(Math.max(ev.clientX - dx, 8 - r.width + 120), W - 120) + "px"; ov.style.top = Math.min(Math.max(ev.clientY - dy, 8), H - 50) + "px"; };
+    const fin = () => { ov.classList.remove("drag"); poignee.removeEventListener("pointermove", bouge); poignee.removeEventListener("pointerup", fin); poignee.removeEventListener("pointercancel", fin); memoGeo(ov); };
+    poignee.addEventListener("pointermove", bouge); poignee.addEventListener("pointerup", fin); poignee.addEventListener("pointercancel", fin);
+  });
+  if (window.ResizeObserver) { let t = null; new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { if (document.body.contains(ov)) memoGeo(ov); }, 300); }).observe(ov); }
+}
+/* barre d'outils */
+const cpPalette = (k, cols) => `<div class="cppal" data-pal="${k}" hidden>${cols.map(c => `<button type="button" class="cpcol${c === "transparent" ? " aucune" : ""}" data-cpc="${k}" data-v="${c}" style="--v:${c}" title="${c === "transparent" ? "Aucune" : c}" aria-label="${c === "transparent" ? "Aucune couleur" : "Couleur " + c}"></button>`).join("")}</div>`;
+function barreCoin(){
+  const b = (cmd, ic, t) => `<button type="button" class="cpbtn" data-cmd="${cmd}" title="${t}" aria-label="${t}">${icon(ic)}</button>`;
+  return `<div class="cpbar" role="toolbar" aria-label="Mise en forme">
+    <select class="cpsel cppol" data-cpsel="police" aria-label="Police" title="Police">${CP_POLICES.map(([v, l]) => `<option value="${esc(v)}" style="font-family:${esc(v || "inherit")}">${l}</option>`).join("")}</select>
+    <select class="cpsel cptai" data-cpsel="taille" aria-label="Taille" title="Taille">${CP_TAILLES.map(t => `<option value="${t}" ${t === 12 ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <span class="cpsep"></span>
+    ${b("bold", "cpb", "Gras (Ctrl+B)")}${b("italic", "cpi", "Italique (Ctrl+I)")}${b("underline", "cpu", "Souligné (Ctrl+U)")}${b("strikeThrough", "cps", "Barré")}
+    <span class="cpgrp"><button type="button" class="cpbtn cpcoul" data-pal-open="hl" title="Surligner" aria-label="Couleur de surlignage">${icon("cphl")}<i class="cpbar-c" style="background:#fff475"></i></button>${cpPalette("hl", CP_SURLIGN)}</span>
+    <span class="cpgrp"><button type="button" class="cpbtn cpcoul" data-pal-open="fg" title="Couleur du texte" aria-label="Couleur du texte">${icon("cpa")}<i class="cpbar-c" style="background:#c5221f"></i></button>${cpPalette("fg", CP_COULEURS)}</span>
+    ${b("lien", "cplk", "Insérer un lien")}
+    <span class="cpsep"></span>
+    ${b("insertUnorderedList", "cpul", "Liste à puces")}${b("insertOrderedList", "cpol", "Liste numérotée")}
+    ${b("justifyLeft", "cpal", "Aligner à gauche")}${b("justifyCenter", "cpac", "Centrer")}${b("justifyRight", "cpar", "Aligner à droite")}
+    ${b("removeFormat", "cpclr", "Effacer la mise en forme")}
+  </div>
+  <div class="cplienbox" hidden><input type="url" placeholder="https://…" aria-label="Adresse du lien"><button type="button" class="btn sm" data-cp="lienok">OK</button><button type="button" class="btn ghost sm" data-cp="lienno">Annuler</button></div>`;
+}
+function cpGarderSel(){ const s = window.getSelection(), ed = document.querySelector("#coinPerso .cptxt"); if (s && s.rangeCount && ed && ed.contains(s.anchorNode)) CP.sel = s.getRangeAt(0).cloneRange(); }
+function cpRemettreSel(){ const ed = document.querySelector("#coinPerso .cptxt"); if (!ed) return; ed.focus(); if (CP.sel) { const s = window.getSelection(); s.removeAllRanges(); s.addRange(CP.sel); } }
+function cpExec(cmd, val){ cpRemettreSel(); try { document.execCommand("styleWithCSS", false, true); } catch (_) {} document.execCommand(cmd, false, val); cpGarderSel(); cpModifie(); cpEtatBarre(); }
+/* taille en points : on pose une taille repère (7) puis on la remplace par la vraie taille */
+function cpTaille(pt){ cpRemettreSel(); try { document.execCommand("styleWithCSS", false, false); } catch (_) {} document.execCommand("fontSize", false, "7");
+  const ed = document.querySelector("#coinPerso .cptxt"); ed.querySelectorAll('font[size="7"]').forEach(f => { f.removeAttribute("size"); f.style.fontSize = pt + "pt"; });
+  ed.querySelectorAll("span").forEach(s => { if (s.style.fontSize === "xxx-large" || s.style.fontSize === "-webkit-xxx-large") s.style.fontSize = pt + "pt"; });
+  cpGarderSel(); cpModifie(); }
+function cpEtatBarre(){ const ov = document.getElementById("coinPerso"); if (!ov) return;
+  ov.querySelectorAll(".cpbtn[data-cmd]").forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (_) {} b.classList.toggle("on", !!on); }); }
+function cpModifie(){ const ed = document.querySelector("#coinPerso .cptxt"); if (!ed) return; CP.html = ed.innerHTML === "<br>" ? "" : ed.innerHTML; ed.classList.toggle("vide", !ed.textContent.trim() && !ed.querySelector("li")); etatCoin("Enregistrement…"); majLiensCoin(); clearTimeout(CP.t); CP.t = setTimeout(sauverCoin, 700); }
 async function ouvrirCoinPerso(){
   let ov = document.getElementById("coinPerso");
   if (ov) { fermerCoinPerso(); return; }
   await chargerCoinPerso();
   ov = document.createElement("div"); ov.id = "coinPerso"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Coin Perso");
-  ov.innerHTML = `<div class="cphead">${icon("note")}<b>Coin Perso</b><span class="cpetat">Enregistré ✓</span><button class="ib sm" data-cp="fermer" aria-label="Fermer le Coin Perso" title="Fermer">${icon("x")}</button></div>
-    <textarea class="cptxt" spellcheck="true" placeholder="Écris ici ce que tu veux : remarques, idées, liens (https://…), listes…&#10;&#10;Tout s'enregistre tout seul. Toi seul vois ce coin."></textarea>
+  ov.innerHTML = `<div class="cphead" title="Glisse ici pour déplacer le Coin Perso">${icon("note")}<b>Coin Perso</b><span class="cpdrag">${icon("cpdrag")}</span><span class="cpetat">Enregistré ✓</span><button class="ib sm" data-cp="fermer" aria-label="Fermer le Coin Perso" title="Fermer">${icon("x")}</button></div>
+    ${barreCoin()}
+    <div class="cptxt" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Notes du Coin Perso" data-ph="Écris ici ce que tu veux : remarques, idées, liens (https://…), listes… Tout s'enregistre tout seul. Toi seul vois ce coin."></div>
     <div class="cpliens" hidden></div>`;
-  document.body.appendChild(ov);
-  const ta = ov.querySelector(".cptxt"); ta.value = CP.txt; majLiensCoin();
-  ta.addEventListener("input", () => { CP.txt = ta.value; etatCoin("Enregistrement…"); majLiensCoin(); clearTimeout(CP.t); CP.t = setTimeout(sauverCoin, 700); });
-  ta.addEventListener("blur", () => { if (CP.t) sauverCoin(); });
-  ov.querySelector('[data-cp="fermer"]').onclick = fermerCoinPerso;
-  setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 30);
+  document.body.appendChild(ov); geoCoin(ov); deplacableCoin(ov);
+  const ed = ov.querySelector(".cptxt"); ed.innerHTML = CP.html; ed.classList.toggle("vide", !ed.textContent.trim()); majLiensCoin();
+  ed.addEventListener("input", cpModifie);
+  ed.addEventListener("blur", () => { cpGarderSel(); if (CP.t) sauverCoin(); });
+  ed.addEventListener("keyup", () => { cpGarderSel(); cpEtatBarre(); }); ed.addEventListener("mouseup", () => { cpGarderSel(); cpEtatBarre(); });
+  ed.addEventListener("paste", e => { const h = e.clipboardData && e.clipboardData.getData("text/html"), t = e.clipboardData && e.clipboardData.getData("text/plain");
+    e.preventDefault(); document.execCommand("insertHTML", false, h ? cpNettoyer(h) : esc(t || "").replace(/\n/g, "<br>")); });
+  ed.addEventListener("click", e => { const a = e.target.closest("a[href]"); if (a && (e.ctrlKey || e.metaKey)) { e.preventDefault(); window.open(a.href, "_blank", "noopener"); } });
+  /* boutons : on garde la sélection du texte (mousedown sans prendre le focus) */
+  ov.querySelectorAll(".cpbar button").forEach(b => b.addEventListener("mousedown", e => e.preventDefault()));
+  ov.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.cp === "fermer") { fermerCoinPerso(); return; }
+    if (b.dataset.palOpen) { const p = ov.querySelector(`.cppal[data-pal="${b.dataset.palOpen}"]`), ouvert = !p.hidden; ov.querySelectorAll(".cppal").forEach(x => x.hidden = true); p.hidden = ouvert; return; }
+    if (b.dataset.cpc) { const v = b.dataset.v; ov.querySelectorAll(".cppal").forEach(x => x.hidden = true);
+      if (b.dataset.cpc === "fg") { cpExec("foreColor", v); ov.querySelector('[data-pal-open="fg"] .cpbar-c').style.background = v; }
+      else { cpExec("hiliteColor", v); if (v !== "transparent") ov.querySelector('[data-pal-open="hl"] .cpbar-c').style.background = v; } return; }
+    if (b.dataset.cmd === "lien") { const box = ov.querySelector(".cplienbox"); box.hidden = false; const i = box.querySelector("input"); i.value = "https://"; i.focus(); return; }
+    if (b.dataset.cp === "lienok" || b.dataset.cp === "lienno") { const box = ov.querySelector(".cplienbox"), u = box.querySelector("input").value.trim(); box.hidden = true;
+      if (b.dataset.cp === "lienok" && /^https?:\/\/\S+\.\S+/i.test(u)) { const s = CP.sel; if (s && !s.collapsed) cpExec("createLink", u); else { cpRemettreSel(); document.execCommand("insertHTML", false, `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>&nbsp;`); cpModifie(); } }
+      else cpRemettreSel(); return; }
+    if (b.dataset.cmd) cpExec(b.dataset.cmd);
+  });
+  ov.querySelector(".cplienbox input").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); ov.querySelector('[data-cp="lienok"]').click(); } if (e.key === "Escape") { e.stopPropagation(); ov.querySelector('[data-cp="lienno"]').click(); } });
+  ov.querySelectorAll(".cpsel").forEach(s => s.addEventListener("change", () => {
+    if (s.dataset.cpsel === "police") cpExec("fontName", s.value || getComputedStyle(document.body).fontFamily); else cpTaille(Number(s.value));
+  }));
+  document.addEventListener("mousedown", e => { if (!e.target.closest(".cpgrp")) ov.querySelectorAll(".cppal").forEach(x => x.hidden = true); });
+  setTimeout(() => { ed.focus(); const s = window.getSelection(), r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); s.removeAllRanges(); s.addRange(r); cpGarderSel(); }, 30);
   document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.setAttribute("aria-current", "page"));
 }
-function fermerCoinPerso(){ const ov = document.getElementById("coinPerso"); if (!ov) return; if (CP.t) sauverCoin(); ov.remove(); document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.removeAttribute("aria-current")); }
-window.addEventListener("beforeunload", () => { if (CP.t) { try { localStorage.setItem("pp_coin_" + S.user.id, CP.txt); } catch (_) {} sauverCoin(); } });
+function fermerCoinPerso(){ const ov = document.getElementById("coinPerso"); if (!ov) return; if (CP.t) sauverCoin(); memoGeo(ov); ov.remove(); CP.sel = null; document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.removeAttribute("aria-current")); }
+window.addEventListener("beforeunload", () => { if (CP.t) { try { localStorage.setItem("pp_coin_" + S.user.id, CP.html); } catch (_) {} sauverCoin(); } });
+
+/* ---------- Calculatrice NumWorks : écran partagé, la calculatrice s'ouvre à droite ---------- */
+const NUMWORKS_URL = "https://www.numworks.com/fr/emulateur/graphique/";
+function basculerCalc(){
+  let p = document.getElementById("calcPanel");
+  if (p) { fermerCalc(); return; }
+  if (window.innerWidth <= 760) { window.open(NUMWORKS_URL, "_blank", "noopener"); return; }
+  p = document.createElement("aside"); p.id = "calcPanel"; p.setAttribute("aria-label", "Calculatrice NumWorks");
+  p.innerHTML = `<div class="calchead"><img src="logo-numworks.png" alt="" width="22" height="22"><b>Calculatrice NumWorks</b>
+      <a class="ib sm" href="${NUMWORKS_URL}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir la calculatrice dans un nouvel onglet">${icon("ext")}</a>
+      <button class="ib sm" data-calc="fermer" title="Fermer la calculatrice" aria-label="Fermer la calculatrice">${icon("x")}</button></div>
+    <iframe src="${NUMWORKS_URL}" title="Émulateur de la calculatrice NumWorks" allow="clipboard-write; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+  document.body.appendChild(p); document.documentElement.classList.add("calc-open");
+  p.querySelector('[data-calc="fermer"]').onclick = fermerCalc;
+  document.querySelectorAll('.quick a.qcalc').forEach(a => a.classList.add("on"));
+}
+function fermerCalc(){ const p = document.getElementById("calcPanel"); if (p) p.remove(); document.documentElement.classList.remove("calc-open"); document.querySelectorAll('.quick a.qcalc').forEach(a => a.classList.remove("on")); }
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest(".quick a.qcalc"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; if (window.innerWidth <= 760) return; e.preventDefault(); e.stopPropagation(); basculerCalc(); }, true);
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;

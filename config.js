@@ -23,7 +23,8 @@ window.PHYSIQUEPRO = {
     { nom: "E-mail Outlook", url: "https://outlook.office.com",     icone: "logo-outlook", couleur: "#0F6CBD" },
     { nom: "OneDrive", url: "https://glfl-my.sharepoint.com/_layouts/15/MySite.aspx?MySiteRedirect=AllDocuments", icone: "logo-onedrive", couleur: "#0364B8" },
     { nom: "Claude", url: "https://claude.ai/login", icone: "logo-claude", couleur: "#D97757", ordi: true },
-    { nom: "ChatGPT", url: "https://chatgpt.com/auth/login", icone: "logo-chatgpt", couleur: "#10A37F", ordi: true }
+    { nom: "ChatGPT", url: "https://chatgpt.com/auth/login", icone: "logo-chatgpt", couleur: "#10A37F", ordi: true },
+    { nom: "NumWorks", url: "https://www.numworks.com/fr/emulateur/graphique/", icone: "logo-numworks", couleur: "#FFB531" }
   ],
 
   outils: [

@@ -1054,24 +1054,48 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 /* menu : Messagerie d'urgence en rouge, comme le bouton élève */
 .drawer a.it[href="#/urgences"]{color:var(--bad);font-weight:600}
 .drawer a.it[href="#/urgences"] .i{color:var(--bad)}
-/* ---- Coin Perso : bloc-notes jaune (≈ 4 sticky notes) ---- */
-#coinPerso{position:fixed;z-index:60;top:84px;left:max(16px,calc(var(--drawer-w,280px) + 24px));width:min(440px,calc(100vw - 32px));height:min(440px,calc(100vh - 110px));
-  background:#fff59d;color:#3b3200;border-radius:6px 6px 6px 28px;box-shadow:0 14px 40px rgba(60,50,0,.35),inset 0 -6px 0 rgba(0,0,0,.04);display:flex;flex-direction:column;overflow:hidden;animation:cpin .18s ease-out;transform-origin:top left}
-#coinPerso .cphead{display:flex;align-items:center;gap:8px;padding:10px 10px 8px 14px;background:#fde962;border-bottom:1px dashed #d8c235}
+/* ---- Coin Perso : bloc-notes jaune, déplaçable et redimensionnable ---- */
+#coinPerso{position:fixed;z-index:60;top:84px;left:max(16px,calc(var(--drawer-w,280px) + 24px));width:min(660px,calc(100vw - 32px));height:min(660px,calc(100vh - 100px));min-width:300px;min-height:240px;
+  background:#fff59d;color:#3b3200;border-radius:6px 6px 6px 28px;box-shadow:0 14px 40px rgba(60,50,0,.35),inset 0 -6px 0 rgba(0,0,0,.04);display:flex;flex-direction:column;overflow:hidden;resize:both;animation:cpin .18s ease-out;transform-origin:top left}
+#coinPerso.drag{opacity:.92;box-shadow:0 22px 50px rgba(60,50,0,.45);user-select:none}
+#coinPerso .cphead{display:flex;align-items:center;gap:8px;padding:10px 10px 8px 14px;background:#fde962;border-bottom:1px solid #e6d040;cursor:move;touch-action:none;user-select:none}
 #coinPerso .cphead b{font-size:1rem}
+#coinPerso .cpdrag{display:inline-grid;opacity:.45}
+#coinPerso .cpdrag .i{width:16px;height:16px}
 #coinPerso .cpetat{margin-left:auto;font-size:.75rem;opacity:.75}
 #coinPerso .ib{color:#3b3200}
-#coinPerso .cptxt{flex:1;border:0;outline:0;resize:none;background:transparent;color:inherit;padding:12px 16px;font:400 15px/1.55 var(--body);
-  background-image:linear-gradient(transparent calc(1.55em - 1px),rgba(120,100,0,.18) 1px);background-size:100% 1.55em;background-attachment:local}
-#coinPerso .cptxt::placeholder{color:#8a7a1a}
-#coinPerso .cpliens{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 12px;border-top:1px dashed #d8c235;max-height:30%;overflow:auto}
+#coinPerso .cpbar{display:flex;flex-wrap:wrap;align-items:center;gap:2px;padding:6px 8px;background:#fff9c4;border-bottom:1px solid #eadb6a}
+#coinPerso .cpsel{height:30px;border:1px solid #e0cf5a;border-radius:6px;background:#fffde7;color:#3b3200;font:500 13px var(--body);padding:0 4px;cursor:pointer}
+#coinPerso .cppol{width:140px}
+#coinPerso .cptai{width:58px}
+#coinPerso .cpsep{width:1px;height:22px;background:#e0cf5a;margin:0 5px}
+#coinPerso .cpbtn{position:relative;display:grid;place-items:center;width:32px;height:30px;border:0;border-radius:6px;background:transparent;color:#3b3200;cursor:pointer;padding:0}
+#coinPerso .cpbtn:hover{background:#fdee8a}
+#coinPerso .cpbtn.on{background:#f5dc3c}
+#coinPerso .cpbtn .i{width:18px;height:18px}
+#coinPerso .cpbtn.cpcoul .i{margin-top:-5px}
+#coinPerso .cpbar-c{position:absolute;left:8px;right:8px;bottom:4px;height:4px;border-radius:2px}
+#coinPerso .cpgrp{position:relative;display:inline-flex}
+#coinPerso .cppal{position:absolute;z-index:3;top:34px;left:0;display:grid;grid-template-columns:repeat(5,24px);gap:5px;padding:8px;background:#fff;border:1px solid #e0cf5a;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+#coinPerso .cppal[hidden]{display:none}
+#coinPerso .cpcol{width:24px;height:24px;border-radius:50%;border:1px solid rgba(0,0,0,.2);background:var(--v);cursor:pointer;padding:0}
+#coinPerso .cpcol.aucune{background:linear-gradient(135deg,#fff 45%,#c5221f 45%,#c5221f 55%,#fff 55%)}
+#coinPerso .cplienbox{display:flex;gap:6px;align-items:center;padding:6px 8px;background:#fff9c4;border-bottom:1px solid #eadb6a}
+#coinPerso .cplienbox[hidden]{display:none}
+#coinPerso .cplienbox input{flex:1;min-width:0;height:30px;border:1px solid #e0cf5a;border-radius:6px;padding:0 8px;font:14px var(--body)}
+#coinPerso .cptxt{flex:1;overflow:auto;outline:0;background:transparent;color:inherit;padding:14px 18px;font:400 15px/1.55 var(--body);word-wrap:break-word;cursor:text}
+#coinPerso .cptxt.vide::before{content:attr(data-ph);color:#8a7a1a;pointer-events:none;display:block;position:absolute;max-width:calc(100% - 60px)}
+#coinPerso .cptxt ul,#coinPerso .cptxt ol{margin:.3em 0;padding-left:1.6em}
+#coinPerso .cptxt a{color:#174ea6;text-decoration:underline}
+#coinPerso .cptxt p,#coinPerso .cptxt div{margin:0}
+#coinPerso .cpliens{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 12px;border-top:1px solid #e6d040;max-height:30%;overflow:auto}
 #coinPerso .cpliens a{display:inline-flex;align-items:center;gap:4px;background:#fffbd1;border:1px solid #e3d24e;border-radius:999px;padding:3px 10px;font-size:.8rem;color:#5a4a00;text-decoration:none;max-width:100%}
 #coinPerso .cpliens a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #coinPerso .cpliens a .i{width:14px;height:14px;flex:none}
 .drawer a.coinit .i{color:#c9a400}
 @keyframes cpin{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 @media (max-width:1100px){#coinPerso{left:16px}}
-@media (max-width:600px){#coinPerso{left:8px;right:8px;width:auto;top:70px;height:min(70vh,520px)}}
+@media (max-width:600px){#coinPerso{left:8px!important;right:8px;top:70px!important;width:auto!important;height:min(78vh,620px)!important;resize:none;min-width:0}#coinPerso .cphead{cursor:default}#coinPerso .cpdrag{display:none}#coinPerso .cppol{width:112px}}
 @media (max-width:600px){.quick a.qordi{display:none}}
 /* compteur « À corriger » dans l'onglet du cours */
 .tabs .tcount{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:10px;background:#d93025;color:#fff;font-size:.72rem;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}
@@ -1095,3 +1119,21 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 @media (max-width:400px){.quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){width:38px;min-width:38px;height:28px;padding:2px}.quick .qlogo,.quick a.main .qlogo{height:20px;width:32px}}
 .urgchoix{display:grid;gap:8px;margin:4px 0}
 .urgchoix .btn{justify-content:flex-start;text-align:left;border-left:4px solid var(--c);white-space:normal;height:auto;min-height:40px;padding:8px 14px}
+
+/* ---- Calculatrice NumWorks : écran partagé ---- */
+:root{--calc-w:440px}
+html.calc-open body{margin-right:var(--calc-w)}
+#calcPanel{position:fixed;z-index:70;top:0;right:0;bottom:0;width:var(--calc-w);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.12)}
+#calcPanel .calchead{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+#calcPanel .calchead img{border-radius:5px}
+#calcPanel .calchead b{flex:1;font-size:.95rem}
+#calcPanel iframe{flex:1;width:100%;border:0;background:#fff}
+.quick a.qcalc.on .qi{box-shadow:0 0 0 3px #FFB531}
+@media (max-width:1200px){:root{--calc-w:380px}}
+html.calc-open .toplogo{display:none}
+html.calc-open .quick .ql{display:none}
+html.calc-open .quick a{min-width:0;padding:4px 3px}
+@media (max-width:1500px){html.calc-open .quick .qi,html.calc-open .quick .qi:has(.qlogo){width:46px;min-width:46px;height:30px;padding:3px}html.calc-open .quick .qlogo{height:22px;width:38px}}
+#coinPerso .cpbar{gap:1px}
+#coinPerso .cpbtn{width:30px}
+#coinPerso .cppol{width:128px}
