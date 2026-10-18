@@ -242,7 +242,7 @@ function topbar(r){
     <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof || S.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}${l.icone === "logo-numworks" ? " qcalc" + (document.getElementById("calcPanel") ? " on" : "") : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof || S.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
     ${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
       ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
@@ -357,7 +357,7 @@ function classTabs(c, tab){
   const T = []; if (fluxVisible(c)) T.push(["flux", "Flux"]);
   T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "Mes notes"]);
   if (S.prof) T.push(["corriger", "À corriger"]);
-  return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}${ongletUrgent(c)}</div>
+  return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}</div>
     <div class="tabicons">
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
       <a class="ib" href="#/agenda/${esc(c.id)}" title="Agenda du cours" aria-label="Agenda du cours">${icon("cal")}</a>
@@ -2841,7 +2841,7 @@ function topbarPublic(){
   return `<header class="topbar pubtop">
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a></div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${l.icone === "logo-numworks" ? " qcalc" + (document.getElementById("calcPanel") ? " on" : "") : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
   </header>`;
 }
 function cartePublique(c){
@@ -3391,6 +3391,7 @@ async function actionRdv(act, a){
 }
 /* ---------- Coin Perso : bloc-notes jaune personnel, mis en forme, déplaçable, enregistré tout seul ---------- */
 IC.ext = '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>';
+IC.swap = '<path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/>';
 IC.note = '<path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/>';
 IC.cpb = '<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>';
 IC.cpi = '<path d="M10 5h8M6 19h8M14 5l-4 14"/>';
@@ -3548,23 +3549,76 @@ async function ouvrirCoinPerso(){
 function fermerCoinPerso(){ const ov = document.getElementById("coinPerso"); if (!ov) return; if (CP.t) sauverCoin(); memoGeo(ov); ov.remove(); CP.sel = null; document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.removeAttribute("aria-current")); }
 window.addEventListener("beforeunload", () => { if (CP.t) { try { localStorage.setItem("pp_coin_" + S.user.id, CP.html); } catch (_) {} sauverCoin(); } });
 
-/* ---------- Calculatrice NumWorks : écran partagé, la calculatrice s'ouvre à droite ---------- */
-const NUMWORKS_URL = "https://www.numworks.com/fr/emulateur/graphique/";
-function basculerCalc(){
-  let p = document.getElementById("calcPanel");
-  if (p) { fermerCalc(); return; }
-  if (window.innerWidth <= 760) { window.open(NUMWORKS_URL, "_blank", "noopener"); return; }
-  p = document.createElement("aside"); p.id = "calcPanel"; p.setAttribute("aria-label", "Calculatrice NumWorks");
-  p.innerHTML = `<div class="calchead"><img src="logo-numworks.png" alt="" width="22" height="22"><b>Calculatrice NumWorks</b>
-      <a class="ib sm" href="${NUMWORKS_URL}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir la calculatrice dans un nouvel onglet">${icon("ext")}</a>
-      <button class="ib sm" data-calc="fermer" title="Fermer la calculatrice" aria-label="Fermer la calculatrice">${icon("x")}</button></div>
-    <iframe src="${NUMWORKS_URL}" title="Émulateur de la calculatrice NumWorks" allow="clipboard-write; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
-  document.body.appendChild(p); document.documentElement.classList.add("calc-open");
-  p.querySelector('[data-calc="fermer"]').onclick = fermerCalc;
-  document.querySelectorAll('.quick a.qcalc').forEach(a => a.classList.add("on"));
+/* ---------- Écran partagé : NumWorks, Pronote, ChatGPT, Claude, WhatsApp Web s'ouvrent à côté de la page ----------
+   NumWorks et Pronote s'affichent dans le panneau. ChatGPT, Claude et WhatsApp interdisent l'affichage dans une autre
+   page : ils s'ouvrent dans une fenêtre placée exactement sur le panneau (déplaçable et redimensionnable). */
+const COTE_A_COTE = {
+  "logo-numworks": { titre: "Calculatrice NumWorks", mode: "cadre" },
+  "logo-pronote":  { titre: "Pronote", mode: "cadre" },
+  "logo-chatgpt":  { titre: "ChatGPT", mode: "fenetre" },
+  "logo-claude":   { titre: "Claude", mode: "fenetre" },
+  "logo-whatsapp": { titre: "WhatsApp Web", mode: "fenetre" }
+};
+const SP = { cle: null, url: "", fen: null, veille: null };
+const spGeo = () => { let g = {}; try { g = JSON.parse(localStorage.getItem("pp_side_geo") || "{}"); } catch (_) {} return { w: g.w || 460, cote: g.cote === "gauche" ? "gauche" : "droite" }; };
+const spMemo = g => { try { localStorage.setItem("pp_side_geo", JSON.stringify(g)); } catch (_) {} };
+function spAppliquer(){
+  const p = document.getElementById("sidePanel"); if (!p) return;
+  const g = spGeo(), w = Math.round(Math.min(Math.max(g.w, 300), window.innerWidth - 320));
+  document.documentElement.style.setProperty("--side-w", w + "px");
+  document.documentElement.classList.toggle("side-gauche", g.cote === "gauche"); document.documentElement.classList.toggle("side-droite", g.cote !== "gauche");
 }
-function fermerCalc(){ const p = document.getElementById("calcPanel"); if (p) p.remove(); document.documentElement.classList.remove("calc-open"); document.querySelectorAll('.quick a.qcalc').forEach(a => a.classList.remove("on")); }
-document.addEventListener("click", e => { const a = e.target.closest && e.target.closest(".quick a.qcalc"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; if (window.innerWidth <= 760) return; e.preventDefault(); e.stopPropagation(); basculerCalc(); }, true);
+function spFenetre(){
+  const p = document.getElementById("sidePanel"); if (!p) return; const r = p.getBoundingClientRect();
+  const bx = Math.max(0, (window.outerWidth - window.innerWidth) / 2), by = Math.max(0, window.outerHeight - window.innerHeight - bx);
+  const f = `popup=yes,width=${Math.round(r.width)},height=${Math.round(r.height)},left=${Math.round(window.screenX + bx + r.left)},top=${Math.round(window.screenY + by + r.top)}`;
+  SP.fen = window.open(SP.url, "pp_cote_" + SP.cle, f);
+  clearInterval(SP.veille); SP.veille = setInterval(() => { if (!SP.fen || SP.fen.closed) fermerCote(); }, 1000);
+}
+function ouvrirCote(cle, url, nom){
+  const o = COTE_A_COTE[cle]; if (!o) return false;
+  if (SP.cle === cle) { fermerCote(); return true; }
+  fermerCote();
+  SP.cle = cle; SP.url = url;
+  const p = document.createElement("aside"); p.id = "sidePanel"; p.setAttribute("aria-label", o.titre); p.dataset.mode = o.mode;
+  const logo = LOGOS_RAPIDES[cle] || "";
+  p.innerHTML = `<div class="sidegrip" title="Glisse pour changer la largeur" aria-hidden="true"></div>
+    <div class="sidehead">${logo ? `<img src="${esc(logo)}" alt="" width="22" height="22">` : ""}<b>${esc(o.titre || nom)}</b>
+      <button class="ib sm" data-sp="cote" title="Mettre de l'autre côté" aria-label="Mettre le panneau de l'autre côté">${icon("swap")}</button>
+      <a class="ib sm" href="${esc(url)}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet">${icon("ext")}</a>
+      <button class="ib sm" data-sp="fermer" title="Fermer" aria-label="Fermer ${esc(o.titre)}">${icon("x")}</button></div>
+    ${o.mode === "cadre" ? `<iframe src="${esc(url)}" title="${esc(o.titre)}" allow="clipboard-read; clipboard-write; fullscreen; microphone; camera" referrerpolicy="strict-origin-when-cross-origin"></iframe>`
+      : `<div class="sidefen"><img src="${esc(logo)}" alt="" width="56" height="56"><b>${esc(o.titre)} s'ouvre dans une fenêtre placée ici.</b>
+          <p>${esc(o.titre)} n'accepte pas d'être affiché à l'intérieur d'un autre site : il s'ouvre donc dans sa propre fenêtre, posée sur ce panneau. Tu peux la déplacer et la redimensionner librement.</p>
+          <button class="btn" data-sp="replacer">${icon("ext")} Rouvrir / replacer la fenêtre ici</button>
+          <small class="muted">Si rien ne s'ouvre, autorise les fenêtres pop-up pour ce site (icône à droite de la barre d'adresse).</small></div>`}
+    <div class="sidevoile" hidden></div>`;
+  document.body.appendChild(p); document.documentElement.classList.add("side-open"); spAppliquer();
+  if (S.drawer && window.innerWidth - spGeo().w < 1000) { S.drawer = false; render(); }
+  p.addEventListener("click", e => { const b = e.target.closest("[data-sp]"); if (!b) return;
+    if (b.dataset.sp === "fermer") fermerCote();
+    else if (b.dataset.sp === "cote") { const g = spGeo(); g.cote = g.cote === "gauche" ? "droite" : "gauche"; spMemo(g); spAppliquer(); if (o.mode === "fenetre") spFenetre(); }
+    else if (b.dataset.sp === "replacer") spFenetre(); });
+  /* largeur : on tire la bordure du panneau ; la page se resserre d'autant */
+  const grip = p.querySelector(".sidegrip"), voile = p.querySelector(".sidevoile");
+  grip.addEventListener("pointerdown", e => { e.preventDefault(); grip.setPointerCapture(e.pointerId); voile.hidden = false; document.documentElement.classList.add("side-drag");
+    const bouge = ev => { const g = spGeo(); g.w = g.cote === "gauche" ? ev.clientX : window.innerWidth - ev.clientX; g.w = Math.min(Math.max(g.w, 300), window.innerWidth - 320); spMemo(g); spAppliquer(); };
+    const fin = () => { voile.hidden = true; document.documentElement.classList.remove("side-drag"); grip.removeEventListener("pointermove", bouge); grip.removeEventListener("pointerup", fin); grip.removeEventListener("pointercancel", fin); if (o.mode === "fenetre") spFenetre(); };
+    grip.addEventListener("pointermove", bouge); grip.addEventListener("pointerup", fin); grip.addEventListener("pointercancel", fin); });
+  if (o.mode === "fenetre") spFenetre();
+  document.querySelectorAll(".quick a.qside").forEach(a => a.classList.toggle("on", a.dataset.cle === cle));
+  return true;
+}
+function fermerCote(){
+  clearInterval(SP.veille); SP.veille = null;
+  if (SP.fen && !SP.fen.closed) { try { SP.fen.close(); } catch (_) {} } SP.fen = null;
+  const p = document.getElementById("sidePanel"); if (p) p.remove(); SP.cle = null;
+  document.documentElement.classList.remove("side-open", "side-gauche", "side-droite");
+  document.querySelectorAll(".quick a.qside").forEach(a => a.classList.remove("on"));
+}
+window.addEventListener("resize", () => { if (document.getElementById("sidePanel")) { if (window.innerWidth <= 760) fermerCote(); else spAppliquer(); } });
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest(".quick a.qside"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+  if (window.innerWidth <= 760) return; e.preventDefault(); e.stopPropagation(); ouvrirCote(a.dataset.cle, a.getAttribute("href"), a.textContent.trim()); }, true);
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;

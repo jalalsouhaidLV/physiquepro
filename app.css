@@ -1120,20 +1120,39 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .urgchoix{display:grid;gap:8px;margin:4px 0}
 .urgchoix .btn{justify-content:flex-start;text-align:left;border-left:4px solid var(--c);white-space:normal;height:auto;min-height:40px;padding:8px 14px}
 
-/* ---- Calculatrice NumWorks : écran partagé ---- */
-:root{--calc-w:440px}
-html.calc-open body{margin-right:var(--calc-w)}
-#calcPanel{position:fixed;z-index:70;top:0;right:0;bottom:0;width:var(--calc-w);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.12)}
-#calcPanel .calchead{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)}
-#calcPanel .calchead img{border-radius:5px}
-#calcPanel .calchead b{flex:1;font-size:.95rem}
-#calcPanel iframe{flex:1;width:100%;border:0;background:#fff}
-.quick a.qcalc.on .qi{box-shadow:0 0 0 3px #FFB531}
-@media (max-width:1200px){:root{--calc-w:380px}}
-html.calc-open .toplogo{display:none}
-html.calc-open .quick .ql{display:none}
-html.calc-open .quick a{min-width:0;padding:4px 3px}
-@media (max-width:1500px){html.calc-open .quick .qi,html.calc-open .quick .qi:has(.qlogo){width:46px;min-width:46px;height:30px;padding:3px}html.calc-open .quick .qlogo{height:22px;width:38px}}
+/* ---- Écran partagé : la page d'un côté, le panneau (calculatrice, Pronote, IA, WhatsApp) de l'autre ---- */
+:root{--side-w:460px}
+html.side-open.side-droite body{margin-right:var(--side-w)}
+html.side-open.side-gauche body{margin-left:var(--side-w)}
+html.side-drag,html.side-drag *{cursor:col-resize!important;user-select:none}
+#sidePanel{position:fixed;z-index:70;top:0;bottom:0;width:var(--side-w);display:flex;flex-direction:column;background:var(--surface);box-shadow:0 0 24px rgba(0,0,0,.12)}
+html.side-droite #sidePanel{right:0;border-left:1px solid var(--line)}
+html.side-gauche #sidePanel{left:0;border-right:1px solid var(--line)}
+#sidePanel .sidegrip{position:absolute;top:0;bottom:0;width:12px;z-index:2;cursor:col-resize;touch-action:none}
+html.side-droite #sidePanel .sidegrip{left:-6px}
+html.side-gauche #sidePanel .sidegrip{right:-6px}
+#sidePanel .sidegrip::after{content:"";position:absolute;top:50%;left:4px;width:4px;height:44px;margin-top:-22px;border-radius:2px;background:var(--line);transition:background .15s}
+#sidePanel .sidegrip:hover::after,html.side-drag #sidePanel .sidegrip::after{background:var(--accent)}
+#sidePanel .sidehead{display:flex;align-items:center;gap:6px;padding:10px 10px 10px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+#sidePanel .sidehead img{border-radius:5px;object-fit:contain}
+#sidePanel .sidehead b{flex:1;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sidePanel iframe{flex:1;width:100%;border:0;background:#fff}
+#sidePanel .sidevoile{position:fixed;inset:0;z-index:3}
+#sidePanel .sidefen{flex:1;display:grid;align-content:center;justify-items:center;gap:12px;padding:24px;text-align:center;color:var(--muted)}
+#sidePanel .sidefen b{color:var(--ink);font-size:1.05rem}
+#sidePanel .sidefen p{margin:0;font-size:.9rem;max-width:340px}
+.quick a.qside.on .qi{box-shadow:0 0 0 3px #FFB531}
+html.side-open .toplogo{display:none}
+html.side-open .quick .ql{display:none}
+html.side-open .quick a{min-width:0;padding:4px 3px}
+html.side-open .quick .qi,html.side-open .quick .qi:has(.qlogo){width:46px;min-width:46px;height:30px;padding:3px}
+html.side-open .quick .qlogo{height:22px;width:38px}
 #coinPerso .cpbar{gap:1px}
 #coinPerso .cpbtn{width:30px}
 #coinPerso .cppol{width:128px}
+html.side-open .crumbs .sep,html.side-open .crumbs .cur{display:none}
+html.side-open .topbar .crumbs{flex:0 0 auto}
+html.side-open .quick{scrollbar-width:thin;padding-bottom:2px}
+html.side-open .quick::-webkit-scrollbar{display:block;height:4px}
+html.side-open .quick .qi,html.side-open .quick .qi:has(.qlogo){width:40px;min-width:40px;height:28px;padding:2px}
+html.side-open .quick .qlogo{height:20px;width:34px}
