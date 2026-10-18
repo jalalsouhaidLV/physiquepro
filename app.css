@@ -1578,3 +1578,67 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 .topbar .crumbs .curnom{overflow:visible!important;text-overflow:clip!important;white-space:nowrap}
 .topbar .crumbs .cur small{max-width:220px}
 .topbar .quick{flex:1 1 auto;min-width:0}
+
+/* ===== Outils Scientifiques Importants : nouveaux onglets ===== */
+.phyongs{flex-wrap:wrap}
+.ogrille{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
+.ocarte{background:var(--surface,#fff);border:1px solid var(--line,#dadce0);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.ocarte h3{margin:0;font-size:1.05rem}
+.ocarte p.muted{margin:0;font-size:.84rem}
+.ochamps{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.ochamp{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted,#5f6368)}
+.ochin{display:flex;align-items:center;border:1px solid var(--line,#dadce0);border-radius:9px;background:var(--bg,#fff);overflow:hidden}
+.ochin input{flex:1;min-width:0;border:0;background:transparent;padding:8px 10px;font:inherit;font-size:.95rem;color:var(--text,#202124);outline:none}
+.ochin em{font-style:normal;padding:0 10px;color:var(--muted,#5f6368);white-space:nowrap}
+.ochin:focus-within{border-color:var(--accent,#11647e);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#11647e) 25%,transparent)}
+.ochamp textarea,.ochamp select{border:1px solid var(--line,#dadce0);border-radius:9px;padding:8px 10px;font:inherit;font-size:.95rem;background:var(--bg,#fff);color:var(--text,#202124)}
+.ores{background:color-mix(in srgb,var(--accent,#11647e) 8%,transparent);border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:3px}
+.ores b{font-size:1.02rem}
+.ores small{color:var(--muted,#5f6368)}
+.ores.err{background:#fde8e8;color:#b3261e}
+.ores.bon{background:#e6f4ea}
+.mono{font-family:ui-monospace,Consolas,monospace}
+.fmgrille{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:16px}
+@media (max-width:900px){.fmgrille{grid-template-columns:1fr}}
+.fmgroupe{margin-bottom:10px}
+.fmgroupe small{display:block;font-weight:600;color:var(--muted,#5f6368);margin-bottom:4px}
+.fmbtns{display:flex;flex-wrap:wrap;gap:4px}
+.fmb{min-width:38px;height:34px;padding:0 8px;border:1px solid var(--line,#dadce0);border-radius:8px;background:var(--surface,#fff);color:var(--text,#202124);font:inherit;font-size:.92rem;cursor:pointer}
+.fmb:hover{border-color:var(--accent,#11647e);background:color-mix(in srgb,var(--accent,#11647e) 8%,transparent)}
+.fmdroite{display:flex;flex-direction:column;gap:10px}
+#fmTxt{font-family:ui-monospace,Consolas,monospace;font-size:.95rem}
+.fmapercu{min-height:96px;display:flex;align-items:center;justify-content:center;background:#fff;color:#111;border:1px solid var(--line,#dadce0);border-radius:12px;padding:14px;font-size:1.25rem;overflow-x:auto}
+.fmapercu.err{color:#b3261e;font-size:.9rem}
+.fmactions,.fmex{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fmex small{color:var(--muted,#5f6368);margin-right:4px}
+.rvb{display:flex;flex-direction:column;gap:6px}
+.rvb label{display:flex;flex-direction:column;font-size:.85rem}
+.rvbapercu{height:70px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.resist{position:relative;height:38px;margin:4px auto;width:min(100%,260px);background:linear-gradient(#e8d3a8,#d9bd86);border-radius:18px;display:flex;justify-content:center;gap:16px;padding:0 30px}
+.resist::before,.resist::after{content:"";position:absolute;top:18px;width:40px;height:3px;background:#999}
+.resist::before{left:-40px}.resist::after{right:-40px}
+.resist i{width:12px;height:100%}
+.resist i.tol{margin-left:22px}
+/* simulations : niveau */
+.simniv{display:inline-block;font-size:.7rem;font-weight:600;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--accent,#11647e) 12%,transparent);color:var(--accent,#11647e);margin-top:4px}
+/* icônes du haut un peu plus grandes */
+.quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){width:70px;min-width:70px;height:38px}
+.quick .qlogo,.quick a.main .qlogo{height:29px;width:58px}
+.quick .ql{font-size:.7rem}
+@media (max-width:1440px){
+  .quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){width:60px;min-width:60px;height:34px}
+  .quick .qlogo,.quick a.main .qlogo{height:26px;width:50px}
+  .quick .ql{font-size:.64rem}
+}
+.quick.deux{grid-template-columns:repeat(var(--qc,12),70px)}
+.quick.deux .qi,.quick.deux .qi:has(.qlogo),.quick.deux a.main .qi,.quick.deux a.main .qi:has(.qlogo){width:52px;min-width:52px;height:29px}
+.quick.deux .qlogo,.quick.deux a.main .qlogo{height:22px;width:43px}
+@media (min-width:761px){.quick.deux .ql{font-size:.62rem!important;max-width:70px}}
+.quick .qint .qi{display:flex;align-items:center;justify-content:center;color:var(--accent,#11647e)}
+.quick .qint .qi .i{width:22px;height:22px}
+/* déconnecté : une seule ligne d'icônes */
+.pubquick{flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.pubquick::-webkit-scrollbar{display:none}
+.simniv{justify-self:start;align-self:start;width:fit-content}
+.quick.deux{grid-template-columns:repeat(var(--qc,12),76px)}
+@media (min-width:761px){.quick.deux .ql{max-width:76px!important}}

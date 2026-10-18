@@ -271,7 +271,7 @@ function drawer(r){
     ${liensUtilesEleve()}<div class="sect">${icon("flask")} Ressources</div>
     <a class="it" href="#/revisions" ${cur("revisions")}>${icon("cards")}<span class="lbl">Révisions et flashcards</span></a>
     <a class="it" href="#/simulations" ${cur("simulations")}>${icon("atom")}<span class="lbl">Simulations</span></a>
-    <a class="it" href="#/physique" ${cur("physique")}>${icon("ruler")}<span class="lbl">Outils de physique</span></a>
+    <a class="it" href="#/physique" ${cur("physique")}>${icon("ruler")}<span class="lbl">Outils Scientifiques Importants</span></a>
     <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
     <hr><a class="it" href="#/admin/profil" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>
     ${S.prof ? `<a class="it" href="#/corbeille" ${cur("corbeille")}>${icon("trash")}<span class="lbl">Corbeille et sauvegardes</span></a>` : ""}
@@ -2850,7 +2850,7 @@ function topbarPublic(){
   return `<header class="topbar pubtop">
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a></div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    ${(() => { const n = Math.min(16, R().liensUtiles.filter(l => !l.prof).length); return `<nav class="quick${n > 8 ? " deux" : ""}" style="--qc:${Math.ceil(n / 2)}" aria-label="Liens rapides">`; })()}${R().liensUtiles.filter(l => !l.prof).slice(0, 16).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <nav class="quick pubquick" aria-label="Liens rapides"><a href="#/simulations" class="qint"><span class="qi">${icon("flask")}</span><span class="ql">Simulations</span></a><a href="#/physique" class="qint"><span class="qi">${icon("atom")}</span><span class="ql">Outils</span></a>${R().liensUtiles.filter(l => !l.prof).slice(0, 10).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
   </header>`;
 }
 function cartePublique(c){
@@ -2872,7 +2872,7 @@ function vPublic(r){
       <p class="muted">Cours, documents, devoirs et ressources de Physique-Chimie, SNT (Sciences Numériques et Technologie), SI (Sciences de l'Ingénieur), et Technologie. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
       ${btnConnexion("Se connecter avec Microsoft 365", "pubbig")}
     </section>
-    <nav class="pubres"><a href="#/simulations">${icon("atom")}<span><b>Simulations</b><small>PhET, GeoGebra, Python… à côté de la page</small></span></a><a href="#/physique">${icon("ruler")}<span><b>Outils de physique</b><small>Unités, tableau périodique, constantes, courbes</small></span></a><a href="#/outils">${icon("tools")}<span><b>Boîte à outils</b><small>Les sites utiles par matière</small></span></a></nav>
+    <nav class="pubres"><a href="#/simulations">${icon("atom")}<span><b>Simulations</b><small>Toutes les simulations PhET du programme, à côté de la page</small></span></a><a href="#/physique">${icon("ruler")}<span><b>Outils Scientifiques Importants</b><small>Unités, éléments, formules, chimie, SNT, SI…</small></span></a><a href="#/outils">${icon("tools")}<span><b>Boîte à outils</b><small>Les sites utiles par matière</small></span></a></nav>
     ${blocScientifique()}
     <section class="homepanel"><div class="homehead"><h1>Cours</h1></div>
       ${PUB.classes.length ? `<div class="cards">${PUB.classes.map(cartePublique).join("")}</div>` : `<p class="muted" style="margin:0">Connecte-toi pour voir tes cours.</p>`}</section>
@@ -3756,7 +3756,7 @@ function blocTableauDeBord(){
 function indexRecherche(){
   const L = [], t = now();
   const pages = [["#/", "home", "Accueil"], ["#/agenda", "cal", "Agenda"], ["#/semaine", "week", "Ma semaine"], [S.prof ? "#/todo" : "#/todo", "todo", S.prof ? "Toutes les copies à corriger" : "À faire"], ["#/rendezvous", "rdv", "Rendez-vous"],
-    ["#/outils", "tools", "Boîte à outils"], ["#/physique", "flask", "Outils de physique (unités, tableau périodique, constantes, courbes)"], ["#/simulations", "eye", "Simulations (PhET, GeoGebra…)"], ["#/revisions", "quiz", "Fiches de révision et flashcards"], ["#/admin/profil", "gear", "Paramètres"]];
+    ["#/outils", "tools", "Boîte à outils"], ["#/physique", "flask", "Outils Scientifiques Importants (unités, éléments, formules, chimie, SNT, SI…)"], ["#/simulations", "eye", "Simulations (PhET, GeoGebra…)"], ["#/revisions", "quiz", "Fiches de révision et flashcards"], ["#/admin/profil", "gear", "Paramètres"]];
   if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/preparateur", "flask", "Demande de matériel au préparateur"], ["#/archives", "archive", "Cours archivés"]);
   pages.forEach(([h, ic, n]) => L.push({ t: "Page", ic, n, h }));
   L.push({ t: "Action", ic: "note", n: "Ouvrir le Coin Perso", act: "coinperso" });
@@ -4062,24 +4062,28 @@ function navMobile(r){
 }
 
 /* ---------- #17 Bibliothèque de simulations (ouverture dans le panneau latéral) ---------- */
-const PHET = (n, t) => ({ t, url: `https://phet.colorado.edu/sims/html/${n}/latest/${n}_all.html?locale=fr`, src: "PhET" });
+const PHET = (n, t, niv) => ({ t, url: `https://phet.colorado.edu/sims/html/${n}/latest/${n}_all.html?locale=fr`, src: "PhET", niv });
 const SIMS = [
-  { cat: "Mécanique", l: [PHET("projectile-motion", "Mouvement d'un projectile"), PHET("forces-and-motion-basics", "Forces et mouvement"), PHET("energy-skate-park", "Énergie au skatepark"), PHET("pendulum-lab", "Labo du pendule"), PHET("masses-and-springs", "Masses et ressorts"), PHET("gravity-and-orbits", "Gravité et orbites"), PHET("gravity-force-lab", "Loi de la gravitation")] },
-  { cat: "Ondes, son et lumière", l: [PHET("wave-on-a-string", "Onde sur une corde"), PHET("waves-intro", "Introduction aux ondes"), PHET("wave-interference", "Interférences"), PHET("bending-light", "Réfraction de la lumière"), PHET("color-vision", "Vision des couleurs"), PHET("geometric-optics", "Optique géométrique (lentilles)")] },
-  { cat: "Électricité et magnétisme", l: [PHET("circuit-construction-kit-dc", "Circuits électriques (continu)"), PHET("circuit-construction-kit-ac", "Circuits électriques (alternatif)"), PHET("ohms-law", "Loi d'Ohm"), PHET("resistance-in-a-wire", "Résistance d'un fil"), PHET("capacitor-lab-basics", "Condensateur"), PHET("faradays-law", "Loi de Faraday"), PHET("coulombs-law", "Loi de Coulomb"), { t: "Simulateur de circuits Falstad", url: "https://www.falstad.com/circuit/circuitjs.html", src: "Falstad" }] },
-  { cat: "Chimie", l: [PHET("build-an-atom", "Construire un atome"), PHET("isotopes-and-atomic-mass", "Isotopes et masse atomique"), PHET("build-a-molecule", "Construire une molécule"), PHET("molecule-shapes", "Géométrie des molécules"), PHET("balancing-chemical-equations", "Équilibrer une équation"), PHET("reactants-products-and-leftovers", "Réactifs, produits et restes"), PHET("concentration", "Concentration"), PHET("molarity", "Molarité"), PHET("beers-law-lab", "Loi de Beer-Lambert"), PHET("ph-scale", "Échelle de pH"), PHET("acid-base-solutions", "Solutions acides et basiques")] },
-  { cat: "Énergie, gaz et matière", l: [PHET("energy-forms-and-changes", "Formes et conversions d'énergie"), PHET("states-of-matter", "États de la matière"), PHET("gas-properties", "Propriétés des gaz"), PHET("greenhouse-effect", "Effet de serre"), PHET("density", "Masse volumique"), PHET("buoyancy", "Poussée d'Archimède")] },
-  { cat: "Maths, programmation et SNT", l: [{ t: "GeoGebra · grapheur", url: "https://www.geogebra.org/graphing?lang=fr", src: "GeoGebra" }, { t: "Basthon · Python dans le navigateur", url: "https://basthon.fr/", src: "Basthon" }, { t: "Capytale", url: "https://capytale2.ac-paris.fr/web/accueil", src: "Capytale" }, { t: "Ostralo · animations de physique", url: "https://www.ostralo.net/", src: "Ostralo" }] }
+  { cat: "Mécanique : mouvements et forces", l: [PHET("forces-and-motion-basics", "Forces et mouvement : les bases", "2nde"), PHET("friction", "Frottements", "2nde"), PHET("vector-addition", "Addition de vecteurs", "2nde · 1re"), PHET("balancing-act", "Équilibrer les masses", "2nde"), PHET("hookes-law", "Loi de Hooke (ressorts)", "2nde"), PHET("gravity-force-lab-basics", "Interaction gravitationnelle : les bases", "2nde"), PHET("gravity-force-lab", "Loi de la gravitation universelle", "2nde · Tle"), PHET("projectile-motion", "Mouvement d'un projectile", "Tle"), PHET("projectile-data-lab", "Labo de données sur les projectiles", "Tle"), PHET("collision-lab", "Labo de collisions (quantité de mouvement)", "Tle"), PHET("gravity-and-orbits", "Gravité et orbites", "Tle"), PHET("keplers-laws", "Lois de Kepler", "Tle"), PHET("my-solar-system", "Mon système solaire", "Tle")] },
+  { cat: "Énergie, oscillations et thermodynamique", l: [PHET("energy-skate-park-basics", "Énergie au skatepark : les bases", "1re"), PHET("energy-skate-park", "Énergies au skatepark", "1re"), PHET("pendulum-lab", "Labo du pendule", "1re · Tle"), PHET("masses-and-springs-basics", "Masses et ressorts : les bases", "1re"), PHET("masses-and-springs", "Masses et ressorts", "1re · Tle"), PHET("energy-forms-and-changes", "Formes et conversions d'énergie", "2nde · SI · Techno"), PHET("states-of-matter-basics", "États de la matière : les bases", "2nde"), PHET("states-of-matter", "États de la matière", "2nde · 1re"), PHET("gases-intro", "Gaz : introduction", "2nde · Tle"), PHET("gas-properties", "Propriétés des gaz (gaz parfait)", "Tle"), PHET("diffusion", "Diffusion d'un gaz", "Tle"), PHET("greenhouse-effect", "Effet de serre", "1re (ens. scientifique)")] },
+  { cat: "Fluides", l: [PHET("density", "Masse volumique", "2nde"), PHET("under-pressure", "Sous pression (pression d'un fluide)", "2nde · 1re"), PHET("buoyancy-basics", "Poussée d'Archimède : les bases", "Tle"), PHET("buoyancy", "Poussée d'Archimède", "Tle")] },
+  { cat: "Ondes et signaux", l: [PHET("waves-intro", "Introduction aux ondes (son, lumière, eau)", "2nde"), PHET("fourier-making-waves", "Fourier : décomposer un son", "2nde"), PHET("wave-on-a-string", "Onde sur une corde", "Tle"), PHET("wave-interference", "Interférences et diffraction", "Tle"), PHET("quantum-wave-interference", "Interférences quantiques", "Tle")] },
+  { cat: "Lumière, couleurs et spectres", l: [PHET("bending-light", "Réfraction de la lumière (Snell-Descartes)", "2nde"), PHET("geometric-optics-basics", "Optique géométrique : les bases", "2nde · 1re"), PHET("geometric-optics", "Lentilles et miroirs", "1re"), PHET("color-vision", "Vision des couleurs", "1re"), PHET("blackbody-spectrum", "Spectre du corps noir (loi de Wien)", "1re"), PHET("models-of-the-hydrogen-atom", "Modèles de l'atome d'hydrogène", "1re"), PHET("molecules-and-light", "Molécules et lumière", "1re")] },
+  { cat: "Électricité et magnétisme", l: [PHET("circuit-construction-kit-dc", "Construire un circuit (courant continu)", "2nde · SI · Techno"), PHET("circuit-construction-kit-dc-virtual-lab", "Circuit continu : labo virtuel", "2nde · SI"), PHET("ohms-law", "Loi d'Ohm", "2nde · Techno"), PHET("resistance-in-a-wire", "Résistance d'un fil", "2nde"), PHET("circuit-construction-kit-ac", "Construire un circuit (alternatif)", "SI"), PHET("circuit-construction-kit-ac-virtual-lab", "Circuit alternatif : labo virtuel", "SI"), PHET("capacitor-lab-basics", "Condensateur", "Tle"), PHET("balloons-and-static-electricity", "Ballons et électricité statique", "1re"), PHET("john-travoltage", "John Travoltage (électrisation)", "1re"), PHET("coulombs-law", "Loi de Coulomb", "1re"), PHET("charges-and-fields", "Charges et champs électriques", "1re · Tle"), PHET("magnet-and-compass", "Aimant et boussole", "1re · Techno"), PHET("magnets-and-electromagnets", "Aimants et électroaimants", "1re · SI"), PHET("faradays-law", "Loi de Faraday (induction)", "SI"), PHET("faradays-electromagnetic-lab", "Labo électromagnétique de Faraday", "SI"), PHET("generator", "Générateur (alternateur)", "SI · Techno"), { t: "Simulateur de circuits Falstad", url: "https://www.falstad.com/circuit/circuitjs.html", src: "Falstad", niv: "SI · Techno" }] },
+  { cat: "Atome et noyau", l: [PHET("build-an-atom", "Construire un atome", "2nde"), PHET("isotopes-and-atomic-mass", "Isotopes et masse atomique", "2nde"), PHET("rutherford-scattering", "Diffusion de Rutherford", "2nde"), PHET("build-a-nucleus", "Construire un noyau", "1re"), PHET("alpha-decay", "Désintégration alpha", "1re · Tle"), PHET("beta-decay", "Désintégration bêta", "1re · Tle")] },
+  { cat: "Chimie", l: [PHET("build-a-molecule", "Créer une molécule", "2nde"), PHET("balancing-chemical-equations", "Ajuster une équation chimique", "2nde"), PHET("reactants-products-and-leftovers", "Réactifs, produits et restes (avancement)", "2nde · 1re"), PHET("concentration", "Concentration", "2nde"), PHET("molarity", "Concentration molaire", "2nde"), PHET("molecule-shapes-basics", "Géométrie des molécules : les bases", "1re"), PHET("molecule-shapes", "Géométrie des molécules (VSEPR)", "1re"), PHET("molecule-polarity", "Polarité des molécules", "1re"), PHET("atomic-interactions", "Interactions atomiques", "1re"), PHET("beers-law-lab", "Loi de Beer-Lambert", "1re"), PHET("ph-scale-basics", "Échelle de pH : les bases", "Tle"), PHET("ph-scale", "Échelle de pH", "Tle"), PHET("acid-base-solutions", "Solutions acides et basiques", "Tle")] },
+  { cat: "Mesures, graphiques et mathématiques", l: [PHET("curve-fitting", "Ajustement de courbes (modélisation)", "2nde · 1re · Tle"), PHET("least-squares-regression", "Régression linéaire", "1re · Tle"), PHET("graphing-quadratics", "Tracer des paraboles", "1re"), PHET("calculus-grapher", "Dérivées et intégrales", "Tle"), PHET("trig-tour", "Cercle trigonométrique", "1re · Tle")] },
+  { cat: "Programmation, SNT, SI et technologie", l: [{ t: "Basthon · Python dans le navigateur", url: "https://basthon.fr/", src: "Basthon", niv: "SNT · SI" }, { t: "Capytale (Python, Scratch, HTML…)", url: "https://capytale2.ac-paris.fr/web/accueil", src: "Capytale", niv: "SNT · SI · Techno" }, { t: "GeoGebra · grapheur", url: "https://www.geogebra.org/graphing?lang=fr", src: "GeoGebra", niv: "Tous niveaux" }, { t: "Ostralo · animations de physique", url: "https://www.ostralo.net/", src: "Ostralo", niv: "2nde · 1re · Tle" }] }
 ];
 function ouvrirSimu(t, url){ const cle = "sim:" + url; COTE_A_COTE[cle] = { titre: t, mode: "cadre" }; if (window.innerWidth <= 760) { window.open(url, "_blank", "noopener"); return; } ouvrirCote(cle, url, t); }
 VUES_PRO.simulations = function(){
   const perso = R().simulations || [], q = sansAccent(S.simQ || "");
   const groupes = [...SIMS, ...(perso.length ? [{ cat: "Ajoutées par " + nomProfCourt(), l: perso.map(x => ({ ...x, src: x.src || "Lien" })), perso: true }] : [])];
-  const filtre = x => !q || sansAccent(x.t + " " + x.src).includes(q);
+  const filtre = x => !q || sansAccent(x.t + " " + x.src + " " + (x.niv || "")).includes(q);
   return `<div class="page wide"><div class="homehead"><h1>Simulations</h1></div>
     <p class="muted" style="margin:0">Clique sur une simulation : elle s'ouvre à côté de la page (écran partagé). Sur téléphone, elle s'ouvre dans un nouvel onglet.</p>
-    <div class="simbarre"><div class="simq">${icon("search")}<input type="search" data-simq="1" placeholder="Chercher : pendule, pH, circuit…" value="${esc(S.simQ || "")}" aria-label="Chercher une simulation"></div></div>
-    ${groupes.map(g => { const L = g.l.map((x, i) => ({ ...x, i })).filter(filtre); return L.length ? `<section class="simgroupe"><h2>${esc(g.cat)}</h2><div class="simgrille">${L.map(x => `<div class="simcarte"><button class="simouvrir" data-act="simu" data-t="${esc(x.t)}" data-u="${esc(x.url)}"><span class="simsrc">${esc(x.src)}</span><b>${esc(x.t)}</b><span class="simgo">${icon("expand")} Ouvrir à côté</span></button>${g.perso && S.prof ? `<button class="ib sm simsuppr" data-act="simsuppr" data-i="${x.i}" title="Retirer" aria-label="Retirer ${esc(x.t)}">${icon("trash")}</button>` : ""}</div>`).join("")}</div></section>` : ""; }).join("") || `<div class="emptystate"><b>Aucune simulation ne correspond.</b></div>`}
+    <div class="simbarre"><div class="simq">${icon("search")}<input type="search" data-simq="1" placeholder="Chercher : pendule, pH, circuit, Tle, SI…" value="${esc(S.simQ || "")}" aria-label="Chercher une simulation"></div></div>
+    ${groupes.map(g => { const L = g.l.map((x, i) => ({ ...x, i })).filter(filtre); return L.length ? `<section class="simgroupe"><h2>${esc(g.cat)}</h2><div class="simgrille">${L.map(x => `<div class="simcarte"><button class="simouvrir" data-act="simu" data-t="${esc(x.t)}" data-u="${esc(x.url)}"><span class="simsrc">${esc(x.src)}</span>${x.niv ? `<span class="simniv">${esc(x.niv)}</span>` : ""}<b>${esc(x.t)}</b><span class="simgo">${icon("expand")} Ouvrir à côté</span></button>${g.perso && S.prof ? `<button class="ib sm simsuppr" data-act="simsuppr" data-i="${x.i}" title="Retirer" aria-label="Retirer ${esc(x.t)}">${icon("trash")}</button>` : ""}</div>`).join("")}</div></section>` : ""; }).join("") || `<div class="emptystate"><b>Aucune simulation ne correspond.</b></div>`}
     ${S.prof ? `<section class="edcard"><h2>${icon("plus")} Ajouter une simulation</h2><div class="simajout"><input id="simT" placeholder="Titre (ex. Chute libre)" aria-label="Titre"><input id="simU" type="url" placeholder="https://…" aria-label="Adresse"><button class="btn" data-act="simajout">${icon("plus")} Ajouter</button></div><p class="muted" style="margin:0;font-size:.8rem">Certains sites (Scratch, Tinkercad…) refusent de s'afficher à côté : utilise alors le bouton ↗ du panneau pour les ouvrir dans un onglet.</p></section>` : ""}
     ${pageFoot()}</div>`;
 };
@@ -4135,7 +4139,7 @@ const UNITES = {
 const versK = (v, u) => u === "K" ? v : u === "°C" ? v + 273.15 : (v - 32) * 5 / 9 + 273.15, depuisK = (k, u) => u === "K" ? k : u === "°C" ? k - 273.15 : (k - 273.15) * 9 / 5 + 32;
 const fmtSci = x => { if (!isFinite(x)) return "—"; if (x === 0) return "0"; const a = Math.abs(x); if (a >= 1e-3 && a < 1e6) return String(Math.round(x * 1e6) / 1e6).replace(".", ","); const e = Math.floor(Math.log10(a)), m = x / 10 ** e; return (Math.round(m * 1000) / 1000).toString().replace(".", ",") + " × 10" + String(e).replace(/[-\d]/g, c => "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"["-0123456789".indexOf(c)]); };
 VUES_PRO.physique = function(){
-  const ong = S.phyOng || "unites", O = [["unites", "Convertisseur d'unités", "ruler"], ["tableau", "Tableau périodique", "atom"], ["constantes", "Constantes", "key"], ["courbes", "Traceur de courbes", "chart"]];
+  const ong = S.phyOng || "unites", O = [["unites", "Convertisseur d'unités", "ruler"], ["tableau", "Tableau périodique", "atom"], ["formules", "Éditeur de formules", "edit"], ["chimie", "Chimie", "flask"], ["mesures", "Mesures et incertitudes", "grade"], ["constantes", "Constantes", "key"], ["courbes", "Traceur de courbes", "chart"], ["snt", "SNT", "codeb"], ["si", "SI et Technologie", "gear"]];
   let corps = "";
   if (ong === "unites") {
     const g = S.phyG || "Longueur", G = UNITES[g], de = S.phyDe || G.u[0][0], vers = S.phyVers || (G.u[1] || G.u[0])[0], v = S.phyV ?? "1";
@@ -4156,8 +4160,8 @@ VUES_PRO.physique = function(){
       </div></div>`;
   } else if (ong === "constantes") {
     corps = `<div class="tablewrap"><table class="admtable consttab"><thead><tr><th class="first">Grandeur</th><th>Symbole</th><th>Valeur</th><th>Unité</th><th></th></tr></thead><tbody>${CONSTANTES.map(([n, s, v, u, brut]) => `<tr><td class="first">${n}</td><td class="mono"><b>${s}</b></td><td class="mono">${v}</td><td>${u}</td><td><button class="ib sm" data-act="phycopie" data-v="${brut}" title="Copier la valeur" aria-label="Copier ${esc(n)}">${icon("copy")}</button></td></tr>`).join("")}</tbody></table></div>`;
-  } else corps = vueCourbes();
-  return `<div class="page wide"><div class="homehead"><h1>Outils de physique</h1></div>
+  } else if (OUTILS_PLUS[ong]) corps = OUTILS_PLUS[ong](); else corps = vueCourbes();
+  return `<div class="page wide"><div class="homehead"><h1>Outils Scientifiques Importants</h1></div>
     <div class="phyongs" role="tablist">${O.map(([k, l, ic]) => `<button role="tab" aria-selected="${ong === k}" data-act="phyong" data-o="${k}">${icon(ic)}<span>${l}</span></button>`).join("")}</div>
     <section class="phycorps">${corps}</section>${pageFoot()}</div>`;
 };
@@ -4577,6 +4581,201 @@ function blocScientifique(){
     <div class="scitx"><small class="scilbl">${icon("atom")} Scientifique du jour</small><h2><a data-wiki="1" href="${esc(url)}" target="_blank" rel="noopener">${esc(nom)}</a> <span>${esc(dates)}</span></h2><p>${esc(bio)}</p>
       <div class="scinot"><b>Au programme :</b>${notions.map(n => `<span>${esc(n)}</span>`).join("")}</div></div></section>`;
 }
+/* =====================================================================
+   Outils Scientifiques Importants : éditeur de formules, chimie,
+   mesures et incertitudes, SNT, SI et technologie
+   ===================================================================== */
+IC.codeb = '<path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>';
+const OUTILS_PLUS = {};
+const nb = v => { const x = Number(String(v ?? "").replace(/\s/g, "").replace(",", ".")); return isFinite(x) && String(v ?? "").trim() !== "" ? x : NaN; };
+const champ = (id, lib, val, unite, ph) => `<label class="ochamp"><span>${lib}</span><span class="ochin"><input id="${id}" data-oi="1" value="${esc(val ?? "")}" inputmode="decimal" placeholder="${esc(ph || "")}">${unite ? `<em>${unite}</em>` : ""}</span></label>`;
+const carteOutil = (titre, desc, corps, id) => `<section class="ocarte" ${id ? `id="${id}"` : ""}><h3>${titre}</h3>${desc ? `<p class="muted">${desc}</p>` : ""}${corps}</section>`;
+const OV = {}; // valeurs saisies (gardées entre deux affichages)
+const ov = id => OV[id] ?? "";
+
+/* ---------- Éditeur de formules (KaTeX + mhchem) ---------- */
+const KATEX = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/";
+let katexPret = null;
+function chargerKatex(){
+  if (katexPret) return katexPret;
+  katexPret = new Promise((ok, ko) => {
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = KATEX + "katex.min.css"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = KATEX + "katex.min.js"; s.onload = () => { const m = document.createElement("script"); m.src = KATEX + "contrib/mhchem.min.js"; m.onload = ok; m.onerror = ok; document.head.appendChild(m); }; s.onerror = ko; document.head.appendChild(s);
+  });
+  return katexPret;
+}
+const FORMULES_BTN = [
+  ["Structure", [["a/b", "\\frac{a}{b}", "Fraction"], ["x²", "x^{2}", "Puissance"], ["xᵢ", "x_{i}", "Indice"], ["√", "\\sqrt{x}", "Racine carrée"], ["ⁿ√", "\\sqrt[n]{x}", "Racine n-ième"], ["( )", "\\left( x \\right)", "Parenthèses adaptées"], ["|x|", "\\left| x \\right|", "Valeur absolue"], ["F⃗", "\\vec{F}", "Vecteur"], ["AB⃗", "\\overrightarrow{AB}", "Vecteur AB"], ["x̄", "\\bar{x}", "Moyenne"], ["ẋ", "\\dot{x}", "Dérivée temporelle"], ["10ⁿ", "\\times 10^{n}", "Notation scientifique"]]],
+  ["Symboles", [["×", "\\times", ""], ["·", "\\cdot", ""], ["÷", "\\div", ""], ["±", "\\pm", ""], ["≈", "\\approx", ""], ["≠", "\\neq", ""], ["≤", "\\leq", ""], ["≥", "\\geq", ""], ["∝", "\\propto", "Proportionnel à"], ["∞", "\\infty", ""], ["°", "^{\\circ}", "Degré"], ["Δ", "\\Delta", ""], ["∂", "\\partial", ""], ["∑", "\\sum_{i=1}^{n}", "Somme"], ["∫", "\\int_{a}^{b}", "Intégrale"], ["lim", "\\lim_{x \\to 0}", "Limite"], ["d/dt", "\\frac{\\mathrm{d}x}{\\mathrm{d}t}", "Dérivée"], ["→", "\\rightarrow", ""], ["⇔", "\\Leftrightarrow", ""], ["⇒", "\\Rightarrow", ""]]],
+  ["Grec", "α β γ δ ε η θ λ μ ν π ρ σ τ φ ψ ω Γ Δ Θ Λ Π Σ Φ Ψ Ω".split(" ").map(g => [g, "\\" + { α: "alpha", β: "beta", γ: "gamma", δ: "delta", ε: "varepsilon", η: "eta", θ: "theta", λ: "lambda", μ: "mu", ν: "nu", π: "pi", ρ: "rho", σ: "sigma", τ: "tau", φ: "varphi", ψ: "psi", ω: "omega", Γ: "Gamma", Δ: "Delta", Θ: "Theta", Λ: "Lambda", Π: "Pi", Σ: "Sigma", Φ: "Phi", Ψ: "Psi", Ω: "Omega" }[g] + " ", ""])],
+  ["Chimie", [["→", "\\ce{A + B -> C}", "Équation de réaction"], ["⇌", "\\ce{A + B <=> C + D}", "Équilibre"], ["H₂O", "\\ce{H2O}", "Formule brute"], ["SO₄²⁻", "\\ce{SO4^2-}", "Ion"], ["Ox/Red", "\\ce{Cu^2+ + 2e- -> Cu}", "Demi-équation"], ["(aq)", "\\ce{Na+(aq)}", "État physique"], ["¹⁴₆C", "\\ce{^{14}_{6}C}", "Noyau (A, Z)"], ["β⁻", "\\ce{^{14}_{6}C -> ^{14}_{7}N + ^{0}_{-1}e}", "Désintégration"], ["[ ]", "[\\ce{H3O+}]", "Concentration"]]],
+  ["Unités", [["mol·L⁻¹", "\\text{ mol·L}^{-1}", ""], ["m·s⁻¹", "\\text{ m·s}^{-1}", ""], ["m·s⁻²", "\\text{ m·s}^{-2}", ""], ["g·mol⁻¹", "\\text{ g·mol}^{-1}", ""], ["J", "\\text{ J}", ""], ["W", "\\text{ W}", ""], ["Ω", "\\text{ }\\Omega", ""], ["°C", "\\text{ }^{\\circ}\\text{C}", ""], ["kg·m⁻³", "\\text{ kg·m}^{-3}", ""], ["Pa", "\\text{ Pa}", ""]]]
+];
+const EXEMPLES_FORMULES = [["Énergie cinétique", "E_c = \\frac{1}{2} m v^{2}"], ["2e loi de Newton", "\\sum \\vec{F} = m \\vec{a}"], ["Concentration", "C = \\frac{n}{V} = \\frac{m}{M \\times V}"], ["Combustion du méthane", "\\ce{CH4 + 2O2 -> CO2 + 2H2O}"], ["Gaz parfait", "P V = n R T"], ["Décroissance radioactive", "N(t) = N_0 \\, e^{-\\lambda t}"], ["pH", "\\mathrm{pH} = -\\log\\left(\\frac{[\\ce{H3O+}]}{c^{\\circ}}\\right)"], ["Snell-Descartes", "n_1 \\sin(i_1) = n_2 \\sin(i_2)"]];
+OUTILS_PLUS.formules = function(){
+  if (!window.katex) chargerKatex().then(() => { if (route().v === "physique") apercuFormule(); }).catch(() => {});
+  const v = OV.formule ?? "E_c = \\frac{1}{2} m v^{2}";
+  return `<div class="fmgrille"><div class="fmgauche">
+      ${FORMULES_BTN.map(([g, L]) => `<div class="fmgroupe"><small>${g}</small><div class="fmbtns">${L.map(([l, c, t]) => `<button class="fmb" data-act="fmins" data-c="${esc(c)}" title="${esc(t || c)}">${esc(l)}</button>`).join("")}</div></div>`).join("")}
+    </div><div class="fmdroite">
+      <label class="ochamp"><span>Formule (écris ou clique sur les boutons) — notation LaTeX, équations chimiques avec \\ce{…}</span><textarea id="fmTxt" rows="4" spellcheck="false">${esc(v)}</textarea></label>
+      <div id="fmApercu" class="fmapercu" aria-live="polite">${window.katex ? "" : "Chargement de l'éditeur…"}</div>
+      <div class="fmactions"><button class="btn sm" data-act="fmword">${icon("copy")} Copier pour Word / OneNote</button><button class="btn ghost sm" data-act="fmlatex">${icon("copy")} Copier le code LaTeX</button><button class="btn ghost sm" data-act="fmpng">${icon("down")} Télécharger en image</button></div>
+      <div class="fmex"><small>Exemples :</small>${EXEMPLES_FORMULES.map(([n, f]) => `<button class="chip" data-act="fmex" data-c="${esc(f)}">${esc(n)}</button>`).join("")}</div>
+      <p class="muted" style="font-size:.78rem;margin:0">« Copier pour Word » colle une vraie équation modifiable dans Word (Ctrl+V). L'image se colle partout (Pronote, Teams, diaporama…).</p></div></div>`;
+};
+function apercuFormule(){
+  const t = document.getElementById("fmTxt"), z = document.getElementById("fmApercu"); if (!t || !z) return;
+  OV.formule = t.value; if (!window.katex) { z.textContent = "Chargement de l'éditeur…"; return; }
+  try { z.innerHTML = katex.renderToString(t.value || "\\text{…}", { displayMode: true, throwOnError: true, strict: false }); z.classList.remove("err"); }
+  catch (e) { z.textContent = "Formule incomplète : " + (e.message || "").replace(/^KaTeX parse error: /, ""); z.classList.add("err"); }
+}
+function insererFormule(code){
+  const t = document.getElementById("fmTxt"); if (!t) return; const a = t.selectionStart ?? t.value.length, b = t.selectionEnd ?? a, sel = t.value.slice(a, b);
+  let c = code; if (sel && /\{[a-z]\}|\bx\b/.test(c)) c = c.replace(/\{[a-z]\}|\bx\b/, m => m.startsWith("{") ? "{" + sel + "}" : sel);
+  t.value = t.value.slice(0, a) + c + t.value.slice(b); t.focus(); const p = a + c.length; t.setSelectionRange(p, p); apercuFormule();
+}
+async function imageFormule(){
+  const z = document.querySelector("#fmApercu .katex-display") || document.getElementById("fmApercu"); if (!z) return;
+  await chargerScriptUne("https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js", () => window.htmlToImage);
+  const url = await window.htmlToImage.toPng(z, { backgroundColor: "#ffffff", pixelRatio: 3, style: { margin: "0", padding: "12px" } });
+  const l = document.createElement("a"); l.download = "formule.png"; l.href = url; l.click();
+}
+function chargerScriptUne(url, test){ if (test()) return Promise.resolve(); return new Promise((ok, ko) => { const s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+
+/* ---------- Chimie : masse molaire, quantités, dilution, équilibrage ---------- */
+const MASSES = Object.fromEntries(ELEM.map(e => [e.s, e.m]));
+function analyserFormule(f){
+  f = String(f).replace(/\s/g, "").replace(/[·•.*](\d*)/g, "+$1").replace(/[₀-₉]/g, c => "0123456789"["₀₁₂₃₄₅₆₇₈₉".indexOf(c)]);
+  const parties = f.split("+").filter(Boolean), total = {};
+  for (const p of parties) {
+    const mm = p.match(/^(\d+)(.*)$/), k = mm && !/^\d+$/.test(p) ? Number(mm[1]) : 1, corps = mm && !/^\d+$/.test(p) ? mm[2] : p;
+    let i = 0;
+    const lire = () => { const o = {}; while (i < corps.length) { const c = corps[i];
+        if (c === "(" || c === "[") { i++; const sous = lire(); i++; const n = corps.slice(i).match(/^\d+/); const q = n ? Number(n[0]) : 1; if (n) i += n[0].length; for (const e in sous) o[e] = (o[e] || 0) + sous[e] * q; }
+        else if (c === ")" || c === "]") return o;
+        else { const m = corps.slice(i).match(/^([A-Z][a-z]?)(\d*)/); if (!m) throw new Error("Symbole inconnu près de « " + corps.slice(i) + " »"); if (!MASSES[m[1]]) throw new Error("Élément inconnu : " + m[1]); o[m[1]] = (o[m[1]] || 0) + (m[2] ? Number(m[2]) : 1); i += m[0].length; } }
+      return o; };
+    const o = lire(); for (const e in o) total[e] = (total[e] || 0) + o[e] * k;
+  }
+  if (!Object.keys(total).length) throw new Error("Écris une formule, par exemple C6H12O6 ou Ca(OH)2.");
+  return total;
+}
+const masseMolaire = o => Object.entries(o).reduce((a, [e, n]) => a + MASSES[e] * n, 0);
+/* équilibrage : noyau d'une matrice (méthode de Gauss en fractions) */
+function pgcd(a, b){ a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; }
+function equilibrer(txt){
+  const [g, d] = String(txt).replace(/=|⟶|→|->/g, "=").split("="); if (!d) throw new Error("Sépare les réactifs et les produits par une flèche : ->");
+  const esp = s => s.split(/\s\+\s|\+(?=\s*[A-Z(])/).map(x => x.trim()).filter(Boolean).map(x => x.replace(/^\d+\s*/, ""));
+  const R = esp(g), P = esp(d), tous = [...R, ...P], comp = tous.map(x => analyserFormule(x.replace(/\^?\d*[+-]$/, "")));
+  const charges = tous.map(x => { const m = x.match(/\^?(\d*)([+-])$/); return m ? (m[2] === "+" ? 1 : -1) * (m[1] ? Number(m[1]) : 1) : 0; });
+  const els = [...new Set(comp.flatMap(o => Object.keys(o)))];
+  const M = els.map(e => tous.map((_, j) => (comp[j][e] || 0) * (j < R.length ? 1 : -1)));
+  if (charges.some(c => c)) M.push(tous.map((_, j) => charges[j] * (j < R.length ? 1 : -1)));
+  const n = tous.length, A = M.map(r => r.map(v => [v, 1]));
+  const sub = (x, y) => norm([x[0] * y[1] - y[0] * x[1], x[1] * y[1]]), mul = (x, y) => norm([x[0] * y[0], x[1] * y[1]]), div = (x, y) => norm([x[0] * y[1], x[1] * y[0]]);
+  function norm(f){ if (f[1] < 0) f = [-f[0], -f[1]]; const k = pgcd(f[0], f[1]) || 1; return [f[0] / k, f[1] / k]; }
+  let lig = 0; const piv = [];
+  for (let c = 0; c < n && lig < A.length; c++) { let r = A.findIndex((row, i) => i >= lig && row[c][0] !== 0); if (r < 0) continue; [A[lig], A[r]] = [A[r], A[lig]];
+    const p = A[lig][c]; A[lig] = A[lig].map(x => div(x, p)); A.forEach((row, i) => { if (i !== lig && row[c][0]) { const f = row[c]; A[i] = row.map((x, k) => sub(x, mul(f, A[lig][k]))); } }); piv.push(c); lig++; }
+  const libres = [...Array(n).keys()].filter(c => !piv.includes(c)); if (libres.length !== 1) throw new Error(libres.length ? "Plusieurs ajustements possibles : vérifie l'équation." : "Équation impossible à ajuster : vérifie les formules.");
+  const x = Array(n).fill(null); x[libres[0]] = [1, 1]; piv.forEach((c, i) => { x[c] = norm([-A[i][libres[0]][0], A[i][libres[0]][1]]); });
+  const den = x.reduce((a, f) => a * f[1] / pgcd(a, f[1]), 1); let co = x.map(f => f[0] * den / f[1]); const g2 = co.reduce((a, v) => pgcd(a, v), 0); co = co.map(v => v / g2); if (co.some(v => v <= 0)) co = co.map(v => -v);
+  if (co.some(v => v <= 0)) throw new Error("Équation impossible à ajuster : vérifie les réactifs et les produits.");
+  const ecr = (L, off) => L.map((s2, i) => (co[off + i] === 1 ? "" : co[off + i] + " ") + s2).join(" + ");
+  return ecr(R, 0) + " → " + ecr(P, R.length);
+}
+const formuleJolie = f => esc(f).replace(/(\d+)/g, "<sub>$1</sub>").replace(/<sub>(\d+)<\/sub>([+-])$/,"<sup>$1$2</sup>");
+OUTILS_PLUS.chimie = function(){
+  let mmRes = ""; try { if (ov("mmF")) { const o = analyserFormule(ov("mmF")), M = masseMolaire(o); mmRes = `<div class="ores"><b>M(${esc(ov("mmF"))}) = ${fmtNote(Math.round(M * 100) / 100)} g·mol⁻¹</b><small>${Object.entries(o).map(([e, n]) => `${n} × M(${e}) = ${n} × ${fmtNote(MASSES[e])}`).join(" + ")}</small></div>`; } } catch (e) { mmRes = `<div class="ores err">${esc(e.message)}</div>`; }
+  let eqRes = ""; try { if (ov("eqT")) eqRes = `<div class="ores"><b>${esc(equilibrer(ov("eqT")))}</b></div>`; } catch (e) { eqRes = `<div class="ores err">${esc(e.message)}</div>`; }
+  const m = nb(ov("qm")), M = nb(ov("qM")), V = nb(ov("qV")), n = nb(ov("qn"));
+  let qRes = ""; if (isFinite(m) && isFinite(M)) qRes += `n = m / M = <b>${fmtSci(m / M)} mol</b>`; if (isFinite(V) && V > 0 && isFinite(m)) qRes += `${qRes ? "<br>" : ""}C<sub>m</sub> = m / V = <b>${fmtSci(m / V)} g·L⁻¹</b>`;
+  if (isFinite(V) && V > 0) { const nn = isFinite(n) ? n : isFinite(m) && isFinite(M) ? m / M : NaN; if (isFinite(nn)) qRes += `${qRes ? "<br>" : ""}C = n / V = <b>${fmtSci(nn / V)} mol·L⁻¹</b>`; }
+  const C1 = nb(ov("dC1")), V1 = nb(ov("dV1")), C2 = nb(ov("dC2")), V2 = nb(ov("dV2")), conn = [C1, V1, C2, V2].filter(isFinite).length;
+  let dRes = ""; if (conn === 3) { const r = !isFinite(C1) ? ["C₁", C2 * V2 / V1] : !isFinite(V1) ? ["V₁", C2 * V2 / C1] : !isFinite(C2) ? ["C₂", C1 * V1 / V2] : ["V₂", C1 * V1 / C2]; dRes = `<div class="ores"><b>${r[0]} = ${fmtSci(r[1])}</b><small>C₁ × V₁ = C₂ × V₂ (même unité de volume des deux côtés) · facteur de dilution F = ${fmtSci((isFinite(C1) ? C1 : C2 * V2 / V1) / (isFinite(C2) ? C2 : C1 * V1 / V2))}</small></div>`; }
+  const h = nb(ov("phH")), p = nb(ov("phP"));
+  const phRes = isFinite(h) && h > 0 ? `<div class="ores"><b>pH = ${fmtNote(Math.round(-Math.log10(h) * 100) / 100)}</b></div>` : isFinite(p) ? `<div class="ores"><b>[H₃O⁺] = ${fmtSci(10 ** -p)} mol·L⁻¹</b></div>` : "";
+  return `<div class="ogrille">
+    ${carteOutil("Masse molaire", "Écris une formule brute : C6H12O6, Ca(OH)2, CuSO4·5H2O…", `<label class="ochamp"><span>Formule</span><span class="ochin"><input id="mmF" data-oi="1" value="${esc(ov("mmF"))}" placeholder="C6H12O6" spellcheck="false"></span></label>${mmRes}`)}
+    ${carteOutil("Ajuster une équation", "Exemple : CH4 + O2 -> CO2 + H2O · ions : Cu^2+ + Fe -> Cu + Fe^2+", `<label class="ochamp"><span>Équation</span><span class="ochin"><input id="eqT" data-oi="1" value="${esc(ov("eqT"))}" placeholder="CH4 + O2 -> CO2 + H2O" spellcheck="false"></span></label>${eqRes}`)}
+    ${carteOutil("Quantité de matière et concentrations", "Remplis ce que tu connais.", `<div class="ochamps">${champ("qm", "Masse m", ov("qm"), "g")}${champ("qM", "Masse molaire M", ov("qM"), "g·mol⁻¹")}${champ("qn", "Quantité n", ov("qn"), "mol")}${champ("qV", "Volume V", ov("qV"), "L")}</div>${qRes ? `<div class="ores">${qRes}</div>` : ""}`)}
+    ${carteOutil("Dilution", "Remplis 3 valeurs sur 4 : la 4e est calculée.", `<div class="ochamps">${champ("dC1", "C₁ (mère)", ov("dC1"), "")}${champ("dV1", "V₁ prélevé", ov("dV1"), "")}${champ("dC2", "C₂ (fille)", ov("dC2"), "")}${champ("dV2", "V₂ (fiole)", ov("dV2"), "")}</div>${dRes}`)}
+    ${carteOutil("pH ↔ concentration en ions H₃O⁺", "Remplis l'un ou l'autre.", `<div class="ochamps">${champ("phH", "[H₃O⁺]", ov("phH"), "mol·L⁻¹", "1e-3")}${champ("phP", "pH", ov("phP"), "")}</div>${phRes}`)}
+  </div>`;
+};
+
+/* ---------- Mesures et incertitudes (type A) ---------- */
+OUTILS_PLUS.mesures = function(){
+  const L = String(ov("mxL")).split(/[\s;]+/).map(nb).filter(isFinite), n = L.length, ref = nb(ov("mxR"));
+  let res = "";
+  if (n >= 2) { const moy = L.reduce((a, b) => a + b, 0) / n, s = Math.sqrt(L.reduce((a, x) => a + (x - moy) ** 2, 0) / (n - 1)), u = s / Math.sqrt(n);
+    const ch = u ? Math.max(0, -Math.floor(Math.log10(u)) + (Number(String(u.toExponential(1))[0]) < 2 ? 1 : 0)) : 3, arr = x => fmtNote(Number(x.toFixed(Math.min(ch, 10))));
+    res = `<div class="ores"><b>x̄ = ${fmtSci(moy)}</b><small>moyenne de ${n} mesures</small></div><div class="ores"><b>s = ${fmtSci(s)}</b><small>écart-type expérimental</small></div><div class="ores"><b>u(x) = s / √n = ${fmtSci(u)}</b><small>incertitude-type (évaluation de type A)</small></div>
+      <div class="ores bon"><b>Résultat : x = ${arr(moy)} ± ${arr(u)}</b><small>écrit avec le même nombre de décimales que l'incertitude</small></div>
+      ${isFinite(ref) && u ? `<div class="ores ${Math.abs(moy - ref) / u <= 2 ? "bon" : "err"}"><b>z = |x̄ − x<sub>réf</sub>| / u = ${fmtNote(Math.round(Math.abs(moy - ref) / u * 100) / 100)}</b><small>${Math.abs(moy - ref) / u <= 2 ? "z ≤ 2 : résultat compatible avec la valeur de référence" : "z > 2 : résultat non compatible avec la valeur de référence"}</small></div>` : ""}`; }
+  else if (n === 1) res = `<div class="ores">Saisis au moins deux mesures.</div>`;
+  return `<div class="ogrille">${carteOutil("Série de mesures", "Colle ou tape tes valeurs, séparées par des espaces, des retours à la ligne ou des points-virgules.", `<label class="ochamp"><span>Mesures</span><textarea id="mxL" data-oi="1" rows="4" placeholder="9,79 9,82 9,85 9,80 9,78">${esc(ov("mxL"))}</textarea></label>${champ("mxR", "Valeur de référence (facultatif)", ov("mxR"), "", "9,81")}`)}
+    ${carteOutil("Résultats", "", res || `<p class="muted" style="margin:0">Les résultats s'affichent ici.</p>`)}</div>`;
+};
+
+/* ---------- SNT : bases, couleurs, poids d'une image, texte en binaire ---------- */
+OUTILS_PLUS.snt = function(){
+  const src = ov("bsrc") || "dec", val = ov("bval"); let n = NaN;
+  try { if (val !== "") n = parseInt(String(val).replace(/\s/g, ""), { dec: 10, bin: 2, hex: 16 }[src]); } catch (_) {}
+  const bases = isFinite(n) && n >= 0 ? `<div class="ores"><b>Décimal : ${n}</b><small>Binaire : ${n.toString(2).replace(/\B(?=(\d{4})+(?!\d))/g, " ")} · Hexadécimal : ${n.toString(16).toUpperCase()} · ${n.toString(2).length} bit(s)</small></div>` : val ? `<div class="ores err">Nombre invalide dans cette base.</div>` : "";
+  const r = Number(ov("cR") || 17), g = Number(ov("cG") || 100), b = Number(ov("cB") || 130), hex = "#" + [r, g, b].map(x => Math.max(0, Math.min(255, x)).toString(16).padStart(2, "0")).join("").toUpperCase();
+  const w = nb(ov("iW")), h = nb(ov("iH")), bpp = nb(ov("iB") || 24), oc = w * h * bpp / 8;
+  const img = isFinite(oc) ? `<div class="ores"><b>${fmtSci(oc)} octets</b><small>= ${fmtSci(oc / 1024)} Kio = ${fmtSci(oc / 1048576)} Mio · ${fmtSci(w * h)} pixels (${fmtSci(w * h / 1e6)} mégapixels)</small></div>` : "";
+  const txt = ov("tB"), bin = txt ? [...new TextEncoder().encode(txt)].map(x => x.toString(2).padStart(8, "0")).join(" ") : "";
+  return `<div class="ogrille">
+    ${carteOutil("Conversion de bases", "Décimal, binaire, hexadécimal.", `<div class="ochamps"><label class="ochamp"><span>Base de départ</span><select id="bsrc" data-oi="1">${[["dec", "Décimal (10)"], ["bin", "Binaire (2)"], ["hex", "Hexadécimal (16)"]].map(([k, l]) => `<option value="${k}" ${k === src ? "selected" : ""}>${l}</option>`).join("")}</select></label>${champ("bval", "Nombre", val, "", "255")}</div>${bases}`)}
+    ${carteOutil("Couleurs RVB", "Chaque composante va de 0 à 255 (1 octet).", `<div class="rvb">${[["cR", "Rouge", r, "#e53935"], ["cG", "Vert", g, "#43a047"], ["cB", "Bleu", b, "#1e88e5"]].map(([id, l, v, c]) => `<label><span style="color:${c}">${l} <b>${v}</b></span><input type="range" min="0" max="255" id="${id}" data-oi="1" value="${v}" style="accent-color:${c}"></label>`).join("")}</div><div class="rvbapercu" style="background:${hex}"><b>${hex}</b><small>rgb(${r}, ${g}, ${b})</small></div>`)}
+    ${carteOutil("Poids d'une image", "Taille non compressée = largeur × hauteur × bits par pixel ÷ 8.", `<div class="ochamps">${champ("iW", "Largeur", ov("iW"), "px", "1920")}${champ("iH", "Hauteur", ov("iH"), "px", "1080")}${champ("iB", "Bits par pixel", ov("iB"), "bits", "24")}</div>${img}`)}
+    ${carteOutil("Texte en binaire (UTF-8)", "Chaque caractère est codé sur un ou plusieurs octets.", `<label class="ochamp"><span>Texte</span><span class="ochin"><input id="tB" data-oi="1" value="${esc(txt)}" placeholder="SNT"></span></label>${bin ? `<div class="ores"><span class="mono" style="word-break:break-all;font-size:.82rem">${bin}</span></div>` : ""}`)}
+  </div>`;
+};
+
+/* ---------- SI et Technologie : code couleur des résistances, loi d'Ohm, puissance, transmissions ---------- */
+const COULEURS_R = [["noir", "#111"], ["marron", "#7b4a1e"], ["rouge", "#d32f2f"], ["orange", "#f57c00"], ["jaune", "#fbc02d"], ["vert", "#388e3c"], ["bleu", "#1976d2"], ["violet", "#7b1fa2"], ["gris", "#757575"], ["blanc", "#f5f5f5"]];
+OUTILS_PLUS.si = function(){
+  const b1 = Number(ov("r1") || 1), b2 = Number(ov("r2") || 0), b3 = Number(ov("r3") || 2), tol = ov("rt") || "5";
+  const Rv = (b1 * 10 + b2) * 10 ** b3, sel = (id, v) => `<select id="${id}" data-oi="1">${COULEURS_R.map(([n], i) => `<option value="${i}" ${i === v ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+  const Rtxt = Rv >= 1e6 ? fmtNote(Rv / 1e6) + " MΩ" : Rv >= 1e3 ? fmtNote(Rv / 1e3) + " kΩ" : fmtNote(Rv) + " Ω";
+  const U = nb(ov("oU")), I = nb(ov("oI")), R = nb(ov("oR")), k = [U, I, R].filter(isFinite).length;
+  let oRes = ""; if (k === 2) { const r = !isFinite(U) ? ["U = R × I", R * I, "V"] : !isFinite(I) ? ["I = U / R", U / R, "A"] : ["R = U / I", U / I, "Ω"]; const uu = isFinite(U) ? U : R * I, ii = isFinite(I) ? I : U / R; oRes = `<div class="ores"><b>${r[0]} = ${fmtSci(r[1])} ${r[2]}</b><small>Puissance P = U × I = ${fmtSci(uu * ii)} W</small></div>`; }
+  const P = nb(ov("eP")), t = nb(ov("eT")), E = P * t;
+  const eRes = isFinite(E) ? `<div class="ores"><b>E = P × t = ${fmtSci(E)} J</b><small>= ${fmtSci(E / 3600)} Wh = ${fmtSci(E / 3.6e6)} kWh</small></div>` : "";
+  const Z1 = nb(ov("tZ1")), Z2 = nb(ov("tZ2")), N1 = nb(ov("tN1")), C1 = nb(ov("tC1"));
+  const tRes = isFinite(Z1) && isFinite(Z2) ? `<div class="ores"><b>Rapport de transmission r = Z<sub>menant</sub> / Z<sub>mené</sub> = ${fmtSci(Z1 / Z2)}</b><small>${isFinite(N1) ? `Vitesse de sortie N₂ = N₁ × r = ${fmtSci(N1 * Z1 / Z2)} tr/min · ` : ""}${isFinite(C1) ? `Couple de sortie (sans pertes) C₂ = C₁ / r = ${fmtSci(C1 * Z2 / Z1)} N·m · ` : ""}${Z1 < Z2 ? "réducteur : la vitesse diminue, le couple augmente" : Z1 > Z2 ? "multiplicateur : la vitesse augmente" : "même vitesse"}</small></div>` : "";
+  return `<div class="ogrille">
+    ${carteOutil("Code couleur d'une résistance", "4 anneaux : 2 chiffres, multiplicateur, tolérance.", `<div class="resist"><i style="background:${COULEURS_R[b1][1]}"></i><i style="background:${COULEURS_R[b2][1]}"></i><i style="background:${COULEURS_R[b3][1]}"></i><i class="tol" style="background:${tol === "5" ? "#c9a227" : tol === "10" ? "#b0b0b0" : tol === "1" ? "#7b4a1e" : "#d32f2f"}"></i></div>
+      <div class="ochamps"><label class="ochamp"><span>1er anneau</span>${sel("r1", b1)}</label><label class="ochamp"><span>2e anneau</span>${sel("r2", b2)}</label><label class="ochamp"><span>Multiplicateur</span>${sel("r3", b3)}</label><label class="ochamp"><span>Tolérance</span><select id="rt" data-oi="1">${[["1", "marron ±1 %"], ["2", "rouge ±2 %"], ["5", "or ±5 %"], ["10", "argent ±10 %"]].map(([v, l]) => `<option value="${v}" ${v === tol ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+      <div class="ores"><b>R = ${Rtxt} ± ${tol} %</b><small>entre ${fmtSci(Rv * (1 - tol / 100))} Ω et ${fmtSci(Rv * (1 + tol / 100))} Ω</small></div>`)}
+    ${carteOutil("Loi d'Ohm et puissance", "Remplis 2 valeurs sur 3.", `<div class="ochamps">${champ("oU", "Tension U", ov("oU"), "V")}${champ("oI", "Intensité I", ov("oI"), "A")}${champ("oR", "Résistance R", ov("oR"), "Ω")}</div>${oRes}`)}
+    ${carteOutil("Énergie consommée", "E = P × t", `<div class="ochamps">${champ("eP", "Puissance P", ov("eP"), "W")}${champ("eT", "Durée t", ov("eT"), "s")}</div>${eRes}`)}
+    ${carteOutil("Transmission par engrenages ou poulies", "Z = nombre de dents (ou diamètre des poulies).", `<div class="ochamps">${champ("tZ1", "Z menant", ov("tZ1"), "", "12")}${champ("tZ2", "Z mené", ov("tZ2"), "", "36")}${champ("tN1", "Vitesse d'entrée N₁", ov("tN1"), "tr/min")}${champ("tC1", "Couple d'entrée C₁", ov("tC1"), "N·m")}</div>${tRes}`)}
+  </div>`;
+};
+
+/* saisie : on garde les valeurs et on met à jour la carte sans perdre le curseur */
+function majOutils(e){
+  const t = e.target; if (!t.dataset || (!t.dataset.oi && t.id !== "fmTxt")) return;
+  if (t.id === "fmTxt") { apercuFormule(); return; }
+  OV[t.id] = t.value; const id = t.id, pos = t.selectionStart;
+  render(); const n = document.getElementById(id); if (n) { n.focus(); try { if (pos != null && n.setSelectionRange) n.setSelectionRange(pos, pos); } catch (_) {} }
+}
+document.addEventListener("input", e => { if (e.target.type !== "range" && e.target.tagName !== "SELECT") majOutils(e); else majOutils(e); });
+document.addEventListener("click", async e => {
+  const a = e.target.closest && e.target.closest('[data-act^="fm"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); const t = document.getElementById("fmTxt");
+  if (a.dataset.act === "fmins") insererFormule(a.dataset.c);
+  else if (a.dataset.act === "fmex") { if (t) { t.value = a.dataset.c; apercuFormule(); } }
+  else if (a.dataset.act === "fmlatex") { try { await navigator.clipboard.writeText(t.value); toast("Code LaTeX copié"); } catch (_) {} }
+  else if (a.dataset.act === "fmword") { if (!window.katex) return; try { const mml = katex.renderToString(t.value, { output: "mathml", throwOnError: false }).replace(/^<span class="katex">|<\/span>$/g, "").replace(/<annotation[^>]*>[\s\S]*?<\/annotation>/, "").replace(/<semantics>|<\/semantics>/g, "");
+      await navigator.clipboard.writeText(mml); toast("Équation copiée : colle-la dans Word avec Ctrl+V"); } catch (er) { toast("Copie impossible"); } }
+  else if (a.dataset.act === "fmpng") { try { await imageFormule(); } catch (_) { toast("Image impossible"); } }
+}, true);
+new MutationObserver(() => { const z = document.getElementById("fmApercu"); if (z && !z.dataset.ok) { z.dataset.ok = 1; apercuFormule(); } }).observe(document.documentElement, { childList: true, subtree: true });
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
