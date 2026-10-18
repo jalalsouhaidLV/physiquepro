@@ -655,7 +655,7 @@ function vDevoir(r){
   let work;
   if (isQ) work = travailQuestion(d, c, e, rd, open, Q);
   else if (rd) {
-    work = `<ul class="files">${(rd.fichiers || []).map(f => `<li><a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}">${icon("file")} ${esc(f.nom)}</a>${btnDl("rendus", f.chemin, f.nom)}</li>`).join("")}${rd.lien ? `<li><a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} ${esc(rd.lien)}</a></li>` : ""}</ul>
+    work = `<ul class="files">${(rd.fichiers || []).map(f => f.od ? `<li><a href="${esc(f.od.web)}" target="_blank" rel="noopener">${icon("file")} ${esc(f.nom)}</a></li>` : `<li><a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}">${icon("file")} ${esc(f.nom)}</a>${btnDl("rendus", f.chemin, f.nom)}</li>`).join("")}${rd.lien ? `<li><a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} ${esc(rd.lien)}</a></li>` : ""}</ul>
       ${rd.binome_email ? `<p style="margin:0;font-size:.85rem">Rendu en binôme avec <b>${esc(nomDe(c.id, rd.auteur_email === moi() ? rd.binome_email : rd.auteur_email))}</b></p>` : ""}
       <p class="muted" style="margin:0;font-size:.8rem">Rendu le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
       ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}
@@ -1388,7 +1388,7 @@ async function modalOk(){
       if (val("mConfirm").trim() !== m.nom) return stop("Le nom saisi ne correspond pas.");
       const docs = await sb.storage.from("documents").list(m.id, { limit: 1000 });
       if (docs.data && docs.data.length) await sb.storage.from("documents").remove(docs.data.map(f => m.id + "/" + f.name));
-      const rendusFichiers = S.rendus.filter(r => (S.devoirs.find(d => d.id === r.devoir_id) || {}).classe_id === m.id).flatMap(r => (r.fichiers || []).map(f => f.chemin));
+      const rendusFichiers = S.rendus.filter(r => (S.devoirs.find(d => d.id === r.devoir_id) || {}).classe_id === m.id).flatMap(r => (r.fichiers || []).map(f => f.chemin)).filter(Boolean);
       if (rendusFichiers.length) await sb.storage.from("rendus").remove(rendusFichiers);
       const { error } = await sb.from("classes").delete().eq("id", m.id); if (error) throw error;
       S.modal = null; await rafraichir(); toast("Cours supprimé"); go("/archives"); return;
@@ -1399,7 +1399,7 @@ async function modalOk(){
         const rec = m.k === "devoir" ? S.devoirs.find(d => String(d.id) === m.id) : m.k === "support" ? ((S.cache[m.classe] || {supports:[]}).supports.find(x => String(x.id) === m.id)) : null;
         const { error } = await sb.from(table).delete().eq("id", m.id); if (error) throw error;
         const paths = ((rec && rec.ressources) || []).filter(x => x.path).map(x => x.path); if (paths.length) await sb.storage.from("documents").remove(paths);
-        if (m.k === "devoir") { const f = S.rendus.filter(r => String(r.devoir_id) === m.id).flatMap(r => (r.fichiers || []).map(x => x.chemin)); if (f.length) await sb.storage.from("rendus").remove(f); }
+        if (m.k === "devoir") { const f = S.rendus.filter(r => String(r.devoir_id) === m.id).flatMap(r => (r.fichiers || []).map(x => x.chemin)).filter(Boolean); if (f.length) await sb.storage.from("rendus").remove(f); }
         return done("Élément supprimé", m.classe);
       }
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
@@ -1613,7 +1613,7 @@ function analyseFichiers(){
   const F = S.fich, refs = new Map(), heure = new Date(now() - 3600e3);
   const ajoute = (list, k, lib) => (list || []).forEach(o => (o.ressources || []).forEach(x => x.path && refs.set(x.path, { k, o, lib: lib(o) })));
   ajoute(S.devoirs, "devoir", o => "Devoir · " + o.titre); ajoute(F.supports, "support", o => "Documentation · " + o.titre); ajoute(F.annonces, "annonce", o => "Annonce du flux");
-  const rendusRefs = new Set(S.rendus.flatMap(r => (r.fichiers || []).map(x => x.chemin)));
+  const rendusRefs = new Set(S.rendus.flatMap(r => (r.fichiers || []).map(x => x.chemin)).filter(Boolean));
   const parClasse = {}, orphelins = [];
   const devoirClasse = id => (S.devoirs.find(d => String(d.id) === id) || {}).classe_id;
   F.fichiers.forEach(x => {
@@ -2044,11 +2044,18 @@ const lienOffice = (nom, url) => estOffice(nom) && !/\.csv$/i.test(nom) ? "https
 const appOffice = n => { const x = String(n || "").split(".").pop().toLowerCase(); return /^(doc|dot|rtf|odt)/.test(x) ? "Word" : /^(xls|ods)/.test(x) ? "Excel" : /^(ppt|pps|odp)/.test(x) ? "PowerPoint" : ""; };
 const btnDl = (bucket, path, nom) => `<button class="dlbtn" data-act="dlfile" data-bucket="${esc(bucket)}" data-path="${esc(path)}" data-nom="${esc(nom || "")}" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom || "")}">${icon("down")}</button>`;
 const extDe = n => (String(n || "").split(".").pop() || "").toLowerCase();
-async function urlRendu(path){
-  S.vurl = S.vurl || {};
-  if (S.vurl[path]) return S.vurl[path];
-  const { data } = await sb.storage.from("rendus").createSignedUrl(path, 3600);
-  return S.vurl[path] = data ? data.signedUrl : null;
+const cleF = f => f.chemin || ("od:" + (f.od && f.od.id));
+const TYPES = { pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml", mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime", mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", txt: "text/plain;charset=utf-8", py: "text/plain;charset=utf-8", csv: "text/plain;charset=utf-8", md: "text/plain;charset=utf-8", json: "text/plain;charset=utf-8" };
+async function urlRendu(f){
+  if (typeof f === "string") f = { chemin: f };
+  S.vurl = S.vurl || {}; const k = cleF(f);
+  if (S.vurl[k]) return S.vurl[k];
+  if (f.chemin) { const { data } = await sb.storage.from("rendus").createSignedUrl(f.chemin, 3600); return S.vurl[k] = data ? data.signedUrl : null; }
+  try {
+    if (appOffice(f.nom)) { const p = await graph("/me/drive/items/" + encodeURIComponent(f.od.id) + "/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); return S.vurl[k] = p.getUrl || f.od.web; }
+    const it = await graph("/me/drive/items/" + encodeURIComponent(f.od.id)), b = await (await fetch(it["@microsoft.graph.downloadUrl"])).blob();
+    return S.vurl[k] = URL.createObjectURL(new Blob([b], { type: TYPES[extDe(f.nom)] || b.type || "application/octet-stream" }));
+  } catch (e) { return S.vurl[k] = null; }
 }
 function rendusOrdonnes(d){
   const el = elevesDuDevoir(d, inscritsDe(d.classe_id));
@@ -2058,12 +2065,13 @@ async function preparerViewer(){
   const V = S.viewer, d = S.devoirs.find(x => x.id === V.did); if (!d) { S.viewer = null; return; }
   await chargerClasse(d.classe_id);
   const rd = renduDe(d, V.email), f = rd && (rd.fichiers || [])[V.fi || 0];
-  if (f) await urlRendu(f.chemin);
+  if (f) await urlRendu(f);
   await chargerCP(d.id, V.email);
 }
 function apercuFichier(f){
-  const u = S.vurl && S.vurl[f.chemin], x = extDe(f.nom);
-  if (!u) return `<div class="vempty">Fichier introuvable.</div>`;
+  const u = S.vurl && S.vurl[cleF(f)], x = extDe(f.nom);
+  if (!u) return `<div class="vempty">Fichier introuvable.${f.od ? `<a class="btn" href="${esc(f.od.web)}" target="_blank" rel="noopener">Ouvrir dans OneDrive</a>` : ""}</div>`;
+  if (f.od && ["doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(x)) return `<iframe class="vframe" src="${esc(u)}" title="${esc(f.nom)}"></iframe>`;
   if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "svg"].includes(x)) return `<img class="vimg" src="${esc(u)}" alt="${esc(f.nom)}">`;
   if (x === "pdf") return `<iframe class="vframe" src="${esc(u)}" title="${esc(f.nom)}"></iframe>`;
   if (["mp4", "webm", "mov", "m4v"].includes(x)) return `<video class="vimg" src="${esc(u)}" controls></video>`;
@@ -2084,7 +2092,8 @@ function vViewer(){
     <div class="viewer">
       <div class="vmain">${fs.length > 1 ? `<div class="vtabs">${fs.map((f, j) => `<button class="${j === fi ? "on" : ""}" data-act="vfile" data-i="${j}">${esc(f.nom)}</button>`).join("")}</div>` : ""}
         <div class="vbody">${fs.length ? apercuFichier(fs[fi]) : rd && rd.reponse ? `<div class="reponse" style="max-width:640px;margin:24px">${linkify(rd.reponse)}</div>` : `<div class="vempty">${rd ? "Rendu sans fichier." : "Aucun rendu."}${rd && rd.lien ? `<a class="btn" href="${esc(rd.lien)}" target="_blank" rel="noopener">Ouvrir le lien rendu</a>` : ""}</div>`}</div>
-        ${fs.length && S.vurl && S.vurl[fs[fi].chemin] ? `<div class="vfoot"><a href="${esc(lienOffice(fs[fi].nom, S.vurl[fs[fi].chemin]))}" target="_blank" rel="noopener">${icon("expand")} ${appOffice(fs[fi].nom) ? "Ouvrir dans " + appOffice(fs[fi].nom) + " en ligne" : "Ouvrir dans un nouvel onglet"}</a><a href="#" data-act="dlfile" data-bucket="rendus" data-path="${esc(fs[fi].chemin)}" data-nom="${esc(fs[fi].nom)}">${icon("down")} Télécharger</a></div>` : ""}</div>
+        ${fs.length && fs[fi].od ? `<div class="vfoot"><a href="${esc(fs[fi].od.web)}" target="_blank" rel="noopener">${icon("expand")} Ouvrir dans OneDrive</a></div>` : ""}
+        ${fs.length && fs[fi].chemin && S.vurl && S.vurl[fs[fi].chemin] ? `<div class="vfoot"><a href="${esc(lienOffice(fs[fi].nom, S.vurl[fs[fi].chemin]))}" target="_blank" rel="noopener">${icon("expand")} ${appOffice(fs[fi].nom) ? "Ouvrir dans " + appOffice(fs[fi].nom) + " en ligne" : "Ouvrir dans un nouvel onglet"}</a><a href="#" data-act="dlfile" data-bucket="rendus" data-path="${esc(fs[fi].chemin)}" data-nom="${esc(fs[fi].nom)}">${icon("down")} Télécharger</a></div>` : ""}</div>
       <aside class="vside">${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
         ${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} Lien rendu</a>` : ""}${blocNotation(d, rd, cr)}` : ""}
         ${vCP(d.id, V.email)}</aside></div>`;
@@ -2234,6 +2243,7 @@ async function syncRendus(d, silencieux){
   try { const l = await graph("/me/drive/root:/" + cheminOD([OD_RACINE, ...parts]) + ":/children?$select=name&$top=999", {}, !silencieux); (l.value || []).forEach(x => deja.add(x.name)); } catch (_) {}
   let n = 0;
   for (const r of rendus) for (const f of r.fichiers) {
+    if (!f.chemin) continue;
     const nom = nomOD(nomDe(d.classe_id, r.auteur_email) + " - " + f.nom);
     if (deja.has(nom)) continue;
     const { data } = await sb.storage.from("rendus").createSignedUrl(f.chemin, 600); if (!data) continue;
@@ -2385,6 +2395,42 @@ async function genererCopies(silencieux){
     if (n) toast(n + " copie" + (n > 1 ? "s modifiables créées" : " modifiable créée") + " pour les élèves");
   } catch (e) { if (!silencieux) toast("Copies élèves : " + (e.message || e)); }
   finally { copiesEnCours = false; }
+}
+
+/* ---------- travaux rendus : déplacés dans le OneDrive du prof, puis supprimés du stockage PhysiquePro (1 Go) ---------- */
+let transfertEnCours = false;
+async function transfererRendus(silencieux){
+  if (!S.prof || !odActif() || transfertEnCours) return;
+  const aFaire = S.rendus.filter(r => (r.fichiers || []).some(f => f.chemin));
+  if (!aFaire.length) return;
+  transfertEnCours = true; let n = 0;
+  try {
+    await jetonGraph(!silencieux);
+    for (const r of aFaire) {
+      const d = S.devoirs.find(x => x.id === r.devoir_id); if (!d) continue;
+      if (!S.cache[d.classe_id]) await chargerClasse(d.classe_id);
+      const parts = [...dossierTravail(d.classe_id, d.theme_id, d.titre), "Travaux rendus"], fichiers = [], aSupprimer = [];
+      let change = false;
+      for (const f of r.fichiers || []) {
+        if (!f.chemin) { fichiers.push(f); continue; }
+        try {
+          const { data } = await sb.storage.from("rendus").createSignedUrl(f.chemin, 600); if (!data) throw new Error("introuvable");
+          const blob = await (await fetch(data.signedUrl)).blob();
+          const item = await odPut(cheminOD([OD_RACINE, ...parts, nomOD(nomDe(d.classe_id, r.auteur_email) + " - " + f.nom)]), blob);
+          const dest = [r.auteur_email, r.binome_email].filter(Boolean).map(email => ({ email }));
+          await graph("/me/drive/items/" + item.id + "/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipients: dest, roles: ["read"], requireSignIn: true, sendInvitation: false }) }, false);
+          fichiers.push({ nom: f.nom, taille: f.taille, od: { id: item.id, web: item.webUrl } }); aSupprimer.push(f.chemin); change = true; n++;
+        } catch (e) { console.warn("transfert rendu", e); fichiers.push(f); }
+      }
+      if (!change) continue;
+      const { error } = await sb.from("rendus").update({ fichiers }).eq("id", r.id);
+      if (error) { console.warn("maj rendu", error); if (/policy|row-level/i.test(error.message)) break; continue; }
+      r.fichiers = fichiers;
+      await sb.storage.from("rendus").remove(aSupprimer);
+    }
+    if (n && !silencieux) toast(n + " fichier" + (n > 1 ? "s rendus rangés" : " rendu rangé") + " dans OneDrive");
+  } catch (e) { if (!silencieux) toast("Transfert des rendus : " + (e.message || e)); }
+  finally { transfertEnCours = false; }
 }
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
@@ -2785,7 +2831,7 @@ document.addEventListener("click", async e => {
     case "submit": rendreDevoir(S.devoirs.find(x => String(x.id) === a.dataset.id)); return;
     case "unsubmit": { const rd = S.rendus.find(x => String(x.id) === a.dataset.id); if (rd && rd.reponse) S.reponse = rd.reponse; const { error } = await sb.from("rendus").delete().eq("id", a.dataset.id);
       if (error) { toast("Annulation impossible : " + error.message); return; }
-      const f = (rd.fichiers || []).map(x => x.chemin); if (f.length) await sb.storage.from("rendus").remove(f);
+      const f = (rd.fichiers || []).map(x => x.chemin).filter(Boolean); if (f.length) await sb.storage.from("rendus").remove(f);
       await rafraichir(); render(); toast("Envoi annulé : tu peux modifier ton travail et le rendre à nouveau."); return; }
     case "cpsend": { const inp = document.getElementById("cpIn"), t = inp.value.trim(); if (!t) return;
       const { error } = await sb.from("commentaires_prives").insert({ devoir_id: Number(a.dataset.d), eleve_email: a.dataset.e, auteur_nom: S.nom, texte: t });
@@ -2975,7 +3021,8 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   try { S.recent = localStorage.getItem("pp_recent") === "1"; } catch (_) {}
   render();
   chargerNotifs().catch(() => {});
-  if (S.prof) setTimeout(() => genererCopies(true), 4000);
+  if (S.prof) setTimeout(async () => { await transfererRendus(true); await genererCopies(true); }, 4000);
+  if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
   setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });
 })();
