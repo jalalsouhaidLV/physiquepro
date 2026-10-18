@@ -1758,3 +1758,6 @@ kbd{display:inline-block;min-width:22px;text-align:center;padding:2px 7px;border
 .vl::before{content:"";position:absolute;top:.05em;left:0;right:0;height:.5em;background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath d='M0 4h18M14 1l4 3-4 3' fill='none' stroke='%23333' stroke-width='1.4'/%3E%3C/svg%3E")}
 :root[data-theme="dark"] .vl::before{filter:invert(1)}
 .fformule sub,.fformule sup,.ochamp sub,.ochamp sup{font-size:.7em}
+.btn.pubm365{gap:12px}
+.btn.pubm365 img{width:26px;height:26px;background:#fff;border-radius:6px;padding:3px;box-sizing:content-box}
+.home .decouvertes{margin-top:4px}
