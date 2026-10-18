@@ -842,3 +842,29 @@ sup,sub{line-height:0;font-size:.75em}
   .btn.pubbig{width:100%;justify-content:center}
 }
 @media (max-width:440px){.pubtop .brand{display:none}.pubtop{gap:2px}.pubtop .pubbtn{margin-left:4px;padding:8px 10px}}
+/* ---- carte devoir élève : « Afficher le devoir » sous le statut ---- */
+.wkright{display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right}
+.wklink.wkopen{display:inline-flex;align-items:center;gap:2px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--accent-soft);text-decoration:none}
+.wklink.wkopen .i{width:16px;height:16px}
+.wklink.wkopen:hover{filter:brightness(.96)}
+@media (max-width:600px){.wkright{flex-direction:row;align-items:center;width:100%;justify-content:space-between}}
+/* ---- Remis / Attribués cliquables (comme Classroom) ---- */
+.crstats a{display:block;padding:0 24px;border-left:1px solid #C4C7C5;min-width:96px;color:inherit;text-decoration:none;border-radius:0}
+.crstats a b{font-family:inherit;font-size:2.25rem;font-weight:400;color:#1F1F1F;line-height:1.15;display:block}
+.crstats a small{color:#444746;font-size:.875rem}
+.crstats a:hover b,.crstats a:hover small{color:var(--accent);text-decoration:underline}
+.crstats a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root[data-theme="dark"] .crstats a b{color:var(--ink)}:root[data-theme="dark"] .crstats a small{color:var(--muted)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .crstats a b{color:var(--ink)}:root:not([data-theme="light"]) .crstats a small{color:var(--muted)}}
+/* ---- interrupteur « Devoirs acceptés / non acceptés » ---- */
+.accepte{display:inline-flex;align-items:center;gap:12px;cursor:pointer;width:max-content;max-width:100%}
+.accepte input{position:absolute;opacity:0;width:1px;height:1px}
+.accepte i{width:52px;height:32px;border-radius:16px;background:var(--surface-2);border:2px solid var(--muted);position:relative;flex:none;transition:background .15s}
+.accepte i::after{content:"";position:absolute;top:6px;left:6px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:all .15s}
+.accepte input:checked+i{background:var(--accent);border-color:var(--accent)}
+.accepte input:checked+i::after{left:24px;top:4px;width:20px;height:20px;background:#fff}
+.accepte input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+.accepte .info{display:inline-flex;color:var(--muted)}.accepte .info .i{width:18px;height:18px}
+/* ---- filtre et tri de la liste des élèves ---- */
+.swtools{display:grid;gap:8px;padding:12px 12px 4px;position:sticky;top:0;background:var(--surface);z-index:1}
+.swtools select{width:100%;padding:10px 12px;border-radius:6px 6px 0 0;border:0;border-bottom:1px solid var(--muted);background:var(--surface-2);font:inherit;color:var(--ink)}

@@ -26,7 +26,7 @@ const dueTxt = d => {
   return "Échéance : " + fmtD(d) + ", " + fmtT(d);
 };
 const ouvert = d => !d.date_limite || D(d.date_limite) > now();
-const depotOuvert = d => ouvert(d) || !!d.retard_ok;
+const depotOuvert = d => d.accepte !== false && (ouvert(d) || !!d.retard_ok);
 const enRetard = (d, r) => !!(r && d.date_limite && D(r.rendu_le) > D(d.date_limite));
 const dueOf = d => d.date_limite ? dueTxt(D(d.date_limite)) : "Aucune date limite";
 const pts = d => d.points == null ? "Non noté" : d.points + " points";
@@ -282,7 +282,7 @@ function carte(c, archivee){
       body = due.map(d => `<span class="due">${dueOf(d)}</span><a href="#/devoir/${d.id}">${esc(d.titre)}</a>`).join("");
     }
   }
-  const menuEleve = !S.prof && !archivee ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">${deplacerMenu(c)}</div>` : ""}</div>` : "";
+  const menuEleve = !S.prof && !archivee ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">${deplacerMenu(c)}<a href="#" data-act="quitter" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("logout")} Quitter le cours</a></div>` : ""}</div>` : "";
   const menu = !S.prof ? menuEleve : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">
       ${archivee ? `<a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="0">${icon("restore")} Restaurer</a><a href="#" data-act="supprclasse" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a>`
         : `${c.code ? `<a href="#" data-act="copylien" data-code="${esc(c.code)}">${icon("links")} Copier le lien d'invitation</a>` : ""}<a href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Modifier</a>${deplacerMenu(c)}<a href="#" data-act="copiercours" data-c="${esc(c.id)}">${icon("copy")} Copier</a><a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="1">${icon("archive")} Archiver</a>`}</div>` : ""}</div>`;
@@ -497,9 +497,9 @@ function workItem(it){
     right = S.prof ? `<span class="dt">${d.date_limite ? dueOf(d).replace("Échéance : ", "") : "Publié le " + fmtShort(it.date)}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : etat(d, moi()).t === "Noté" ? fmtNote(etat(d, moi()).note) + "/" + d.points : d.date_limite ? dueOf(d).replace("Échéance : ", "") : ""}</span>`;
     const st = etat(d, moi());
     detail = `<div class="wkhead"><div class="wkdl"><b>${d.date_limite ? "Date limite : " + fmtShort(D(d.date_limite)) + " " + fmtT(D(d.date_limite)) : "Aucune date limite"}</b><small>${it.q2 ? (d.question && d.question.format === "choix" ? "Question à choix multiples" : "Question à réponse courte") : d.mode === "binome" ? "Un rendu par binôme" : "Individuel"} · ${pts(d)}</small></div>
-        ${S.prof ? statsDevoir(d) : `<span class="wkst ${st.k}">${st.t}</span>`}</div>
+        ${S.prof ? statsDevoir(d) : `<span class="wkright"><span class="wkst ${st.k}">${st.t}</span><a class="wklink wkopen" href="#/devoir/${d.id}">${it.q2 ? "Afficher la question" : "Afficher le devoir"} ${icon("right")}</a></span>`}</div>
       ${texteUtile(d.consigne) ? `<div class="richtext wkdesc">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}
-      <div class="wkfoot"><a class="wklink" href="#/devoir/${d.id}">${S.prof ? "Afficher les instructions" : it.q2 ? "Afficher la question" : "Afficher le devoir"}</a>${S.prof ? `<a class="btn tonal" href="#/devoir/${d.id}">${it.q2 ? "Voir les réponses" : "Évaluer le travail"}</a>` : it.q2 && !renduDe(d, moi()) ? `<a class="btn tonal" href="#/devoir/${d.id}">Répondre</a>` : ""}</div>`;
+      ${S.prof ? `<div class="wkfoot"><a class="wklink" href="#/devoir/${d.id}">Afficher les instructions</a><a class="btn tonal" href="#/devoir/${d.id}">${it.q2 ? "Voir les réponses" : "Évaluer le travail"}</a></div>` : it.q2 && !renduDe(d, moi()) && depotOuvert(d) ? `<div class="wkfoot"><span></span><a class="btn tonal" href="#/devoir/${d.id}">Répondre</a></div>` : ""}`;
   } else {
     const q = obj, r = resultatDe(q, S.user.id);
     right = `<span class="dt">${!S.prof && r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : q.mode === "note" ? "Questionnaire noté" : "Entraînement"}</span>`;
@@ -522,10 +522,11 @@ function workItem(it){
       <a href="#" data-act="suppr" data-k="${it.k}" data-id="${rid}" data-titre="${esc(it.titre)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : "";
   return `<div class="work${draft ? " isdraft" : ""}"${S.prof ? ` data-wk="${it.k}:${rid}"` : ""}><div class="workrow"><button data-act="toggle" data-id="${it.id}" aria-expanded="${op}"><span class="ico ${it.k === "support" ? "pale" : ""}">${icon(it.q2 ? "question" : it.k, "")}</span><span class="tt">${esc(it.titre)}</span>${S.prof ? cible : ""}${right}</button>${menu}</div>${op ? `<div class="workd">${detail}</div>` : ""}</div>`;
 }
-function statsDevoir(d){
+function statsDevoir(d, lien = true){
   const el = elevesDuDevoir(d, inscritsDe(d.classe_id)), n = el.filter(e => renduDe(d, e.email)).length;
   const an = aCorriger(d);
-  return `<span class="stats crstats"><div><b>${n}</b><small>Remis</small></div><div><b>${el.length - n}</b><small>${ouvert(d) ? "Attribués" : "Manquants"}</small></div>${an ? `<div><b>${an}</b><small>À noter</small></div>` : ""}</span>`;
+  const bloc = (nb, txt, f) => lien ? `<a href="#/devoir/${d.id}" data-act="voirstat" data-d="${d.id}" data-f="${f}" title="Voir les élèves : ${txt.toLowerCase()}"><b>${nb}</b><small>${txt}</small></a>` : `<div><b>${nb}</b><small>${txt}</small></div>`;
+  return `<span class="stats crstats">${bloc(n, "Remis", "remis")}${bloc(el.length - n, ouvert(d) ? "Attribués" : "Manquants", "attribues")}${an ? bloc(an, "À noter", "anoter") : ""}</span>`;
 }
 /* vrai texte (pas seulement « … » ou des espaces) */
 function texteUtile(h){ return !!String(h || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&hellip;/g, " ").replace(/[\s.…·-]+/g, "").length;
@@ -663,7 +664,7 @@ function vDevoir(r){
       ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}
       ${e.t !== "Noté" && open && rd.auteur === S.user.id ? `<button class="btn ghost" data-act="unsubmit" data-id="${rd.id}">Annuler l'envoi</button>` : ""}`;
   } else if (!open) {
-    work = `<p style="margin:0" class="muted">La date limite est passée : le dépôt est fermé. Écris un commentaire privé à ton professeur si besoin.</p>`;
+    work = `<p style="margin:0" class="muted">${d.accepte === false ? "Ton professeur n'accepte plus de devoirs pour ce travail : le dépôt est verrouillé." : "La date limite est passée : le dépôt est fermé."} Écris un commentaire privé à ton professeur si besoin.</p>`;
   } else {
     const cam = (S.cache[c.id] ? S.cache[c.id].eleves : []).filter(x => x.email !== moi());
     work = `${d.mode === "binome" ? `<div class="field"><label for="partenaire">Mon binôme</label><select id="partenaire"><option value="">Choisir…</option>${cam.map(x => `<option value="${esc(x.email)}" ${S.partenaire === x.email ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>` : ""}
@@ -696,7 +697,7 @@ function travailQuestion(d, c, e, rd, open, Q){
     <p class="muted" style="margin:0;font-size:.8rem">Envoyée le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
     ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}
     ${e.t !== "Noté" && open && Q.modifier !== false ? `<button class="btn ghost" data-act="unsubmit" data-id="${rd.id}">Modifier ma réponse</button>` : ""}`;
-  if (!open) return `<p style="margin:0" class="muted">La date limite est passée : tu ne peux plus répondre.</p>`;
+  if (!open) return `<p style="margin:0" class="muted">${d.accepte === false ? "Ton professeur n'accepte plus de réponses pour cette question." : "La date limite est passée : tu ne peux plus répondre."}</p>`;
   const champ = Q.format === "choix" ? `<div class="qopts" style="padding:0">${(Q.options || []).map(o => `<label class="opt"><input type="radio" name="repQ" data-act="repchoix" value="${esc(o)}" ${S.reponse === o ? "checked" : ""}> ${esc(o)}</label>`).join("")}</div>`
     : `<textarea id="repQ" rows="4" placeholder="Ta réponse" aria-label="Ta réponse">${esc(S.reponse || "")}</textarea>`;
   return `${champ}<div id="depErr" class="err" hidden></div>
@@ -722,7 +723,7 @@ const nomDe = (cid, email) => ((inscritsDe(cid).find(x => x.email === email) || 
 
 async function rendreDevoir(d){
   const err = document.getElementById("depErr"), fail = m => { S.sending = false; render().then(() => { const x = document.getElementById("depErr"); if (x) { x.hidden = false; x.textContent = m; } }); };
-  if (!depotOuvert(d)) return fail("La date limite est passée.");
+  if (!depotOuvert(d)) return fail(d.accepte === false ? "Ton professeur n'accepte plus de devoirs pour ce travail." : "La date limite est passée.");
   if (d.type === "question") {
     const rep2 = (S.reponse || "").trim(); if (!rep2) return fail("Écris ou choisis ta réponse avant de rendre.");
     S.sending = true; render();
@@ -765,6 +766,9 @@ function vDevoirProf(d, c){
   let detail;
   if (!sel) {
     detail = `<h2 style="font-size:1.3rem">${esc(d.titre)}</h2>${statsDevoir(d)}
+      <label class="accepte"><input type="checkbox" data-accepte="${d.id}" ${d.accepte !== false ? "checked" : ""}><i></i><span>${d.accepte !== false ? "Devoirs acceptés" : "Devoirs non acceptés"}</span>
+        <span class="info" title="Quand les devoirs ne sont pas acceptés, les élèves ne peuvent plus rendre leur travail ni annuler leur envoi. Tu peux rouvrir la remise à tout moment.">${icon("question")}</span></label>
+      ${d.accepte === false ? `<p class="muted" style="margin:-6px 0 0;font-size:.85rem">La remise est verrouillée : les élèves voient « Ton professeur n'accepte plus de devoirs pour ce travail ».</p>` : ""}
       <p class="muted" style="margin:0">${d.date_limite ? (ouvert(d) ? "Dépôt ouvert jusqu'au " + fmtD(D(d.date_limite)) + " à " + fmtT(D(d.date_limite)) + "." : "Dépôt fermé depuis le " + fmtD(D(d.date_limite)) + ".") : "Aucune date limite."}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null && aCorriger(d) ? `<button class="btn" data-act="rendretout" data-d="${d.id}">${icon("send")} Rendre toutes les notes saisies</button>` : ""}
       ${autres.length ? `<button class="btn ghost" data-act="mailmissing" data-d="${d.id}">${icon("mail")} Écrire aux ${autres.length} élève${autres.length > 1 ? "s" : ""} qui n'${autres.length > 1 ? "ont" : "a"} pas rendu</button>` : ""}</div>
@@ -783,19 +787,36 @@ function vDevoirProf(d, c){
       ${copiesEleve("devoir", d.id, sel).length ? `<div class="copierow" style="flex-direction:column;align-items:stretch">${copiesEleve("devoir", d.id, sel).map(x => `<div style="display:flex;gap:8px;align-items:center">${icon("edit")}<span style="flex:1">Copie de l'élève : <b>${esc(x.nom)}</b></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a></div>`).join("")}</div>` : ""}
       ${vCP(d.id, sel)}`;
   }
+  /* filtre (Tous / Remis / Attribués / Notés / À noter) et tri (statut, nom de famille, prénom), comme Classroom */
+  const filtre = S.swFiltre || "tous", tri = S.swTri || "statut", lblA = ouvert(d) ? "Attribués" : "Manquants";
+  const grp = e => { const s = etat(d, e.email); return s.t === "Noté" ? "notes" : s.r ? "remis" : "attribues"; };
+  const passe = e => filtre === "tous" || (filtre === "anoter" ? grp(e) === "remis" : grp(e) === filtre);
+  const vus = el.filter(passe), vide = `<p class="empty" style="padding:4px 16px">Aucun</p>`;
+  let liste;
+  if (tri === "statut") liste = [["remis", "Remis"], ["attribues", lblA], ["notes", "Notés"]].map(([g, t]) => { const l = vus.filter(e => grp(e) === g); return filtre !== "tous" && !l.length ? "" : `<h4>${t} (${l.length})</h4>${l.map(row).join("") || vide}`; }).join("");
+  else { const cle = tri === "nom" ? e => cleNom(e.nom).nom + " " + cleNom(e.nom).prenom : e => cleNom(e.nom).prenom + " " + cleNom(e.nom).nom;
+    liste = `<h4>${vus.length} élève${vus.length > 1 ? "s" : ""}</h4>${vus.slice().sort((a, b) => cle(a).localeCompare(cle(b), "fr")).map(row).join("") || vide}`; }
+  const outils = `<div class="swtools">
+      <select data-swf="1" aria-label="Filtrer les élèves">${[["tous", "Tous"], ["remis", "Remis"], ["attribues", lblA], ["notes", "Notés"]].map(([v, t]) => `<option value="${v}" ${filtre === v || (filtre === "anoter" && v === "remis") ? "selected" : ""}>${t}</option>`).join("")}</select>
+      <select data-swt="1" aria-label="Trier les élèves">${[["nom", "Trier par nom de famille"], ["prenom", "Trier par prénom"], ["statut", "Trier par statut"]].map(([v, t]) => `<option value="${v}" ${tri === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
   return tabs + `<div class="page wide" style="--c:var(${k.c})">
-    <div class="sw"><div class="list"><button class="st" data-act="sel" data-n="" aria-current="${!sel}"><span class="nm"><b>Tous les élèves</b></span></button>
-      <h4>Rendus (${rendusE.length})</h4>${rendusE.map(row).join("") || `<p class="empty" style="padding:4px 16px">Aucun</p>`}
-      <h4>${ouvert(d) ? "Attribués" : "Manquants"} (${autres.length})</h4>${autres.map(row).join("") || `<p class="empty" style="padding:4px 16px">Aucun</p>`}</div>
+    <div class="sw"><div class="list">${outils}<button class="st" data-act="sel" data-n="" aria-current="${!sel}"><span class="nm"><b>Tous les élèves</b></span></button>
+      ${liste}</div>
     <div class="detail">${detail}</div></div>${pageFoot()}</div>`;
 }
 
+/* nom de famille / prénom : mot(s) en MAJUSCULES = nom de famille ; sinon le 1er mot est le prénom */
+function cleNom(n){
+  const w = String(n || "").trim().split(/\s+/).filter(Boolean), up = w.filter(x => x.length > 1 && x === x.toUpperCase() && /\p{L}/u.test(x));
+  if (up.length && up.length < w.length) return { nom: up.join(" ").toLowerCase(), prenom: w.filter(x => !up.includes(x)).join(" ").toLowerCase() };
+  return { prenom: (w[0] || "").toLowerCase(), nom: w.slice(1).join(" ").toLowerCase() };
+}
 /* ---------- à faire / à corriger ---------- */
 function vTodo(){
   if (S.prof) {
     const parClasse = actives().map(c => ({c, ds:S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon).slice().reverse()})).filter(x => x.ds.length);
     return `<div class="page"><h1 style="font-size:1.6rem">À corriger</h1>${parClasse.length ? `<div class="todo">${parClasse.map(({c, ds}) => `<section class="group" style="--c:var(${C(c.couleur).c})"><header><span style="color:var(--c)">${esc(c.nom)}</span><span class="muted mono">${ds.reduce((a, d) => a + aCorriger(d), 0)} à corriger</span></header>
-      ${ds.map(d => `<div class="work"><a class="workrow" href="#/devoir/${d.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon("devoir", "")}</span><span class="tt">${esc(d.titre)}<br><small class="muted" style="font-weight:400">${dueOf(d)}</small></span>${statsDevoir(d)}</a></div>`).join("")}</section>`).join("")}</div>` : `<div class="emptystate"><b>Aucun devoir pour l'instant.</b></div>`}${pageFoot()}</div>`;
+      ${ds.map(d => `<div class="work"><a class="workrow" href="#/devoir/${d.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon("devoir", "")}</span><span class="tt">${esc(d.titre)}<br><small class="muted" style="font-weight:400">${dueOf(d)}</small></span>${statsDevoir(d, false)}</a></div>`).join("")}</section>`).join("")}</div>` : `<div class="emptystate"><b>Aucun devoir pour l'instant.</b></div>`}${pageFoot()}</div>`;
   }
   const q = S.quiz.filter(x => x.mode === "note" && cls(x.classe_id) && !cls(x.classe_id).archive);
   const dv = S.devoirs.filter(d => cls(d.classe_id) && !cls(d.classe_id).archive);
@@ -1409,6 +1430,8 @@ async function modalOk(){
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
       if (m.action === "retirer") { const { error } = await sb.from("inscriptions").delete().eq("classe_id", m.classe).in("email", m.emails); if (error) throw error; m.emails.forEach(x => S.pick.delete(x)); return done(m.emails.length > 1 ? "Élèves retirés du cours" : "Élève retiré du cours", m.classe); }
       if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
+      if (m.action === "quitter") { const { error } = await sb.rpc("pp_quitter_cours", { p_classe: m.classe }); if (error) throw error;
+        const nom = (cls(m.classe) || {}).nom || "le cours"; S.modal = null; delete S.cache[m.classe]; await rafraichir(); go("/"); render(); toast("Tu as quitté " + nom); return; }
       if (m.action === "supprcompte") { const { error } = await sb.rpc("pp_supprimer_compte", { p_email: m.email }); if (error) throw error;
         S.comptes = (S.comptes || []).filter(p => p.email !== m.email); S.toutesInscriptions = (S.toutesInscriptions || []).filter(x => x.email !== m.email);
         return done(m.nom + " a été supprimé"); }
@@ -2922,6 +2945,9 @@ document.addEventListener("click", async e => {
 
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
+    case "voirstat": { e.preventDefault(); S.swFiltre = a.dataset.f === "anoter" ? "anoter" : a.dataset.f; S.ptab = "travaux"; S.sel = null; fermerMenus();
+      if (r.v === "devoir" && r.a === a.dataset.d) render(); else go("/devoir/" + a.dataset.d); return; }
+    case "quitter": e.preventDefault(); S.menu = null; { const c = cls(a.dataset.c); S.modal = {kind:"confirm", action:"quitter", classe:a.dataset.c, ok:"Quitter", titre:"Quitter « " + (c ? c.nom : "ce cours") + " » ?", texte:"Tu ne verras plus ce cours ni ses travaux. Tes travaux déjà rendus restent chez ton professeur. Pour revenir plus tard, il te faudra le code du cours."}; } render(); return;
     case "sel": S.sel = a.dataset.n || null; S.compose = false; render(); return;
     case "symb": S.symb = !S.symb; render(); return;
     case "impanalyse": S.imp.texte = (document.getElementById("impTexte") || {}).value || ""; analyserImport(); render(); return;
@@ -3037,6 +3063,12 @@ document.addEventListener("change", async e => {
   if (t.classList && t.classList.contains("anAussi") && S.annonce) { const v = t.value, l = S.annonce.aussi || []; S.annonce.aussi = t.checked ? [...new Set([...l, v])] : l.filter(x => x !== v); return; }
   if (t.dataset.impmap != null) { S.imp.map[t.dataset.impmap] = t.value; return; }
   if (t.id === "impBrouillons") { S.imp.brouillons = t.checked; return; }
+  if (t.dataset.swf) { S.swFiltre = t.value; render(); return; }
+  if (t.dataset.swt) { S.swTri = t.value; try { localStorage.setItem("pp_tri", t.value); } catch (_) {} render(); return; }
+  if (t.dataset.accepte) { const d = S.devoirs.find(x => String(x.id) === t.dataset.accepte), on = t.checked; if (!d) return; t.disabled = true;
+    const { error } = await sb.from("devoirs").update({ accepte: on }).eq("id", d.id);
+    if (error) { toast("Modification impossible : " + error.message); t.checked = !on; t.disabled = false; return; }
+    d.accepte = on; toast(on ? "Les élèves peuvent de nouveau rendre ce devoir" : "Devoirs non acceptés : la remise est verrouillée"); render(); return; }
   if (t.dataset.suivi) { S.suiviC = t.value; S.open = null; render(); return; }
   if (t.dataset.agenda != null) { go(t.value ? "/agenda/" + t.value : "/agenda"); return; }
   if (t.dataset.themeChoice) { appliquerTheme(t.value); toast("Apparence modifiée"); return; }
@@ -3070,7 +3102,7 @@ window.addEventListener("hashchange", () => {
   if (r.v !== "admin") S.adm = null;
   S.outilsEdit = false;
   S.viewer = null;
-  if (r.v !== "devoir") { S.reponse = ""; S.sel = null; S.ptab = "travaux"; S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; }
+  if (r.v !== "devoir") { S.swFiltre = ""; S.reponse = ""; S.sel = null; S.ptab = "travaux"; S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; }
   fermerMenus(); S.modal = null; S.open = null; S.compose = false; S.pick = new Set(); S.cSub = ""; S.cBody = ""; S.annonce = null; S.filtreTheme = "";
   if (window.innerWidth < 1100) S.drawer = false; window.scrollTo(0, 0); render();
 });
@@ -3106,7 +3138,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   }
   try { await chargerTout(); } catch (e) { app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger tes données : ${esc(e.message)}</div></div>`; return; }
   if (S.prof) S.nom = R().prof.nom;
-  try { S.recent = localStorage.getItem("pp_recent") === "1"; } catch (_) {}
+  try { S.recent = localStorage.getItem("pp_recent") === "1"; S.swTri = localStorage.getItem("pp_tri") || "statut"; } catch (_) {}
   /* juste après la connexion : un élève inscrit dans un seul cours arrive directement dans ce cours */
   if (fresh && !S.prof && !pj && route().v === "accueil" && actives().length === 1) history.replaceState(null, "", ICI + "#/classe/" + encodeURIComponent(actives()[0].id));
   render();
