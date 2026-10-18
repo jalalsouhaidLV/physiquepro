@@ -111,7 +111,7 @@ const ICI = location.origin + location.pathname;
 
 /* ---------- réglages du site (modifiables dans Administration) ---------- */
 const COULEURS = [["pc","Bleu"],["snt","Vert"],["si","Rouge"],["tech","Ocre"],["pix","Bleu pétrole"]];
-const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["logo-numworks","Logo NumWorks (calculatrice)"],["logo-copilot","Logo Copilot M365"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
+const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["logo-numworks","Logo NumWorks (calculatrice)"],["logo-copilot","Logo Copilot M365"],["logo-gemini","Logo Gemini"],["logo-notebook","Logo Gemini Notebook"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
 const clone = o => JSON.parse(JSON.stringify(o));
 function appliquerReglages(d){
   d = d || {};
@@ -227,7 +227,7 @@ function vLogin(message, info){
 const messageErreur = desc => /Database error saving new user|non autoris/i.test(desc) ? "Cette adresse n'est pas autorisée : seules les adresses @" + esc(CFG.domaine) + " peuvent se connecter." : "La connexion a échoué : " + esc(desc);
 
 /* ---------- barre du haut ---------- */
-const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png", "logo-numworks": "logo-numworks.png", "logo-copilot": "logo-copilot.png" };
+const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png", "logo-numworks": "logo-numworks.png", "logo-copilot": "logo-copilot.png", "logo-gemini": "logo-gemini.svg", "logo-notebook": "logo-notebook.svg" };
 function quickIcon(k){
   if (LOGOS_RAPIDES[k]) return `<img class="qlogo" src="${LOGOS_RAPIDES[k]}" alt="">`;
   if (k === "pronote") return `<b class="qp">P</b>`;
@@ -3554,9 +3554,11 @@ window.addEventListener("beforeunload", () => { if (CP.t) { try { localStorage.s
    page : ils s'ouvrent dans une fenêtre placée exactement sur le panneau (déplaçable et redimensionnable). */
 const COTE_A_COTE = {
   "logo-numworks": { titre: "Calculatrice NumWorks", mode: "cadre" },
-  "logo-pronote":  { titre: "Pronote", mode: "cadre" },
+  "logo-pronote":  { titre: "Pronote", mode: "cadre", virtuel: 1000 },
   "logo-chatgpt":  { titre: "ChatGPT", mode: "fenetre" },
   "logo-copilot":  { titre: "Copilot M365", mode: "fenetre" },
+  "logo-gemini":   { titre: "Gemini", mode: "fenetre" },
+  "logo-notebook": { titre: "Gemini Notebook", mode: "fenetre" },
   "logo-claude":   { titre: "Claude", mode: "fenetre" },
   "logo-whatsapp": { titre: "WhatsApp Web", mode: "fenetre" }
 };
@@ -3568,6 +3570,13 @@ function spAppliquer(){
   const g = spGeo(), w = Math.round(Math.min(Math.max(g.w, 300), window.innerWidth - 320));
   document.documentElement.style.setProperty("--side-w", w + "px");
   document.documentElement.classList.toggle("side-gauche", g.cote === "gauche"); document.documentElement.classList.toggle("side-droite", g.cote !== "gauche");
+  spEchelle();
+}
+/* site trop large pour le panneau (Pronote) : on l'affiche à sa largeur normale, réduit pour tenir dans le cadre */
+function spEchelle(){
+  const v = document.querySelector("#sidePanel .sidevue[data-virtuel]"); if (!v) return; const f = v.querySelector("iframe");
+  const W = v.clientWidth, H = v.clientHeight, V = Number(v.dataset.virtuel), k = Math.min(1, W / V);
+  f.style.width = (k < 1 ? V : W) + "px"; f.style.height = (H / k) + "px"; f.style.transform = k < 1 ? `scale(${k})` : "";
 }
 function spFenetre(){
   const p = document.getElementById("sidePanel"); if (!p) return; const r = p.getBoundingClientRect();
@@ -3588,7 +3597,7 @@ function ouvrirCote(cle, url, nom){
       <button class="ib sm" data-sp="cote" title="Mettre de l'autre côté" aria-label="Mettre le panneau de l'autre côté">${icon("swap")}</button>
       <a class="ib sm" href="${esc(url)}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet">${icon("ext")}</a>
       <button class="ib sm" data-sp="fermer" title="Fermer" aria-label="Fermer ${esc(o.titre)}">${icon("x")}</button></div>
-    ${o.mode === "cadre" ? `<iframe src="${esc(url)}" title="${esc(o.titre)}" allow="clipboard-read; clipboard-write; fullscreen; microphone; camera" referrerpolicy="strict-origin-when-cross-origin"></iframe>`
+    ${o.mode === "cadre" ? `<div class="sidevue"${o.virtuel ? ` data-virtuel="${o.virtuel}"` : ""}><iframe src="${esc(url)}" title="${esc(o.titre)}" allow="clipboard-read; clipboard-write; fullscreen; microphone; camera" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
       : `<div class="sidefen"><img src="${esc(logo)}" alt="" width="56" height="56"><b>${esc(o.titre)} s'ouvre dans une fenêtre placée ici.</b>
           <p>${esc(o.titre)} n'accepte pas d'être affiché à l'intérieur d'un autre site : il s'ouvre donc dans sa propre fenêtre, posée sur ce panneau. Tu peux la déplacer et la redimensionner librement.</p>
           <button class="btn" data-sp="replacer">${icon("ext")} Rouvrir / replacer la fenêtre ici</button>

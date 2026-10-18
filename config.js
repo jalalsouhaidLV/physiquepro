@@ -25,6 +25,8 @@ window.PHYSIQUEPRO = {
     { nom: "Claude", url: "https://claude.ai/login", icone: "logo-claude", couleur: "#D97757", ordi: true },
     { nom: "ChatGPT", url: "https://chatgpt.com/auth/login", icone: "logo-chatgpt", couleur: "#10A37F", ordi: true },
     { nom: "Copilot", url: "https://m365.cloud.microsoft/fr-fr/", icone: "logo-copilot", couleur: "#7B61FF", ordi: true },
+    { nom: "Gemini", url: "https://gemini.google.com/app", icone: "logo-gemini", couleur: "#4285F4", ordi: true },
+    { nom: "Notebook", url: "https://notebook.google.com/trynow", icone: "logo-notebook", couleur: "#1A73E8", ordi: true },
     { nom: "NumWorks", url: "https://www.numworks.com/fr/emulateur/graphique/", icone: "logo-numworks", couleur: "#FFB531" }
   ],
 

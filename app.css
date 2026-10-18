@@ -1136,7 +1136,7 @@ html.side-gauche #sidePanel .sidegrip{right:-6px}
 #sidePanel .sidehead{display:flex;align-items:center;gap:6px;padding:10px 10px 10px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
 #sidePanel .sidehead img{border-radius:5px;object-fit:contain}
 #sidePanel .sidehead b{flex:1;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#sidePanel iframe{flex:1;width:100%;border:0;background:#fff}
+#sidePanel iframe{border:0;background:#fff}
 #sidePanel .sidevoile{position:fixed;inset:0;z-index:3}
 #sidePanel .sidefen{flex:1;display:grid;align-content:center;justify-items:center;gap:12px;padding:24px;text-align:center;color:var(--muted)}
 #sidePanel .sidefen b{color:var(--ink);font-size:1.05rem}
@@ -1162,3 +1162,5 @@ html.side-open .quick .qlogo{height:20px;width:34px}
   .quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){width:56px;min-width:56px;height:32px}
   .quick .qlogo,.quick a.main .qlogo{height:24px;width:46px}
 }
+#sidePanel .sidevue{flex:1;position:relative;overflow:hidden;min-height:0}
+#sidePanel .sidevue iframe{position:absolute;top:0;left:0;width:100%;height:100%;transform-origin:0 0}
