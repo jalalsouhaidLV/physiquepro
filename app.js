@@ -2868,6 +2868,7 @@ const nomProfCourt = () => { const w = String(R().prof.nom || "").trim().split(/
 async function chargerUrgents(){
   try { const r = await sb.from("messages_urgents").select("*").order("cree_le", { ascending: false }).limit(300); S.urgents = r.error ? (S.urgents || []) : r.data; }
   catch (_) { S.urgents = S.urgents || []; }
+  if (S.user) signalerNouveautes();
   const n = nbUrgents(), b = document.querySelector(".urgbtn .badge"), btn = document.querySelector(".urgbtn");
   if (btn) { if (b && !n) b.remove(); else if (b) b.textContent = n > 99 ? "99+" : n; else if (n) btn.insertAdjacentHTML("beforeend", `<span class="badge">${n > 99 ? "99+" : n}</span>`); }
 }
@@ -2887,6 +2888,7 @@ function modalUrgent(m){
   const mes = (S.urgents || []).filter(x => x.classe_id === m.classe).slice(0, 5);
   return `<h2>${icon("urgent")} Message urgent à ${esc(nomProfCourt())}</h2>
     <p class="muted" style="margin:0;font-size:.88rem">Pour une question importante sur ce cours (absence le jour d'un devoir, problème pour rendre un travail…). ${esc(nomProfCourt())} reçoit ton message sur le site et te répond ici.</p>
+    ${bandeauNotifs()}
     <div class="field"><label for="mUrg">Ton message</label><textarea id="mUrg" rows="5" maxlength="2000" placeholder="Écris ton message…" style="width:100%;resize:vertical">${esc(m.texte || "")}</textarea></div>
     ${mes.length ? `<div class="urgmine"><b style="font-size:.85rem">Tes derniers messages dans ce cours</b>${mes.map(x => `<div class="urgold"><div><small class="muted">${fmtQuand(D(x.cree_le))} · ${x.reponse ? "Répondu" : x.lu ? "Lu par ton professeur" : "Envoyé"}</small><p>${linkify(x.texte)}</p></div>${x.reponse ? `<div class="urgrep"><small><b>Réponse de ${esc(nomProfCourt())}</b> · ${fmtQuand(D(x.repondu_le))}</small><p>${linkify(x.reponse)}</p></div>` : ""}</div>`).join("")}</div>` : ""}`;
 }
@@ -2916,6 +2918,7 @@ function vUrgences(){
     </article>`; };
   return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">${icon("urgent")} Messagerie d'urgence</h1>
       <select data-urgf="1" aria-label="Filtrer les messages"><option value="tous">Tous les messages (${L.length})</option><option value="nonlus" ${filtre === "nonlus" ? "selected" : ""}>Non lus (${L.filter(m => !m.lu).length})</option>${S.classes.map(c => `<option value="${esc(c.id)}" ${filtre === c.id ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></div>
+    ${bandeauNotifs()}
     <p class="muted" style="margin:0">Les messages urgents envoyés par tes élèves depuis la page d'un cours. Ta réponse s'affiche pour l'élève dans sa fenêtre « Message urgent ».</p>
     ${vus.length ? `<div class="urglist">${vus.map(carte).join("")}</div>` : `<div class="emptystate"><b>Aucun message${filtre === "nonlus" ? " non lu" : ""}.</b><span>Quand un élève t'écrit, son message apparaît ici et l'icône ⚠ de la barre du haut affiche un chiffre rouge.</span></div>`}
     ${pageFoot()}</div>`;
@@ -2930,6 +2933,50 @@ async function actionUrgence(act, a){
     Object.assign(m, patch); S.urgRep = null; toast("Réponse envoyée à " + (m.eleve_nom || m.eleve_email)); render(); return; }
   if (act === "urgsuppr") { const { error } = await sb.from("messages_urgents").delete().eq("id", m.id); if (error) return toast("Suppression impossible : " + error.message); S.urgents = S.urgents.filter(x => x !== m); toast("Message supprimé"); render(); return; }
 }
+
+/* ---------- notifications sur l'ordinateur (site ouvert, même en arrière-plan) ---------- */
+const notifOk = () => typeof Notification !== "undefined" && Notification.permission === "granted";
+const notifPossible = () => typeof Notification !== "undefined" && Notification.permission !== "denied";
+const cleNotif = () => "pp_urg_notif_" + (S.user && S.user.id);
+function clesUrgentes(){ return S.prof ? (S.urgents || []).filter(m => !m.lu).map(m => "m" + m.id) : (S.urgents || []).filter(m => m.reponse && m.repondu_le).map(m => "r" + m.id + "@" + m.repondu_le); }
+function bip(){ try { const A = new (window.AudioContext || window.webkitAudioContext)(), t = A.currentTime;
+  [[880, 0], [1320, .16]].forEach(([f, d]) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.25, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .14); o.connect(g).connect(A.destination); o.start(t + d); o.stop(t + d + .15); });
+  setTimeout(() => A.close(), 600); } catch (_) {} }
+function notifier(titre, texte, ouvrir){
+  bip();
+  if (!notifOk()) return;
+  try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag: "pp-urgent-" + Date.now(), requireInteraction: true });
+    n.onclick = () => { window.focus(); ouvrir(); n.close(); }; } catch (_) {}
+}
+/* compare avec ce qui a déjà été signalé sur cet appareil ; la première fois, on mémorise sans sonner */
+function signalerNouveautes(){
+  let vus = null; try { vus = JSON.parse(localStorage.getItem(cleNotif()) || "null"); } catch (_) {}
+  const cles = clesUrgentes();
+  if (vus) {
+    const nouv = cles.filter(k => !vus.includes(k));
+    nouv.forEach(k => {
+      const id = Number(k.slice(1).split("@")[0]), m = (S.urgents || []).find(x => x.id === id); if (!m) return;
+      const c = cls(m.classe_id);
+      if (S.prof) notifier("⚠ Message urgent · " + (m.eleve_nom || m.eleve_email), (c ? c.nom + " · " : "") + m.texte, () => go("/urgences"));
+      else notifier("Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.reponse, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); render(); }, 400); });
+    });
+    if (nouv.length && !S.modal && !S.ed && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
+  }
+  try { localStorage.setItem(cleNotif(), JSON.stringify([...new Set([...(vus || []), ...cles])].slice(-400))); } catch (_) {}
+  titreAvecCompteur();
+}
+const compteurUrgent = () => S.prof ? nbUrgents() : reponsesNonVues();
+function titreAvecCompteur(){ const n = compteurUrgent(), t = document.title.replace(/^\(\d+\) /, ""); document.title = n ? "(" + n + ") " + t : t; }
+async function demanderNotifs(){
+  if (typeof Notification === "undefined") return toast("Ce navigateur ne gère pas les notifications.");
+  const p = await Notification.requestPermission();
+  if (p === "granted") { toast("Notifications activées sur cet ordinateur ✓"); notifier("PhysiquePro", S.prof ? "Tu seras prévenu ici à chaque message urgent d'un élève." : "Tu seras prévenu ici quand " + nomProfCourt() + " répond à ton message.", () => {}); }
+  else toast("Notifications refusées. Tu peux les autoriser plus tard dans les réglages du navigateur (cadenas à gauche de l'adresse).");
+  render();
+}
+const bandeauNotifs = () => notifOk() ? `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Notifications activées sur cet ordinateur : ${S.prof ? "tu es prévenu à chaque nouveau message" : "tu es prévenu quand ton professeur répond"}, tant que le site est ouvert dans un onglet.</p>`
+  : notifPossible() ? `<div class="notifbar">${icon("bell")}<span>${S.prof ? "Sois prévenu sur cet ordinateur dès qu'un élève t'envoie un message urgent." : "Sois prévenu sur cet ordinateur dès que ton professeur te répond."}</span><button class="btn sm" data-act="notifon">Activer les notifications</button></div>`
+  : `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Les notifications sont bloquées pour ce site : autorise-les dans les réglages du navigateur (cadenas à gauche de l'adresse).</p>`;
 /* =====================================================================
    Nouveautés : préparateur · compétences · copies annotées et vocal ·
                 alertes décrochage · rappels · rendez-vous
@@ -3348,7 +3395,7 @@ async function render(){
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + (S.modal ? vModal() : "");
     { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
-      document.title = (r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro"; }
+      document.title = (r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
     { const pg = app.querySelector("main.content > .page"); if (pg && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };
     const iz = document.getElementById("impZip"); if (iz) iz.onchange = () => { const f = [...iz.files]; iz.value = ""; if (f.length) importerZip(f).catch(er => { S.imp.busy = false; toast("Zip : " + (er.message || er)); render(); }); };
@@ -3571,6 +3618,7 @@ document.addEventListener("click", async e => {
     case "annoter": { e.preventDefault(); const rd = S.rendus.find(x => String(x.id) === a.dataset.id); if (!rd) return;
       if (!S.viewer || S.viewer.did !== rd.devoir_id) { const fi = Math.max(0, (rd.fichiers || []).findIndex(peutAnnoter)); S.viewer = { did: rd.devoir_id, email: S.sel || rd.auteur_email, fi }; await render(); }
       await ouvrirAnnotation(); return; }
+    case "notifon": e.preventDefault(); await demanderNotifs(); return;
     case "urgrep": case "urglu": case "urgsend": case "urgsuppr": e.preventDefault(); await actionUrgence(act, a); return;
     case "odorphelins": { e.preventDefault(); toast("Recherche des dossiers de cours supprimés…");
       try { const l = await dossiersOrphelins(); if (!l.length) { toast("Aucun dossier de cours supprimé dans OneDrive ✓"); return; }
@@ -3782,7 +3830,8 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   if (!S.prof) sb.rpc("pp_visite").then(() => {}, () => {});
   if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
   if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
-  setInterval(async () => { if (document.visibilityState === "visible") { chargerNotifs().catch(() => {}); const avant = reponsesNonVues(); await chargerUrgents(); if (!S.prof && reponsesNonVues() !== avant && !S.modal && !S.ed) render(); } }, 180000);
+  setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
+  setInterval(() => { chargerUrgents(); }, 45000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });
 })();
 })();
