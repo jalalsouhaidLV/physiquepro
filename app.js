@@ -2947,20 +2947,23 @@ const ouvrirAudio = () => { try { audioCtx = audioCtx || new (window.AudioContex
 function bip(){ try { ouvrirAudio(); const A = audioCtx; if (!A) return; const t = A.currentTime + .05;
   [[880, 0], [1320, .18], [880, .5], [1320, .68]].forEach(([f, d]) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.35, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .15); o.connect(g).connect(A.destination); o.start(t + d); o.stop(t + d + .16); });
   } catch (_) {} }
-/* bandeau rouge dans la page, qui reste jusqu'à ce qu'on clique */
-function bandeauAlerte(titre, texte, ouvrir){
-  let z = document.getElementById("urgAlertes"); if (!z) { z = document.createElement("div"); z.id = "urgAlertes"; document.body.appendChild(z); }
-  const d = document.createElement("div"); d.className = "urgalerte"; d.setAttribute("role", "alert");
-  d.innerHTML = `<span class="ua-ico">${icon("urgent")}</span><div><b>${esc(titre)}</b><p>${esc(texte.slice(0, 160))}</p></div><button class="btn sm">Ouvrir</button><button class="ib sm" aria-label="Fermer">${icon("x")}</button>`;
-  const [b1, b2] = d.querySelectorAll("button"); b1.onclick = () => { d.remove(); ouvrir(); }; b2.onclick = () => d.remove();
-  z.appendChild(d);
+/* grande alerte au centre de l'écran (taille d'un paquet de cartes), sur n'importe quelle page du site */
+function bandeauAlerte(titre, texte, ouvrir, qui, cours){
+  let ov = document.getElementById("urgCentre");
+  if (!ov) { ov = document.createElement("div"); ov.id = "urgCentre"; ov.innerHTML = `<div class="ucbox" role="alertdialog" aria-modal="true" aria-labelledby="ucT"><div class="uchead">${icon("urgent")}<b id="ucT"></b></div><div class="ucbody"></div><div class="ucfoot"><button class="btn ghost" data-uc="fermer">Fermer</button><button class="btn danger" data-uc="ouvrir">Ouvrir</button></div></div>`; document.body.appendChild(ov);
+    ov.addEventListener("click", e => { const b = e.target.closest("[data-uc]"); if (!b && e.target !== ov) return; const L = ov._file || []; ov.remove(); if (b && b.dataset.uc === "ouvrir" && L.length) L[L.length - 1].ouvrir(); }); }
+  ov._file = [...(ov._file || []), { ouvrir }];
+  ov.querySelector("#ucT").textContent = S.prof ? "MESSAGE D'URGENCE REÇU" : "RÉPONSE AU MESSAGE D'URGENCE REÇUE";
+  const n = ov._file.length;
+  ov.querySelector(".ucbody").innerHTML = `<p class="ucqui">${esc(qui)}</p>${cours ? `<p class="uccours">${esc(cours)}</p>` : ""}<p class="uctxt">${esc(texte.slice(0, 220))}</p>${n > 1 ? `<p class="ucplus">+ ${n - 1} autre${n > 2 ? "s" : ""} message${n > 2 ? "s" : ""}</p>` : ""}`;
+  setTimeout(() => { const b = ov.querySelector('[data-uc="ouvrir"]'); if (b) b.focus(); }, 50);
 }
 /* titre de l'onglet qui clignote tant qu'on n'est pas revenu sur le site */
 let clignoT = null;
 function clignoter(msg){ clearInterval(clignoT); let on = false; const base = () => document.title.replace(/^⚠ .*? · /, "");
   clignoT = setInterval(() => { if (document.visibilityState === "visible" && document.hasFocus()) { clearInterval(clignoT); document.title = base(); titreAvecCompteur(); return; } on = !on; document.title = on ? "⚠ " + msg + " · " + base() : base(); }, 1000); }
 function notifier(titre, texte, ouvrir){
-  bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); bandeauAlerte(titre, texte, ouvrir);
+  bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); bandeauAlerte(titre, arguments[5] || texte, ouvrir, arguments[3] || titre, arguments[4] || "");
   if (!notifOk()) return;
   try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag: "pp-urgent-" + Date.now(), requireInteraction: true });
     n.onclick = () => { window.focus(); ouvrir(); n.close(); }; } catch (_) {}
@@ -2974,8 +2977,8 @@ function signalerNouveautes(){
     nouv.forEach(k => {
       const id = Number(k.slice(1).split("@")[0]), m = (S.urgents || []).find(x => x.id === id); if (!m) return;
       const c = cls(m.classe_id);
-      if (S.prof) notifier("⚠ Message urgent · " + (m.eleve_nom || m.eleve_email), (c ? c.nom + " · " : "") + m.texte, () => go("/urgences"));
-      else notifier("Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.reponse, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); render(); }, 400); });
+      if (S.prof) notifier("⚠ Message urgent · " + (m.eleve_nom || m.eleve_email), (c ? c.nom + " · " : "") + m.texte, () => go("/urgences"), "De : " + (m.eleve_nom || m.eleve_email), c ? c.nom : "", m.texte);
+      else notifier("Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.reponse, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.reponse);
     });
     if (nouv.length && !S.modal && !S.ed && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
   }

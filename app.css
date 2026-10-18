@@ -1032,3 +1032,18 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .urgalerte .ua-ico{color:var(--bad);flex:none;margin-top:2px}
 .urgalerte div{flex:1;min-width:0}.urgalerte p{margin:2px 0 0;font-size:.88rem;color:var(--muted);overflow-wrap:anywhere}
 @keyframes uain{from{transform:translateY(-10px);opacity:0}to{transform:none;opacity:1}}
+/* alerte centrale : MESSAGE D'URGENCE REÇU (format carte / paquet ≈ 9 × 6 cm) */
+#urgCentre{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;animation:ucfond .2s ease-out}
+.ucbox{width:min(360px,100%);min-height:220px;background:var(--surface);border:3px solid var(--bad);border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.45);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;animation:ucpop .28s cubic-bezier(.2,1.4,.4,1)}
+.uchead{background:var(--bad);color:#fff;display:flex;gap:10px;align-items:center;justify-content:center;padding:12px 14px;text-align:center}
+.uchead b{font-size:1.02rem;letter-spacing:.03em;line-height:1.25}
+.uchead .i{width:26px;height:26px;flex:none;animation:ucclign 1s steps(2) infinite}
+.ucbody{padding:14px 18px;display:grid;gap:4px;align-content:start}
+.ucbody p{margin:0}.ucqui{font-weight:700;font-size:1.05rem}.uccours{color:var(--muted);font-size:.85rem}
+.uctxt{margin-top:6px!important;font-size:.95rem;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.ucplus{color:var(--bad);font-size:.82rem;font-weight:600}
+.ucfoot{display:flex;gap:8px;justify-content:flex-end;padding:0 14px 14px}
+@keyframes ucpop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+@keyframes ucfond{from{opacity:0}to{opacity:1}}
+@keyframes ucclign{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.ucbox,.uchead .i,#urgCentre{animation:none}}
