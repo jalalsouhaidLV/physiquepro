@@ -257,6 +257,7 @@ function drawer(r){
   return `<nav class="drawer" ${S.drawer ? "" : "hidden"} aria-label="Menu principal">
     <a class="it" href="#/" ${cur("accueil")}>${icon("home")}<span class="lbl">Accueil</span></a>
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
+    <a class="it" href="#/semaine" ${cur("semaine")}>${icon("week")}<span class="lbl">Ma semaine</span></a>
     <a class="it coinit" href="#" data-act="coinperso" ${document.getElementById("coinPerso") ? 'aria-current="page"' : ""}>${icon("note")}<span class="lbl">Coin Perso</span></a>
     <hr>
     ${S.prof ? "" : `<a class="it" href="#/todo" ${cur("todo")}>${icon("todo")}<span class="lbl">À faire</span></a>`}
@@ -795,7 +796,7 @@ function vDevoirProf(d, c){
       <p style="margin:0">Choisis un élève dans la liste pour ouvrir ${isQ ? "sa réponse" : "son travail"} et le noter.</p>`;
   } else {
     const e = el.find(x => x.email === sel), rd = renduDe(d, sel), cr = correctionDe(rd);
-    detail = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:1.35rem">${esc(e.nom)}${rd && rd.binome_email ? ` <span class="muted" style="font-size:.95rem">avec ${esc(nomDe(c.id, rd.auteur_email === sel ? rd.binome_email : rd.auteur_email))}</span>` : ""}</h2><span class="pill ${etat(d, sel).k}">${etat(d, sel).t}</span></div>
+    detail = `${barreCorrection()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:1.35rem">${esc(e.nom)}${rd && rd.binome_email ? ` <span class="muted" style="font-size:.95rem">avec ${esc(nomDe(c.id, rd.auteur_email === sel ? rd.binome_email : rd.auteur_email))}</span>` : ""}</h2><span class="pill ${etat(d, sel).k}">${etat(d, sel).t}</span></div>
       ${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
         ${isQ ? `<div class="reponse">${linkify(rd.reponse || "")}</div>` : `<div class="att">${(rd.fichiers || []).map((f, fj) => `<a href="#" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="${fj}"><span class="k">${esc((f.nom.split(".").pop() || "").slice(0, 5))}</span>${esc(f.nom)}</a>`).join("")}${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener"><span class="k">lien</span>${esc(rd.lien.replace(/^https?:\/\//, "").slice(0, 40))}</a>` : ""}${!(rd.fichiers || []).length && !rd.lien ? `<span class="muted">Marqué comme terminé, sans fichier joint.</span>` : ""}</div>`}
         ${(rd.fichiers || []).length ? `<div><button class="btn ghost sm" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="0">${icon("expand")} Ouvrir dans la visionneuse</button></div>` : ""}
@@ -2081,14 +2082,14 @@ const arrondi1 = x => x == null ? null : Math.round(x * 10) / 10;
 /* bloc de notation (page du devoir et visionneuse) */
 function blocNotation(d, rd, cr){
   const G = d.grille && d.grille.length ? d.grille : null, gv = (cr && cr.grille) || [];
-  const rem = R().remarques || [];
+  const rem = (R().remarques || []).length ? R().remarques : REMARQUES_DEFAUT;
   return `${G ? `<div class="grille"><b>Grille d'évaluation</b>${G.map((g, i) => `<label class="grow"><span>${esc(g.c)}</span><input id="gr-${i}" data-gr="${i}" type="number" min="0" max="${g.p}" step="0.25" inputmode="decimal" value="${gv[i] != null ? gv[i] : ""}" aria-label="${esc(g.c)}"><span class="muted">/${g.p}</span></label>`).join("")}</div>` : ""}
     ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="number" min="0" max="${d.points}" step="0.25" inputmode="decimal" value="${cr && cr.note != null ? cr.note : ""}" ${G ? "readonly" : ""}><span class="muted">/${d.points}</span>${G ? `<small class="muted">calculée avec la grille</small>` : ""}</div>` : ""}
     <div class="field"><label for="noteCom">Commentaire pour l'élève <span class="muted">(visible quand tu rends le travail)</span></label><textarea id="noteCom" rows="2" placeholder="ex. Bon raisonnement, attention aux unités.">${esc(cr && cr.commentaire || "")}</textarea>
       ${rem.length ? `<div class="chips">${rem.map(t => `<button class="chip" data-act="remarque" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}</div>
     ${blocCompetences(cr)}${blocVocal(rd, cr)}
     <div id="noteErr" class="err" hidden></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null ? `<button class="btn ghost" data-act="savenote" data-id="${rd.id}" data-pub="0">Enregistrer le brouillon</button>` : ""}<button class="btn" data-act="savenote" data-id="${rd.id}" data-pub="1">${cr && cr.publiee ? "Mettre à jour" : "Rendre"}</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null ? `<button class="btn ghost" data-act="savenote" data-id="${rd.id}" data-pub="0">Enregistrer le brouillon</button>` : ""}<button class="btn" data-act="savenote" data-id="${rd.id}" data-pub="1">${cr && cr.publiee ? "Mettre à jour" : "Rendre"}</button><button class="btn tonal" data-act="savenote" data-id="${rd.id}" data-pub="1" data-next="1" title="Ctrl + Entrée">${cr && cr.publiee ? "Mettre à jour" : "Rendre"} et passer au suivant ${icon("right")}</button></div>
     <p class="muted" style="margin:0;font-size:.8rem">${rd.binome_email ? "La note s'affiche pour les deux élèves du binôme." : "Seul l'élève voit sa note, une fois rendue."}</p>`;
 }
 function grilleEleve(d, c){
@@ -3781,6 +3782,55 @@ document.addEventListener("click", e => { const a = e.target.closest && e.target
 
 /* vues supplémentaires (routes #/semaine, #/physique, #/simulations, #/revisions) : complétées plus bas */
 const VUES_PRO = {};
+
+/* ---------- #9 Correction rapide : élève précédent / suivant, raccourcis, banque de commentaires ---------- */
+const REMARQUES_DEFAUT = ["Très bon travail, continue ainsi.", "Attention aux unités.", "Chiffres significatifs à respecter.", "Justifie ta réponse.", "Relis l'énoncé : la question n'est pas traitée en entier.", "Formule correcte mais application numérique fausse.", "Schéma incomplet ou non légendé.", "Rédaction à soigner.", "Bonne démarche, erreur de calcul.", "Pense à conclure par une phrase."];
+const ordreEleves = () => [...document.querySelectorAll('.sw .list button.st[data-n]')].map(b => b.dataset.n).filter(Boolean);
+function eleveVoisin(sens){ const L = ordreEleves(); if (!L.length) return null; const i = L.indexOf(S.sel); if (i < 0) return L[0]; const j = i + sens; return j >= 0 && j < L.length ? L[j] : null; }
+function barreCorrection(){
+  const L = ordreEleves(), i = L.indexOf(S.sel);
+  if (!S.prof || !S.sel) return "";
+  setTimeout(majBarreCorrection, 0);
+  return `<div class="corrnav"><button class="btn ghost sm" data-act="selnav" data-s="-1" ${i <= 0 ? "disabled" : ""} title="Alt + ←">${icon("left")} Précédent</button>
+    <span class="muted">${i >= 0 ? `Élève ${i + 1} sur ${L.length}` : ""}</span>
+    <button class="btn ghost sm" data-act="selnav" data-s="1" ${i < 0 || i >= L.length - 1 ? "disabled" : ""} title="Alt + →">Suivant ${icon("right")}</button>
+    <small class="muted corraide"><kbd>Alt</kbd>+<kbd>←</kbd><kbd>→</kbd> changer d'élève · <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> rendre et passer au suivant</small></div>`;
+}
+function majBarreCorrection(){ const z = document.querySelector(".corrnav"); if (!z) return; const L = ordreEleves(), i = L.indexOf(S.sel);
+  const [p, n] = z.querySelectorAll("button"); p.disabled = i <= 0; n.disabled = i < 0 || i >= L.length - 1; z.querySelector("span").textContent = i >= 0 ? `Élève ${i + 1} sur ${L.length}` : ""; }
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="selnav"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); const n = eleveVoisin(Number(a.dataset.s)); if (n) { S.sel = n; S.compose = false; render(); } }, true);
+document.addEventListener("keydown", e => {
+  if (!S.prof || route().v !== "devoir" || !S.sel) return;
+  if (e.altKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) { e.preventDefault(); const n = eleveVoisin(e.key === "ArrowRight" ? 1 : -1); if (n) { S.sel = n; render(); } }
+  else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { const b = document.querySelector('[data-act="savenote"][data-next="1"]'); if (b) { e.preventDefault(); b.click(); } }
+});
+
+/* ---------- #13 Ma semaine : frise du lundi au dimanche + progression ---------- */
+VUES_PRO.semaine = function(){
+  chargerPourTableau();
+  const t = now(), lun = new Date(t); lun.setHours(0, 0, 0, 0); lun.setDate(lun.getDate() - ((lun.getDay() + 6) % 7) + (S.semW || 0) * 7);
+  const jours = [...Array(7)].map((_, i) => { const d = new Date(lun); d.setDate(lun.getDate() + i); return d; }), fin = new Date(+jours[6] + 864e5);
+  const dans = d => d >= lun && d < fin, vis = o => !o.brouillon && cls(o.classe_id) && !cls(o.classe_id).archive && (S.prof || D(o.publie_le) <= t);
+  const items = [];
+  S.devoirs.filter(d => vis(d) && d.date_limite && dans(D(d.date_limite))).forEach(d => {
+    const c = cls(d.classe_id), e = S.prof ? null : etat(d, moi());
+    const fait = S.prof ? aCorriger(d) === 0 && rendusDe(d).length > 0 : !!(e && (e.t === "Rendu" || e.t === "Noté"));
+    items.push({ d: D(d.date_limite), titre: d.titre, c, href: "#/devoir/" + d.id, ic: d.type === "question" ? "question" : "devoir", fait,
+      etat: S.prof ? `${rendusDe(d).length} rendu(s) · ${aCorriger(d)} à corriger` : e.t, k: S.prof ? (aCorriger(d) ? "warn" : "ok") : e.k });
+  });
+  S.quiz.filter(q => vis(q) && q.date_limite && dans(D(q.date_limite))).forEach(q => { const c = cls(q.classe_id), r = S.prof ? null : resultatDe(q, S.user.id);
+    items.push({ d: D(q.date_limite), titre: q.titre, c, href: "#/quiz/" + q.id, ic: "quiz", fait: S.prof ? D(q.date_limite) < t : !!r, etat: S.prof ? "Questionnaire" : r ? "Fait" : "À faire", k: r ? "ok" : "" }); });
+  if (S.rdv) { const mes = S.prof ? S.rdv.resa : S.rdv.resa.filter(r => r.eleve === S.user.id);
+    mes.forEach(r => { const cr = S.rdv.creneaux.find(c => c.id === r.creneau_id), se = cr && S.rdv.series.find(s => s.id === cr.serie_id); if (cr && dans(D(cr.debut))) items.push({ d: D(cr.debut), titre: (se ? se.titre : "Rendez-vous") + (S.prof ? " · " + (r.eleve_nom || r.eleve_email) : ""), c: se && cls(se.classe_id), href: "#/rendezvous", ic: "rdv", fait: D(cr.fin) < t, etat: "Rendez-vous", k: "info", rdv: 1 }); }); }
+  if (S.prof && S.demandes) S.demandes.filter(x => x.date_tp && dans(D(x.date_tp))).forEach(x => items.push({ d: D(x.date_tp), titre: "TP · " + x.titre, c: cls(x.classe_id), href: "#/preparateur", ic: "flask", fait: x.statut === "prete", etat: x.statut === "prete" ? "Matériel prêt" : x.statut === "envoyee" ? "Demande envoyée" : "Demande à envoyer", k: x.statut === "prete" ? "ok" : x.statut === "envoyee" ? "info" : "warn" }));
+  const travaux = items.filter(x => !x.rdv), faits = travaux.filter(x => x.fait).length, pc = travaux.length ? Math.round(faits / travaux.length * 100) : 100;
+  const carte = x => `<a class="smitem${x.fait ? " fait" : ""}" href="${x.href}" style="--c:var(${C(x.c && x.c.couleur).c})"><span class="smh">${fmtT(x.d)}</span><span class="smt">${icon(x.ic)}<b>${esc(x.titre)}</b></span><small>${esc(x.c ? x.c.nom : "")}</small><span class="pill ${x.k || ""}">${esc(x.etat)}</span></a>`;
+  return `<div class="page wide semaine"><div class="smhead"><div><h1>${S.prof ? "Ma semaine" : "Ma semaine"}</h1><p class="muted">${jours[0].toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} – ${jours[6].toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p></div>
+      <div class="smnav"><button class="ib" data-act="semw" data-w="-1" aria-label="Semaine précédente">${icon("left")}</button>${S.semW ? `<button class="btn ghost sm" data-act="semw" data-w="0">Cette semaine</button>` : ""}<button class="ib" data-act="semw" data-w="1" aria-label="Semaine suivante">${icon("right")}</button></div></div>
+    <div class="smprog"><div class="smbar"><i style="width:${pc}%"></i></div><span><b>${faits}/${travaux.length}</b> ${S.prof ? "travaux entièrement corrigés ou terminés" : "travaux faits"} · ${pc} %</span></div>
+    <div class="smfrise">${jours.map(j => { const L = items.filter(x => sameDay(x.d, j)).sort((a, b) => a.d - b.d); return `<section class="smjour${sameDay(j, t) ? " auj" : ""}${j < new Date(t.toDateString()) ? " passe" : ""}"><h3>${j.toLocaleDateString("fr-FR", { weekday: "long" })}<b>${j.getDate()}</b></h3>${L.length ? L.map(carte).join("") : `<p class="smvide">—</p>`}</section>`; }).join("")}</div>${pageFoot()}</div>`;
+};
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="semw"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); S.semW = a.dataset.w === "0" ? 0 : (S.semW || 0) + Number(a.dataset.w); render(); }, true);
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -4128,7 +4178,7 @@ document.addEventListener("click", async e => {
       if (grille && grille.some((x, i) => x != null && (isNaN(x) || x < 0 || x > d.grille[i].p))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "Une note de critère dépasse son maximum."; return; }
       const { error } = await sb.from("corrections").upsert({ rendu_id: Number(a.dataset.id), note: n, commentaire: com, grille, competences: lireCompetences(), publiee: pub, modifie_le: now().toISOString() });
       if (error) { toast("Enregistrement impossible : " + error.message); return; }
-      await rafraichir(); render(); toast(pub ? "Travail rendu à l'élève" : "Brouillon enregistré"); return; }
+      const suiv = a.dataset.next === "1" ? eleveVoisin(1) : null; await rafraichir(); if (suiv) S.sel = suiv; render(); toast(pub ? "Travail rendu à l'élève" + (suiv ? " · élève suivant" : "") : "Brouillon enregistré"); return; }
     case "rendretout": { e.preventDefault(); S.menu = null; const d = S.devoirs.find(x => String(x.id) === a.dataset.d);
       const ids = rendusDe(d).filter(rd => { const c = correctionDe(rd); return c && c.note != null && !c.publiee; }).map(rd => rd.id);
       if (!ids.length) { toast("Aucune note en brouillon à rendre pour ce devoir."); render(); return; }
