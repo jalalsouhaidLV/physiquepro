@@ -256,6 +256,7 @@ function drawer(r){
   return `<nav class="drawer" ${S.drawer ? "" : "hidden"} aria-label="Menu principal">
     <a class="it" href="#/" ${cur("accueil")}>${icon("home")}<span class="lbl">Accueil</span></a>
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
+    <a class="it coinit" href="#" data-act="coinperso" ${document.getElementById("coinPerso") ? 'aria-current="page"' : ""}>${icon("note")}<span class="lbl">Coin Perso</span></a>
     <hr>
     <a class="it" href="#/todo" ${cur("todo")}>${icon(S.prof ? "check" : "todo")}<span class="lbl">${S.prof ? "À corriger" : "À faire"}</span></a>
     ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl lbl2">Demande de matériel au Préparateur de Labo</span></a>` : ""}
@@ -3375,6 +3376,43 @@ async function actionRdv(act, a){
   if (act === "rdvretire") { const { error } = await sb.from("rdv_reservations").delete().eq("creneau_id", Number(a.dataset.c)).eq("eleve", a.dataset.e); if (error) return toast(error.message); await chargerRdv(); render(); return; }
   if (act === "rdvsuppr") { const s = S.rdv.series.find(x => String(x.id) === a.dataset.id); S.modal = { kind: "confirm", action: "rdvsuppr", id: s.id, titre: "Supprimer « " + s.titre + " » ?", texte: "Tous les créneaux et les inscriptions des élèves sont supprimés.", ok: "Supprimer" }; render(); return; }
 }
+/* ---------- Coin Perso : bloc-notes jaune personnel, enregistré tout seul ---------- */
+IC.note = '<path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/>';
+const CP = { charge: false, txt: "", t: null, envoi: false };
+async function chargerCoinPerso(){
+  if (CP.charge) return;
+  try { const r = await sb.from("notes_perso").select("contenu").eq("id", S.user.id).maybeSingle(); CP.txt = (r.data && r.data.contenu) || ""; } catch (_) {}
+  try { const loc = localStorage.getItem("pp_coin_" + S.user.id); if (loc && !CP.txt) CP.txt = loc; } catch (_) {}
+  CP.charge = true;
+}
+const liensDe = t => [...new Set((String(t).match(/https?:\/\/[^\s<>"']+/g) || []).map(u => u.replace(/[).,;!?]+$/, "")))];
+function majLiensCoin(){ const z = document.querySelector("#coinPerso .cpliens"); if (!z) return; const L = liensDe(CP.txt);
+  z.innerHTML = L.length ? L.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${icon("links")}<span>${esc(u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</span></a>`).join("") : ""; z.hidden = !L.length; }
+function etatCoin(t){ const e = document.querySelector("#coinPerso .cpetat"); if (e) e.textContent = t; }
+async function sauverCoin(){
+  clearTimeout(CP.t); CP.t = null;
+  try { localStorage.setItem("pp_coin_" + S.user.id, CP.txt); } catch (_) {}
+  const { error } = await sb.from("notes_perso").upsert({ id: S.user.id, contenu: CP.txt, modifie_le: now().toISOString() });
+  etatCoin(error ? "Non enregistré en ligne (gardé sur cet appareil)" : "Enregistré ✓");
+}
+async function ouvrirCoinPerso(){
+  let ov = document.getElementById("coinPerso");
+  if (ov) { fermerCoinPerso(); return; }
+  await chargerCoinPerso();
+  ov = document.createElement("div"); ov.id = "coinPerso"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Coin Perso");
+  ov.innerHTML = `<div class="cphead">${icon("note")}<b>Coin Perso</b><span class="cpetat">Enregistré ✓</span><button class="ib sm" data-cp="fermer" aria-label="Fermer le Coin Perso" title="Fermer">${icon("x")}</button></div>
+    <textarea class="cptxt" spellcheck="true" placeholder="Écris ici ce que tu veux : remarques, idées, liens (https://…), listes…&#10;&#10;Tout s'enregistre tout seul. Toi seul vois ce coin."></textarea>
+    <div class="cpliens" hidden></div>`;
+  document.body.appendChild(ov);
+  const ta = ov.querySelector(".cptxt"); ta.value = CP.txt; majLiensCoin();
+  ta.addEventListener("input", () => { CP.txt = ta.value; etatCoin("Enregistrement…"); majLiensCoin(); clearTimeout(CP.t); CP.t = setTimeout(sauverCoin, 700); });
+  ta.addEventListener("blur", () => { if (CP.t) sauverCoin(); });
+  ov.querySelector('[data-cp="fermer"]').onclick = fermerCoinPerso;
+  setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 30);
+  document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.setAttribute("aria-current", "page"));
+}
+function fermerCoinPerso(){ const ov = document.getElementById("coinPerso"); if (!ov) return; if (CP.t) sauverCoin(); ov.remove(); document.querySelectorAll('.drawer [data-act="coinperso"]').forEach(x => x.removeAttribute("aria-current")); }
+window.addEventListener("beforeunload", () => { if (CP.t) { try { localStorage.setItem("pp_coin_" + S.user.id, CP.txt); } catch (_) {} sauverCoin(); } });
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
@@ -3663,6 +3701,7 @@ document.addEventListener("click", async e => {
 
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
+    case "coinperso": e.preventDefault(); if (window.innerWidth < 1100) { S.drawer = false; render(); } await ouvrirCoinPerso(); return;
     case "urgent": e.preventDefault(); fermerMenus(); S.modal = {kind:"urgent", classe:a.dataset.c}; marquerReponsesVues(); marquerMessagesProfLus(a.dataset.c); render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
     case "dmnew": case "dmprep": case "dmedit": case "dmsend": case "dmprint": case "dmstat": case "dmsuppr": e.preventDefault(); fermerMenus(); await actionDemande(act, a); return;
     case "rdvnew": case "rdvresa": case "rdvannule": case "rdvretire": case "rdvsuppr": e.preventDefault(); a.disabled = true; await actionRdv(act, a); return;
@@ -3828,6 +3867,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "cpIn") { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-act="cpsend"]'); if (b) b.click(); return; }
   if (e.key === "Enter" && e.target.dataset && e.target.dataset.act === "note") { e.target.blur(); return; }
   if (S.viewer && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName || "") && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { const b = document.querySelectorAll('[data-act="vgo"]')[e.key === "ArrowLeft" ? 0 : 1]; if (b && !b.disabled) b.click(); return; }
+  if (e.key === "Escape" && document.getElementById("coinPerso") && e.target.closest && e.target.closest("#coinPerso")) { fermerCoinPerso(); return; }
   if (e.key === "Escape" && S.viewer && !S.modal) { S.viewer = null; render(); return; }
   if (e.key === "Escape" && DG.on) { finDrag(true); return; }
   if (e.key === "Escape" && DT.on) { dtFin(true); return; }

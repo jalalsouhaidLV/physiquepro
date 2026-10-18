@@ -1054,3 +1054,21 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 /* menu : Messagerie d'urgence en rouge, comme le bouton élève */
 .drawer a.it[href="#/urgences"]{color:var(--bad);font-weight:600}
 .drawer a.it[href="#/urgences"] .i{color:var(--bad)}
+/* ---- Coin Perso : bloc-notes jaune (≈ 4 sticky notes) ---- */
+#coinPerso{position:fixed;z-index:60;top:84px;left:max(16px,calc(var(--drawer-w,280px) + 24px));width:min(440px,calc(100vw - 32px));height:min(440px,calc(100vh - 110px));
+  background:#fff59d;color:#3b3200;border-radius:6px 6px 6px 28px;box-shadow:0 14px 40px rgba(60,50,0,.35),inset 0 -6px 0 rgba(0,0,0,.04);display:flex;flex-direction:column;overflow:hidden;animation:cpin .18s ease-out;transform-origin:top left}
+#coinPerso .cphead{display:flex;align-items:center;gap:8px;padding:10px 10px 8px 14px;background:#fde962;border-bottom:1px dashed #d8c235}
+#coinPerso .cphead b{font-size:1rem}
+#coinPerso .cpetat{margin-left:auto;font-size:.75rem;opacity:.75}
+#coinPerso .ib{color:#3b3200}
+#coinPerso .cptxt{flex:1;border:0;outline:0;resize:none;background:transparent;color:inherit;padding:12px 16px;font:500 1rem/1.55 "Segoe Print","Bradley Hand","Comic Sans MS",var(--sans,system-ui),sans-serif;
+  background-image:linear-gradient(transparent calc(1.55em - 1px),rgba(120,100,0,.18) 1px);background-size:100% 1.55em;background-attachment:local}
+#coinPerso .cptxt::placeholder{color:#8a7a1a}
+#coinPerso .cpliens{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 12px;border-top:1px dashed #d8c235;max-height:30%;overflow:auto}
+#coinPerso .cpliens a{display:inline-flex;align-items:center;gap:4px;background:#fffbd1;border:1px solid #e3d24e;border-radius:999px;padding:3px 10px;font-size:.8rem;color:#5a4a00;text-decoration:none;max-width:100%}
+#coinPerso .cpliens a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#coinPerso .cpliens a .i{width:14px;height:14px;flex:none}
+.drawer a.coinit .i{color:#c9a400}
+@keyframes cpin{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+@media (max-width:1100px){#coinPerso{left:16px}}
+@media (max-width:600px){#coinPerso{left:8px;right:8px;width:auto;top:70px;height:min(70vh,520px)}}
