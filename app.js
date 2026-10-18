@@ -270,7 +270,7 @@ function liensUtilesEleve(){
   const vus = new Set(), L = [];
   actives().forEach(c => (c.liens || []).forEach(l => { if (l && l.url && !vus.has(l.url)) { vus.add(l.url); L.push({ ...l, c }); } }));
   if (!L.length) return "";
-  return `<div class="sect">${icon("links")} Liens utiles pour toi</div>${L.map(l => `<a class="it" href="${esc(l.url)}" target="_blank" rel="noopener">${icon("links")}<span class="lbl">${esc(l.nom)}<small>${esc(l.c.nom)}</small></span></a>`).join("")}<hr>`;
+  return `<div class="it ithead">${icon("links")}<span class="lbl">Liens utiles pour toi</span></div>${L.map(l => `<a class="it sublink" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.c.nom)}"><span class="lbl">${esc(l.nom)}</span></a>`).join("")}`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
 const pageHead = () => `<div class="foot headband"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;

@@ -935,3 +935,9 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .urgsup{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;margin-left:3px;border-radius:9px;background:var(--bad);color:#fff;font-size:.66rem;font-weight:700;line-height:1;vertical-align:super;animation:urgpulse 1.6s ease-in-out infinite}
 @keyframes urgpulse{0%,100%{box-shadow:0 0 0 0 rgba(200,40,40,.55)}50%{box-shadow:0 0 0 5px rgba(200,40,40,0)}}
 @media (prefers-reduced-motion:reduce){.urgsup{animation:none}}
+/* menu élève : « Liens utiles pour toi » comme « Boîte à outils », liens en dessous plus petits */
+.drawer .it.ithead{cursor:default}
+.drawer .it.ithead:hover{background:none}
+.drawer .it.sublink{height:34px;padding-left:66px;font-weight:400;font-size:.88rem;color:var(--muted)}
+.drawer .it.sublink:hover{color:var(--ink)}
+.drawer .it.sublink+.it:not(.sublink){margin-top:4px}
