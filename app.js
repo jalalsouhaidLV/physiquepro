@@ -243,7 +243,7 @@ function topbar(r){
     <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick" aria-label="Liens rapides favoris">${liensFavoris().map(lienRapide).join("")}</nav>
+    ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
     ${lanceurApps()}
     ${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
@@ -2827,7 +2827,7 @@ async function importerZip(files){
 }
 /* ---------- page d'accueil publique (visiteur non connecté) ---------- */
 const PUB = { classes: [], charge: false };
-const ROUTES_PUBLIQUES = ["accueil", "outils"];
+const ROUTES_PUBLIQUES = ["accueil", "outils", "simulations", "physique"];
 async function chargerPublic(){
   try {
     const { data, error } = await sb.rpc("pp_accueil_public");
@@ -2850,7 +2850,7 @@ function topbarPublic(){
   return `<header class="topbar pubtop">
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a></div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    ${(() => { const n = Math.min(16, R().liensUtiles.filter(l => !l.prof).length); return `<nav class="quick${n > 8 ? " deux" : ""}" style="--qc:${Math.ceil(n / 2)}" aria-label="Liens rapides">`; })()}${R().liensUtiles.filter(l => !l.prof).slice(0, 16).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
   </header>`;
 }
 function cartePublique(c){
@@ -2864,6 +2864,7 @@ function cartePublique(c){
 }
 const blocOutils = () => R().outils.map(g => `<section class="theme" style="--c:var(--${esc(g.couleur)})"><div class="themehead"><h2>${esc(g.matiere)}</h2></div>${g.liens.map(([n, d, u]) => `<div class="work"><a class="workrow" href="${esc(u)}" target="_blank" rel="noopener" style="padding:10px 8px;gap:16px"><span class="ico pale">${icon("links", "")}</span><span class="tt">${esc(n)}<br><small class="muted" style="font-weight:400">${esc(d)}</small></span><span class="muted">↗</span></a></div>`).join("")}</section>`).join("");
 function vPublic(r){
+  if (r.v === "simulations" || r.v === "physique") return VUES_PRO[r.v]().replace('<div class="homehead"><h1>', `<div class="homehead"><a class="linkbtn" href="#/">${icon("left")} Accueil</a></div><div class="homehead"><h1>`);
   if (r.v === "outils") return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">Boîte à outils</h1><span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a class="linkbtn" href="#/">${icon("left")} Accueil</a>${btnConnexion("Se connecter avec Microsoft 365")}</span></div>${blocOutils()}${pageFoot()}</div>`;
   return `<div class="page wide home">
     <section class="pubhero">
@@ -2871,6 +2872,7 @@ function vPublic(r){
       <p class="muted">Cours, documents, devoirs et ressources de Physique-Chimie, SNT (Sciences Numériques et Technologie), SI (Sciences de l'Ingénieur), et Technologie. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
       ${btnConnexion("Se connecter avec Microsoft 365", "pubbig")}
     </section>
+    <nav class="pubres"><a href="#/simulations">${icon("atom")}<span><b>Simulations</b><small>PhET, GeoGebra, Python… à côté de la page</small></span></a><a href="#/physique">${icon("ruler")}<span><b>Outils de physique</b><small>Unités, tableau périodique, constantes, courbes</small></span></a><a href="#/outils">${icon("tools")}<span><b>Boîte à outils</b><small>Les sites utiles par matière</small></span></a></nav>
     ${blocScientifique()}
     <section class="homepanel"><div class="homehead"><h1>Cours</h1></div>
       ${PUB.classes.length ? `<div class="cards">${PUB.classes.map(cartePublique).join("")}</div>` : `<p class="muted" style="margin:0">Connecte-toi pour voir tes cours.</p>`}</section>
@@ -3663,7 +3665,7 @@ window.addEventListener("resize", () => { if (document.getElementById("coinPerso
 IC.apps = '<circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>';
 IC.star = '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>';
 const FAVORIS_DEFAUT = ["Pronote Verdun", "Lycée Verdun", "WhatsApp Web", "E-mail Outlook", "OneDrive", "NumWorks"];
-const FAVORIS_MAX = 13;
+const FAVORIS_MAX = 24;
 const cleFavoris = () => "pp_favoris2_" + (S.user && S.user.id);
 const liensVisibles = () => R().liensUtiles.filter(l => l.nom && (!l.prof || S.prof));
 function favorisNoms(){
@@ -4124,7 +4126,7 @@ const UNITES = {
   "Température": { temp: true, u: [["°C"], ["K"], ["°F"]] }
 };
 const versK = (v, u) => u === "K" ? v : u === "°C" ? v + 273.15 : (v - 32) * 5 / 9 + 273.15, depuisK = (k, u) => u === "K" ? k : u === "°C" ? k - 273.15 : (k - 273.15) * 9 / 5 + 32;
-const fmtSci = x => { if (!isFinite(x)) return "—"; if (x === 0) return "0"; const a = Math.abs(x); if (a >= 1e-3 && a < 1e6) return String(Math.round(x * 1e6) / 1e6).replace(".", ","); const e = Math.floor(Math.log10(a)), m = x / 10 ** e; return (Math.round(m * 1000) / 1000).toString().replace(".", ",") + " × 10" + String(e).replace(/-?\d/g, c => "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"["-0123456789".indexOf(c)]); };
+const fmtSci = x => { if (!isFinite(x)) return "—"; if (x === 0) return "0"; const a = Math.abs(x); if (a >= 1e-3 && a < 1e6) return String(Math.round(x * 1e6) / 1e6).replace(".", ","); const e = Math.floor(Math.log10(a)), m = x / 10 ** e; return (Math.round(m * 1000) / 1000).toString().replace(".", ",") + " × 10" + String(e).replace(/[-\d]/g, c => "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"["-0123456789".indexOf(c)]); };
 VUES_PRO.physique = function(){
   const ong = S.phyOng || "unites", O = [["unites", "Convertisseur d'unités", "ruler"], ["tableau", "Tableau périodique", "atom"], ["constantes", "Constantes", "key"], ["courbes", "Traceur de courbes", "chart"]];
   let corps = "";
