@@ -305,7 +305,7 @@ tr.avg td{background:var(--surface-2);font-weight:600}
 .quick .qp{font-family:var(--body);font-size:1rem;font-weight:700;color:inherit}
 .quick a.main .qi{background:var(--q);color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.18)}
 .quick a.main .ql{color:var(--ink);font-weight:600}
-@media (max-width:760px){.quick a:not(.main){display:none}.quick a{min-width:48px}}
+@media (max-width:760px){.quick .ql{display:none}.quick a{min-width:40px}}
 
 /* ---- code du cours ---- */
 .codebig{background:none;border:0;padding:0;cursor:pointer;text-align:left;font-family:var(--mono);font-size:1.45rem;color:var(--accent);letter-spacing:.06em}
@@ -799,3 +799,14 @@ sup,sub{line-height:0;font-size:.75em}
   .crumbs:has(.cur) .brand{display:none}
 }
 .foot .logos{margin-left:auto}
+@media (max-width:600px){
+  .topbar .spacer{display:none}
+  .crumbs{flex:0 1 auto;max-width:30vw}
+  .crumbs .cur small{display:none}
+  .quick{flex:1 1 auto;min-width:0;max-width:none;justify-content:flex-start}
+  .quick a{min-width:34px;padding:4px 2px}
+  .quick .qi{width:30px;height:30px}
+  .quick .qlogo{height:17px;max-width:30px}
+  .quick .qi:has(.qlogo){padding:2px}
+}
+@media (max-width:440px){.topbar .ddplus{display:none}.crumbs{max-width:24vw}}
