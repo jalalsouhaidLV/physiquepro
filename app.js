@@ -2943,8 +2943,12 @@ function clesUrgentes(){ return S.prof ? (S.urgents || []).filter(m => !m.lu).ma
 function bip(){ try { const A = new (window.AudioContext || window.webkitAudioContext)(), t = A.currentTime;
   [[880, 0], [1320, .16]].forEach(([f, d]) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.25, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .14); o.connect(g).connect(A.destination); o.start(t + d); o.stop(t + d + .15); });
   setTimeout(() => A.close(), 600); } catch (_) {} }
+/* titre de l'onglet qui clignote tant qu'on n'est pas revenu sur le site */
+let clignoT = null;
+function clignoter(msg){ clearInterval(clignoT); let on = false; const base = () => document.title.replace(/^⚠ .*? · /, "");
+  clignoT = setInterval(() => { if (document.visibilityState === "visible" && document.hasFocus()) { clearInterval(clignoT); document.title = base(); titreAvecCompteur(); return; } on = !on; document.title = on ? "⚠ " + msg + " · " + base() : base(); }, 1000); }
 function notifier(titre, texte, ouvrir){
-  bip();
+  bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); toast(titre + " — " + texte.slice(0, 90));
   if (!notifOk()) return;
   try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag: "pp-urgent-" + Date.now(), requireInteraction: true });
     n.onclick = () => { window.focus(); ouvrir(); n.close(); }; } catch (_) {}
