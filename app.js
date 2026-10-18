@@ -248,7 +248,7 @@ function topbar(r){
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
       ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
     <div class="dd"><button class="avatar" data-act="me" title="${esc(S.nom)}" style="border:0;cursor:pointer">${initials(S.nom)}</button>
-      ${S.me ? `<div class="dd-menu"><div style="padding:8px 10px"><b>${esc(S.nom)}</b><br><small class="muted">${esc(moi())}</small></div><a href="#" data-act="logout">${icon("logout")} Se déconnecter</a></div>` : ""}</div>
+      ${S.me ? `<div class="dd-menu"><div style="padding:8px 10px"><b>${esc(S.nom)}</b><br><small class="muted">${esc(moi())}</small></div>${menuApparence()}<a href="#" data-act="logout">${icon("logout")} Se déconnecter</a></div>` : ""}</div>
   </header>`;
 }
 function drawer(r){
@@ -304,7 +304,7 @@ function carte(c, archivee){
         : `${deplacerMenu(c)}${c.code ? `<a href="#" data-act="copylien" data-code="${esc(c.code)}">${icon("links")} Copier le lien d'invitation</a>` : ""}<a href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Modifier</a><a href="#" data-act="copiercours" data-c="${esc(c.id)}">${icon("copy")} Copier</a><a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="1">${icon("archive")} Archiver</a>`}</div>` : ""}</div>`;
   return `<article class="ccard${archivee ? " archived" : " movable"}" data-cid="${esc(c.id)}" style="--bb:var(${k.b})">
     <div style="position:relative">
-      <a class="banner" href="#/classe/${esc(c.id)}">${bannerArt(c)}<h2>${esc(c.nom)}</h2>${c.section ? `<p>${esc(c.section)}</p>` : ""}<span class="teacher">${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(R().prof.nom)}</span></a>
+      <a class="banner" href="#/classe/${esc(c.id)}">${bannerArt(c)}${archivee ? "" : badgeCarte(c)}<h2>${esc(c.nom)}</h2>${c.section ? `<p>${esc(c.section)}</p>` : ""}<span class="teacher">${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(R().prof.nom)}</span></a>
       ${S.prof ? "" : avatarP(R().prof.nom, "lg ph")}
     </div>
     <div class="body">${body}</div>
@@ -747,7 +747,7 @@ async function rendreDevoir(d){
     S.sending = true; render();
     const { error } = await sb.from("rendus").insert({ devoir_id: d.id, auteur: S.user.id, auteur_email: moi(), fichiers: [], reponse: rep2 });
     if (error) return fail("Envoi impossible : " + error.message);
-    S.reponse = ""; S.sending = false; await rafraichir(); render(); toast("Réponse envoyée"); return;
+    S.reponse = ""; S.sending = false; await rafraichir(); render(); toast("Réponse envoyée"); celebrer("Réponse envoyée !"); return;
   }
   if (d.mode === "binome" && !S.partenaire) return fail("Choisis ton binôme avant de rendre.");
   if (S.lien && !/^https:\/\//.test(S.lien)) return fail("Le lien doit commencer par https://");
@@ -762,7 +762,7 @@ async function rendreDevoir(d){
   const { error } = await sb.from("rendus").insert({ devoir_id: d.id, auteur: S.user.id, auteur_email: moi(), binome_email: d.mode === "binome" ? S.partenaire : null, fichiers, lien: S.lien || null });
   if (error) { if (fichiers.length) await sb.storage.from("rendus").remove(fichiers.map(x => x.chemin)); return fail(/row-level|policy/i.test(error.message) ? "Rendu impossible : le dépôt est fermé, ou ton binôme a déjà rendu ce devoir." : "Rendu impossible : " + error.message); }
   S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; S.sending = false;
-  await rafraichir(); render(); toast("Devoir rendu");
+  await rafraichir(); render(); toast("Devoir rendu"); celebrer("Devoir rendu !");
 }
 
 /* ---------- devoir côté professeur ---------- */
@@ -3827,13 +3827,68 @@ VUES_PRO.semaine = function(){
   const carte = x => `<a class="smitem${x.fait ? " fait" : ""}" href="${x.href}" style="--c:var(${C(x.c && x.c.couleur).c})"><span class="smh">${fmtT(x.d)}</span><span class="smt">${icon(x.ic)}<b>${esc(x.titre)}</b></span><small>${esc(x.c ? x.c.nom : "")}</small><span class="pill ${x.k || ""}">${esc(x.etat)}</span></a>`;
   return `<div class="page wide semaine"><div class="smhead"><div><h1>${S.prof ? "Ma semaine" : "Ma semaine"}</h1><p class="muted">${jours[0].toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} – ${jours[6].toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p></div>
       <div class="smnav"><button class="ib" data-act="semw" data-w="-1" aria-label="Semaine précédente">${icon("left")}</button>${S.semW ? `<button class="btn ghost sm" data-act="semw" data-w="0">Cette semaine</button>` : ""}<button class="ib" data-act="semw" data-w="1" aria-label="Semaine suivante">${icon("right")}</button></div></div>
-    <div class="smprog"><div class="smbar"><i style="width:${pc}%"></i></div><span><b>${faits}/${travaux.length}</b> ${S.prof ? "travaux entièrement corrigés ou terminés" : "travaux faits"} · ${pc} %</span></div>
+    <div class="smprog"><div class="smbar"><i style="width:${Math.round(pc * 0.34)}px"></i></div><span><b>${faits}/${travaux.length}</b> ${S.prof ? "travaux entièrement corrigés ou terminés" : "travaux faits"} · ${pc} %</span></div>
     <div class="smfrise">${jours.map(j => { const L = items.filter(x => sameDay(x.d, j)).sort((a, b) => a.d - b.d); return `<section class="smjour${sameDay(j, t) ? " auj" : ""}${j < new Date(t.toDateString()) ? " passe" : ""}"><h3>${j.toLocaleDateString("fr-FR", { weekday: "long" })}<b>${j.getDate()}</b></h3>${L.length ? L.map(carte).join("") : `<p class="smvide">—</p>`}</section>`; }).join("")}</div>${pageFoot()}</div>`;
 };
 document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="semw"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); S.semW = a.dataset.w === "0" ? 0 : (S.semW || 0) + Number(a.dataset.w); render(); }, true);
+
+/* ---------- #4 Thème clair / sombre / automatique ---------- */
+IC.sun = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+IC.moon = '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>';
+IC.auto = '<circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/>';
+IC.access = '<circle cx="12" cy="4.5" r="2"/><path d="M4 8l8 1.5L20 8M12 9.5V15l-3 6M12 15l3 6"/>';
+function menuApparence(){
+  const t = themeChoisi(), b = (v, ic, l) => `<button class="thbtn${t === v ? " on" : ""}" data-act="theme" data-v="${v}" aria-pressed="${t === v}">${icon(ic)}<span>${l}</span></button>`;
+  return `<div class="thmenu"><small>Apparence</small><div class="thgroupe">${b("light", "sun", "Clair")}${b("dark", "moon", "Sombre")}${b("auto", "auto", "Auto")}</div></div><a href="#" data-act="accessib">${icon("access")} Accessibilité</a>`;
+}
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="theme"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); appliquerTheme(a.dataset.v); render(); }, true);
+
+/* ---------- #6 Chargement en squelettes + animation de réussite ---------- */
+const squelette = () => `<div class="page wide skel" aria-busy="true" aria-label="Chargement"><div class="sk sk-t"></div><div class="sk sk-s"></div><div class="skgrille">${'<div class="sk sk-c"></div>'.repeat(4)}</div><div class="sk sk-l"></div><div class="sk sk-l"></div><div class="sk sk-l court"></div></div>`;
+function celebrer(texte){
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const o = document.createElement("div"); o.className = "bravo"; o.setAttribute("aria-hidden", "true");
+  o.innerHTML = `<div class="bravobox"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg><b>${esc(texte || "Bravo !")}</b></div>`;
+  document.body.appendChild(o); setTimeout(() => o.classList.add("fin"), 1300); setTimeout(() => o.remove(), 1700);
+}
+
+/* ---------- #5 Cartes de cours plus parlantes ---------- */
+function badgeCarte(c){
+  const dv = S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon && D(d.publie_le) <= now());
+  if (S.prof) { const ac = dv.reduce((a, d) => a + aCorriger(d), 0); return ac ? `<span class="cbadge" title="${ac} rendu(s) à corriger">${ac} à corriger</span>` : ""; }
+  const pour = dv.filter(d => !d.eleves || d.eleves.includes(moi())); if (!pour.length) return "";
+  const faits = pour.filter(d => { const e = etat(d, moi()); return e.t === "Rendu" || e.t === "Noté"; }).length, pc = Math.round(faits / pour.length * 100);
+  return `<span class="cprog" title="${faits} travail(s) rendu(s) sur ${pour.length}"><i style="width:${Math.round(pc * 0.34)}px"></i><small>${faits}/${pour.length} rendus</small></span>`;
+}
+
+/* ---------- #16 Accessibilité : taille du texte, contraste, police lisible, animations ---------- */
+const A11Y_DEF = { taille: 100, contraste: false, police: "", calme: false };
+const a11y = () => { try { return { ...A11Y_DEF, ...JSON.parse(localStorage.getItem("pp_a11y") || "{}") }; } catch (_) { return { ...A11Y_DEF }; } };
+function appliquerA11y(){ const a = a11y(), de = document.documentElement;
+  de.style.fontSize = a.taille === 100 ? "" : a.taille + "%"; de.classList.toggle("a11y-contraste", !!a.contraste); de.classList.toggle("a11y-calme", !!a.calme);
+  de.dataset.police = a.police || ""; }
+appliquerA11y();
+function panneauA11y(){
+  if (document.getElementById("a11yBox")) return; const a = a11y();
+  const box = document.createElement("div"); box.id = "a11yBox";
+  box.innerHTML = `<div class="rechvoile"></div><div class="a11y" role="dialog" aria-modal="true" aria-labelledby="a11yT"><div class="a11ytete"><h2 id="a11yT">${icon("access")} Accessibilité</h2><button class="ib" data-a11y="fermer" aria-label="Fermer">${icon("x")}</button></div>
+    <div class="a11yrow"><b>Taille du texte</b><div class="thgroupe">${[[90, "A−"], [100, "A"], [115, "A+"], [130, "A++"]].map(([v, l]) => `<button class="thbtn${a.taille === v ? " on" : ""}" data-a11y="taille" data-v="${v}" style="font-size:${v / 100}rem">${l}</button>`).join("")}</div></div>
+    <div class="a11yrow"><b>Police</b><div class="thgroupe">${[["", "Normale"], ["lisible", "Très lisible"], ["dys", "Adaptée dyslexie"]].map(([v, l]) => `<button class="thbtn${a.police === v ? " on" : ""}" data-a11y="police" data-v="${v}">${l}</button>`).join("")}</div></div>
+    <label class="a11ycheck"><input type="checkbox" data-a11y="contraste" ${a.contraste ? "checked" : ""}><span><b>Contraste renforcé</b><small>Textes plus foncés, bordures plus visibles.</small></span></label>
+    <label class="a11ycheck"><input type="checkbox" data-a11y="calme" ${a.calme ? "checked" : ""}><span><b>Réduire les animations</b><small>Aucun mouvement ni effet de transition.</small></span></label>
+    <p class="muted" style="margin:0;font-size:.8rem">Ces réglages sont gardés sur cet appareil.</p></div>`;
+  document.body.appendChild(box);
+  const maj = (k, v) => { const x = a11y(); x[k] = v; try { localStorage.setItem("pp_a11y", JSON.stringify(x)); } catch (_) {} appliquerA11y(); box.remove(); panneauA11y(); };
+  box.addEventListener("click", e => { const b = e.target.closest("[data-a11y]"); if (e.target.classList.contains("rechvoile") || (b && b.dataset.a11y === "fermer")) { box.remove(); return; }
+    if (b && b.tagName === "BUTTON") maj(b.dataset.a11y, b.dataset.a11y === "taille" ? Number(b.dataset.v) : b.dataset.v); });
+  box.addEventListener("change", e => { const b = e.target.closest("[data-a11y]"); if (b) maj(b.dataset.a11y, b.checked); });
+  box.addEventListener("keydown", e => { if (e.key === "Escape") box.remove(); });
+  setTimeout(() => { const f = box.querySelector(".thbtn.on"); if (f) f.focus(); }, 30);
+}
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="accessib"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); fermerMenus(); render(); panneauA11y(); }, true);
 /* ---------- rendu ---------- */
 let renderId = 0;
-const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content"><div class="loading"><div><div class="spin"></div>Chargement…</div></div></main></div>`;
+const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
 async function render(){
   if (S.public) { renderPublic(); return; }
   const id = ++renderId, r = route();

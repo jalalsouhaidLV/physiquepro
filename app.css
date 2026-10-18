@@ -1282,3 +1282,78 @@ kbd{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-bot
 .smitem small{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .smitem .pill{justify-self:start;font-size:.68rem}
 @media (max-width:900px){.smfrise{grid-template-columns:1fr}.smjour{min-height:0}.smjour.passe{display:none}}
+
+/* =====================================================================
+   #3 TYPOGRAPHIE : titres en Plus Jakarta Sans, échelle stricte
+   ===================================================================== */
+:root{--display:"Plus Jakarta Sans","Google Sans",Roboto,"Segoe UI",system-ui,sans-serif;--fs-xs:.75rem;--fs-sm:.875rem;--fs-md:1rem;--fs-lg:1.25rem;--fs-xl:1.6rem;--fs-2xl:2rem}
+h1,h2,h3,.banner h2,.homehead h1,.dvhead h1,.brand b,.tdbhead h1,.smhead h1{font-family:var(--display);letter-spacing:-.015em}
+.brand b{font-weight:800}
+.banner h2{font-weight:700}
+.homehead h1{font-weight:700}
+html[data-police="lisible"] body,html[data-police="lisible"] #coinPerso .cptxt{font-family:"Atkinson Hyperlegible",var(--body)}
+html[data-police="dys"] body,html[data-police="dys"] #coinPerso .cptxt{font-family:Lexend,"Atkinson Hyperlegible",var(--body);letter-spacing:.02em;word-spacing:.08em}
+html[data-police="dys"] h1,html[data-police="dys"] h2,html[data-police="dys"] h3{font-family:Lexend,var(--display)}
+
+/* =====================================================================
+   #6 TRANSITIONS DOUCES
+   ===================================================================== */
+main.content > *{animation:pageIn .28s var(--ease) both}
+@keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ccard,.kpi,.smitem,.btn,.ib,.it,.chip{transition:transform .18s var(--ease),box-shadow .18s var(--ease),background-color .15s,color .15s,border-color .15s}
+.ccard:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+.btn:active,.ib:active{transform:scale(.97)}
+.skel{display:grid;gap:14px}
+.sk{border-radius:var(--r);background:linear-gradient(90deg,var(--surface-2) 25%,var(--hover) 50%,var(--surface-2) 75%);background-size:300% 100%;animation:shimmer 1.3s infinite linear}
+.sk-t{height:34px;width:min(320px,60%)} .sk-s{height:16px;width:min(220px,40%)} .sk-l{height:58px} .sk-l.court{width:60%}
+.skgrille{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.sk-c{height:150px;border-radius:var(--r-lg)}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+.bravo{position:fixed;inset:0;z-index:300;display:grid;place-items:center;pointer-events:none;background:rgba(255,255,255,.0);animation:fadein .2s}
+.bravo.fin{opacity:0;transition:opacity .35s}
+.bravobox{display:grid;justify-items:center;gap:10px;padding:26px 34px;border-radius:var(--r-xl);background:var(--surface);box-shadow:var(--shadow-3);animation:popin2 .35s var(--ease)}
+.bravobox svg{width:84px;height:84px}
+.bravobox circle{fill:none;stroke:var(--ok);stroke-width:3;stroke-dasharray:151;stroke-dashoffset:151;animation:trace .5s .05s var(--ease) forwards}
+.bravobox path{fill:none;stroke:var(--ok);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40;animation:trace .35s .45s var(--ease) forwards}
+.bravobox b{font:700 1.15rem var(--display);color:var(--ink)}
+@keyframes trace{to{stroke-dashoffset:0}}
+@keyframes popin2{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+html.a11y-calme *,html.a11y-calme *::before,html.a11y-calme *::after{animation:none!important;transition:none!important}
+html.a11y-contraste{--muted:#2C3E46;--line:#8FA3AB}
+html.a11y-contraste[data-theme="dark"]{--muted:#C9D7DC;--line:#5F7C88}
+html.a11y-contraste a{text-decoration:underline}
+html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
+
+/* =====================================================================
+   #5 CARTES DE COURS
+   ===================================================================== */
+.ccard .banner{position:relative}
+.cbadge{position:absolute;top:10px;right:10px;z-index:2;padding:3px 10px;border-radius:999px;background:#fff;color:var(--bad);font:700 .72rem var(--body);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.cprog{position:absolute;top:10px;right:10px;z-index:2;display:flex;align-items:center;gap:6px;padding:3px 9px 3px 6px;border-radius:999px;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.cprog::before{content:"";width:34px;height:5px;border-radius:999px;background:var(--line);grid-area:auto}
+.cprog i{position:absolute;left:6px;top:50%;margin-top:-2.5px;height:5px;max-width:34px;border-radius:999px;background:var(--ok)}
+.cprog small{color:#0B1F28;font-weight:700;font-size:.7rem}
+.ccard .banner:has(.cprog,.cbadge) h2{padding-right:108px}
+/* ---- menu Apparence / accessibilité ---- */
+.thmenu{padding:6px 10px 8px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:4px 0}
+.thmenu small{display:block;color:var(--muted);font-size:.72rem;margin-bottom:6px}
+.thgroupe{display:flex;gap:4px;flex-wrap:wrap}
+.thbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font:500 .8rem var(--body);cursor:pointer}
+.thbtn .i{width:15px;height:15px}
+.thbtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#a11yBox{position:fixed;inset:0;z-index:210}
+.a11y{position:absolute;left:50%;top:10vh;transform:translateX(-50%);width:min(480px,calc(100vw - 24px));display:grid;gap:16px;padding:20px;background:var(--surface);border-radius:var(--r-xl);box-shadow:var(--shadow-3)}
+.a11ytete{display:flex;justify-content:space-between;align-items:center}
+.a11ytete h2{margin:0;display:flex;gap:8px;align-items:center;font-size:1.2rem}
+.a11yrow{display:grid;gap:8px}
+.a11ycheck{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.a11ycheck input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent)}
+.a11ycheck span{display:grid}
+.a11ycheck small{color:var(--muted);font-size:.8rem}
+
+/* ---- mode sombre : composants ajoutés ---- */
+:root[data-theme="dark"] .quick .qi,:root[data-theme="dark"] .apptuile .qi{background:#F4F7F8}
+:root[data-theme="dark"] #coinPerso{filter:saturate(.9) brightness(.95)}
+:root[data-theme="dark"] .cbadge{background:#0F2028;color:#F28B82}
+.thmenu ~ a{justify-content:flex-start!important;gap:10px}
