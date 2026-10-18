@@ -266,7 +266,7 @@ function drawer(r){
     ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span></a>` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt().replace(/[A-ZÀ-Ý]{2,}/g, m => m.charAt(0) + m.slice(1).toLowerCase())}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
-    ${actives().map(c => `<a class="it itcours" data-cid="${esc(c.id)}" title="Glisse pour changer l'ordre" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
+    ${actives().map(c => `<a class="it itcours" data-cid="${esc(c.id)}" title="Glisse pour changer l'ordre" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl"><span class="cnom">${esc(c.nom)}</span><small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
     ${liensUtilesEleve()}<div class="sect">${icon("flask")} Ressources</div>
     <a class="it" href="#/revisions" ${cur("revisions")}>${icon("cards")}<span class="lbl">Révisions et flashcards</span></a>
@@ -4359,6 +4359,11 @@ document.addEventListener("click", e => { const a = e.target.closest && e.target
 document.addEventListener("change", async e => { const i = e.target; if (!i.dataset || !i.dataset.calfile || !i.files[0]) return; const f = i.files[0];
   toast("Envoi du calendrier…"); const { error } = await sb.storage.from("documents").upload(CAL_CHEMIN, f, { upsert: true, contentType: f.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   if (error) { toast("Envoi impossible : " + error.message); return; } toast("Calendrier enregistré"); ouvrirCalendrier(true); });
+
+/* nom du cours sur une seule ligne dans le menu : la taille du texte s'ajuste si le nom est long */
+function ajusterNomsCours(){ document.querySelectorAll(".drawer a.itcours .cnom").forEach(n => { n.style.fontSize = ""; const lbl = n.parentElement, max = lbl.clientWidth; if (!max) return; let t = 15; while (n.scrollWidth > max && t > 10) { t -= .5; n.style.fontSize = t + "px"; } }); }
+new MutationObserver(() => { if (document.querySelector(".drawer a.itcours .cnom:not([data-ajuste])")) { document.querySelectorAll(".drawer a.itcours .cnom").forEach(n => n.dataset.ajuste = 1); ajusterNomsCours(); } }).observe(document.documentElement, { childList: true, subtree: true });
+window.addEventListener("resize", ajusterNomsCours);
 /* ---------- Scientifique du jour : 90 hommes et 90 femmes, en alternance (programme de Physique-Chimie 2nde, 1re, Tle) ---------- */
 /* format : [nom, dates, titre Wikipédia (ou null : recherche par le nom), biographie, notions du programme] */
 const SCI_HOMMES = [

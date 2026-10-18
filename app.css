@@ -1556,11 +1556,12 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 .quick.deux .qi,.quick.deux .qi:has(.qlogo),.quick.deux a.main .qi,.quick.deux a.main .qi:has(.qlogo){width:46px;min-width:46px;height:26px;padding:2px 4px}
 .quick.deux .qlogo,.quick.deux a.main .qlogo{height:19px;width:38px}
 .quick.deux .ql{font-size:.56rem;max-width:64px;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:1340px){.quick.deux .ql{display:none}.quick.deux .qi,.quick.deux .qi:has(.qlogo){width:40px;min-width:40px}}
+
 @media (max-width:760px){.quick.deux{display:flex}.topbar:has(.quick.deux){height:64px}}
 /* ---- nom du cours en entier dans le menu ---- */
-.drawer a.itcours .lbl{white-space:normal;overflow:visible;line-height:1.2}
-.drawer a.itcours .lbl small{white-space:normal}
+.drawer a.itcours .lbl{white-space:nowrap;overflow:hidden;line-height:1.2;text-overflow:clip}
+.drawer a.itcours .lbl .cnom{display:block;white-space:nowrap;letter-spacing:-.01em}
+.drawer a.itcours .lbl small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* ---- page publique : accès aux ressources ---- */
 .pubres{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
 .pubres a{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow);text-decoration:none;color:var(--ink);transition:transform .18s var(--ease),box-shadow .18s}
@@ -1568,3 +1569,6 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 .pubres .i{flex:none;width:40px;height:40px;padding:9px;border-radius:12px;background:var(--accent-soft);color:var(--accent)}
 .pubres span{display:grid}
 .pubres small{color:var(--muted);font-size:.78rem}
+
+/* noms des icônes toujours visibles, même sur deux lignes (sauf téléphone) */
+@media (min-width:761px){.quick.deux .ql{display:block!important;font-size:.56rem;max-width:64px}.quick.deux a{display:grid!important}}
