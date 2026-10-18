@@ -1019,3 +1019,11 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .notifbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:10px;padding:8px 12px;font-size:.88rem}
 .notifbar .i{flex:none}.notifbar span{flex:1 1 220px}
 @media (max-width:600px){.quick a.qprof{display:none}}
+/* téléphone : 6 raccourcis en haut → on libère la place du logo PhysiquePro et du nom du cours (le menu ☰ et la page les montrent déjà) */
+@media (max-width:480px){
+  .topbar .crumbs{display:none}
+  .topbar .quick{justify-content:space-between}
+  .quick a{min-width:32px}
+}
+@media (max-width:600px){.topbar .spacer.topmid{display:none}}
+@media (max-width:400px){.quick a{min-width:30px;padding:2px 1px}.quick .qi{width:28px;height:28px}.quick .qlogo{max-width:26px;height:16px}.topbar{gap:2px;padding-left:4px;padding-right:6px}.topbar .ib{width:38px}}
