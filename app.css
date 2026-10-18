@@ -873,3 +873,30 @@ sup,sub{line-height:0;font-size:.75em}
 .ccard:has(.dd-menu) .banner{border-radius:12px 12px 0 0}
 .ccard .cfoot .dd-menu{top:auto;bottom:calc(100% + 4px);right:0}
 .ccard .dd-menu a{justify-content:flex-start;text-align:left}
+/* ===== audit téléphone (18/10) ===== */
+@media (max-width:600px){
+  /* éditeur de questionnaire : énoncé pleine largeur, type en dessous, options sans retrait */
+  .qhead .qtext{flex:1 1 calc(100% - 42px)}
+  .qhead .qtype{flex:1 1 100%;max-width:none;margin-left:42px}
+  .qopts,.qfoot{padding-left:0}
+  .qopts .two{grid-template-columns:minmax(0,1fr)}
+  .qcard{overflow:hidden}
+  /* agenda : les jours les uns sous les autres au lieu de 7 colonnes */
+  .week{grid-template-columns:minmax(0,1fr);min-width:0}
+  .week .day{border-right:0;border-bottom:1px solid var(--line);min-height:0;display:grid;grid-template-columns:64px minmax(0,1fr);align-items:start}
+  .week .day:last-child{border-bottom:0}
+  .week .dh{border-bottom:0;border-right:1px solid var(--line);height:100%;padding:8px 4px}
+  .week .dh b{font-size:1.25rem}
+  .week .dh.today b{width:36px;height:36px}
+  .week .day:not(:has(.ev))::after{content:"—";color:var(--muted);padding:14px 10px;font-size:.85rem}
+  .weekbar h2{font-size:1rem;flex:1 1 auto;min-width:0}
+}
+/* cibles tactiles plus grandes sur téléphone et tablette */
+@media (pointer:coarse),(max-width:600px){
+  .linkbtn{min-height:40px;padding:8px 6px;display:inline-flex;align-items:center}
+  .person input[type=checkbox],.admtable input[type=checkbox],.check input,input.edAussi{width:22px;height:22px}
+  .ib.sm{min-width:36px;min-height:36px}
+  .dlbtn{min-width:40px;min-height:40px;display:inline-grid;place-items:center}
+  .btn.caret{min-width:36px}
+}
+@media (max-width:600px){ .ccard{min-height:0} .ccard .body{min-height:56px} }

@@ -1294,7 +1294,7 @@ function vModal(){
         <p class="muted" style="margin:0;font-size:.82rem">Les documentations se réutilisent depuis le menu ⋮ de l'élément, dans son cours d'origine.</p>`
       : `<p class="muted" style="margin:0">Une copie sera créée en <b>brouillon</b> dans les cours choisis : tu pourras la relire avant de la publier.</p>
         <div class="ciblelist">${autres.map(c => `<label class="check"><input type="checkbox" class="mDest" value="${esc(c.id)}"> ${esc(c.nom)}</label>`).join("") || `<span class="muted">Aucun autre cours actif.</span>`}</div>`}`; ok = "Copier"; }
-  else if (m.kind === "supprclasse") { body = `<h2>Supprimer « ${esc(m.nom)} » ?</h2><p style="margin:0">Le cours, ses devoirs, questionnaires, documentations, annonces, les travaux rendus et les notes seront <b>définitivement supprimés</b>.</p><div class="field"><label for="mConfirm">Pour confirmer, tape le nom du cours</label><input id="mConfirm" autocomplete="off" placeholder="${esc(m.nom)}"></div>`; ok = "Supprimer"; }
+  else if (m.kind === "supprclasse") { body = `<h2>Supprimer « ${esc(m.nom)} » ?</h2><p style="margin:0">Le cours, ses devoirs, questionnaires, documentations, annonces, les travaux rendus et les notes seront <b>définitivement supprimés</b>.${odActif() ? " Son dossier OneDrive et tout son contenu partent dans la corbeille de ton OneDrive (récupérables pendant 93 jours)." : ""}</p><div class="field"><label for="mConfirm">Pour confirmer, tape le nom du cours</label><input id="mConfirm" autocomplete="off" placeholder="${esc(m.nom)}"></div>`; ok = "Supprimer"; }
   else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = m.ok || "Supprimer"; }
   const danger = m.kind === "confirm" || m.kind === "supprclasse";
   return `<div class="modalbg" data-act="mclose"></div><div class="modal" role="dialog" aria-modal="true">${body}${m.err ? `<div class="err">${esc(m.err)}</div>` : ""}
@@ -1422,7 +1422,9 @@ async function modalOk(){
       if (docs.data && docs.data.length) await sb.storage.from("documents").remove(docs.data.map(f => m.id + "/" + f.name));
       const rendusFichiers = S.rendus.filter(r => (S.devoirs.find(d => d.id === r.devoir_id) || {}).classe_id === m.id).flatMap(r => (r.fichiers || []).map(f => f.chemin)).filter(Boolean);
       if (rendusFichiers.length) await sb.storage.from("rendus").remove(rendusFichiers);
+      const nomCours = (cls(m.id) || {}).nom || m.nom;
       const { error } = await sb.from("classes").delete().eq("id", m.id); if (error) throw error;
+      if (odActif()) supprimerDossierCours(nomCours).then(ok => { if (ok) toast("Dossier OneDrive « " + nomCours + " » mis à la corbeille"); }).catch(e => toast("Dossier OneDrive non supprimé : " + (e.message || e)));
       S.modal = null; await rafraichir(); toast("Cours supprimé"); go("/archives"); return;
     }
     if (m.kind === "confirm") {
@@ -1437,6 +1439,8 @@ async function modalOk(){
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
       if (m.action === "retirer") { const { error } = await sb.from("inscriptions").delete().eq("classe_id", m.classe).in("email", m.emails); if (error) throw error; m.emails.forEach(x => S.pick.delete(x)); return done(m.emails.length > 1 ? "Élèves retirés du cours" : "Élève retiré du cours", m.classe); }
       if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
+      if (m.action === "odorphelins") { let n = 0; for (const id of m.ids) { try { await graph("/me/drive/items/" + encodeURIComponent(id), { method: "DELETE" }, false); n++; } catch (e) { console.warn(e); } }
+        S.modal = null; render(); toast(n + " dossier" + (n > 1 ? "s" : "") + " mis à la corbeille OneDrive"); return; }
       if (m.action === "quitter") { const { error } = await sb.rpc("pp_quitter_cours", { p_classe: m.classe }); if (error) throw error;
         const nom = (cls(m.classe) || {}).nom || "le cours"; S.modal = null; delete S.cache[m.classe]; await rafraichir(); go("/"); render(); toast("Tu as quitté " + nom); return; }
       if (m.action === "supprcompte") { const { error } = await sb.rpc("pp_supprimer_compte", { p_email: m.email }); if (error) throw error;
@@ -1520,6 +1524,7 @@ function admSite(){
       <div class="setrow"><span><b>Documents déjà publiés</b><small class="muted">Copie dans OneDrive les documents importés avant l'activation, puis met à jour les liens.</small></span><button class="btn ghost sm" data-act="odmigrer" ${S.odBusy ? "disabled" : ""}>${S.odBusy ? "Copie en cours… " + (S.odN || 0) : "Ranger dans OneDrive"}</button></div>
       <div class="setrow"><span><b>Confidentialité des dossiers</b><small class="muted">Les élèves ne voient jamais tes dossiers OneDrive : seulement les fichiers publiés pour eux sur le site. Les fichiers des brouillons restent privés jusqu'à leur publication. Vérification automatique à chaque ouverture du site.</small></span><button class="btn ghost sm" data-act="odconf">${icon("key")} Vérifier maintenant</button></div>
       <div class="setrow"><span><b>Dossiers des cours</b><small class="muted">Un dossier par cours, au nom actuel du cours : renomme les anciens dossiers, fusionne les doublons et met à jour les liens. Se fait aussi automatiquement quand tu renommes un cours.</small></span><button class="btn ghost sm" data-act="odranger">${icon("folder")} Ranger les dossiers</button></div>
+      <div class="setrow"><span><b>Dossiers des cours supprimés</b><small class="muted">Quand tu supprimes un cours, son dossier OneDrive part automatiquement dans la corbeille. Ce bouton fait le ménage pour les cours supprimés avant cette option.</small></span><button class="btn ghost sm" data-act="odorphelins">${icon("trash")} Chercher</button></div>
     </section>
     <section class="edcard"><h2>${icon("comment")} Remarques de correction</h2>
       <p class="muted" style="margin:0;font-size:.85rem">Une remarque par ligne. Elles s'insèrent en un clic quand tu notes un travail.</p>
@@ -2619,6 +2624,20 @@ async function rangerDossiersClasses(anciens = {}){
   } catch (e) { toast("Rangement OneDrive : " + (e.message || e)); }
   finally { rangerEnCours = false; render(); }
 }
+
+/* ---------- cours supprimé : son dossier OneDrive part dans la corbeille (récupérable 93 jours) ---------- */
+async function supprimerDossierCours(nom){
+  await jetonGraph(true);
+  try { const it = await graph("/me/drive/root:/" + cheminOD([OD_RACINE, nom]), {}, false); await graph("/me/drive/items/" + encodeURIComponent(it.id), { method: "DELETE" }, false); return true; }
+  catch (e) { if (e.status === 404) return false; throw e; }
+}
+/* dossiers restés pour des cours déjà supprimés (aucun cours, même archivé, ne porte ce nom) */
+async function dossiersOrphelins(){
+  await jetonGraph(true);
+  const racine = await graph("/me/drive/root:/" + encodeURIComponent(OD_RACINE), {}, false);
+  const noms = new Set(S.classes.map(c => nomOD(c.nom).toLowerCase()));
+  return (await enfantsOD(racine.id)).filter(x => x.folder && !noms.has(x.name.toLowerCase()));
+}
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
 const META_CR = /^(Aucune date limite|Date limite.*|À rendre.*|Échéance.*|\d+|Remis|Rendus?|Attribués?|Notés?|Afficher les instructions|Afficher le support|Afficher le devoir|Afficher la question|Modifier le support|Modifier le devoir|Modifier la question|PDF|Microsoft Word|Microsoft Excel|Microsoft PowerPoint|Google (Docs|Sheets|Slides|Forms|Drive|Dessins)|Formulaires Google|Image|Vidéo|YouTube|Vidéo YouTube.*|Lien|Dossier|\d+ minutes?|\d+:\d+)$/i;
@@ -3095,6 +3114,10 @@ document.addEventListener("click", async e => {
 
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
+    case "odorphelins": { e.preventDefault(); toast("Recherche des dossiers de cours supprimés…");
+      try { const l = await dossiersOrphelins(); if (!l.length) { toast("Aucun dossier de cours supprimé dans OneDrive ✓"); return; }
+        S.modal = {kind:"confirm", action:"odorphelins", ids:l.map(x => x.id), ok:"Mettre à la corbeille", titre:"Supprimer " + l.length + " dossier" + (l.length > 1 ? "s" : "") + " de cours supprimé" + (l.length > 1 ? "s" : "") + " ?", texte:"Dossiers trouvés dans OneDrive sans cours correspondant : " + l.map(x => "« " + x.name + " »").join(", ") + ". Ils partent avec tout leur contenu dans la corbeille de ton OneDrive (récupérables pendant 93 jours)."}; render();
+      } catch (er) { toast("OneDrive : " + (er.message || er)); } return; }
     case "odranger": e.preventDefault(); toast("Rangement des dossiers OneDrive…"); await rangerDossiersClasses(); return;
     case "odconf": e.preventDefault(); toast("Vérification de la confidentialité OneDrive…"); await synchroPartages(false, true); await rafraichir(); render(); return;
     case "voirstat": { e.preventDefault(); S.swFiltre = a.dataset.f === "anoter" ? "anoter" : a.dataset.f; S.ptab = "travaux"; S.sel = null; fermerMenus();
