@@ -260,9 +260,17 @@ function drawer(r){
     ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}>${icon("urgent")}<span class="lbl">Messagerie d'urgence${nbUrgents() ? ` <b class="urgn">${nbUrgents()}</b>` : ""}</span></a>` : ""}
     ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
-    <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
+    ${liensUtilesEleve()}<a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
     <a class="it" href="#/admin/profil" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>
   </nav>${S.drawer && window.innerWidth < 1100 ? `<div class="scrim" data-act="drawer"></div>` : ""}`;
+}
+/* élève : liens de ses cours, regroupés dans le menu sous « Liens utiles pour toi » */
+function liensUtilesEleve(){
+  if (S.prof) return "";
+  const vus = new Set(), L = [];
+  actives().forEach(c => (c.liens || []).forEach(l => { if (l && l.url && !vus.has(l.url)) { vus.add(l.url); L.push({ ...l, c }); } }));
+  if (!L.length) return "";
+  return `<div class="sect">${icon("links")} Liens utiles pour toi</div>${L.map(l => `<a class="it" href="${esc(l.url)}" target="_blank" rel="noopener">${icon("links")}<span class="lbl">${esc(l.nom)}<small>${esc(l.c.nom)}</small></span></a>`).join("")}<hr>`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
 const pageHead = () => `<div class="foot headband"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
@@ -410,7 +418,7 @@ const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.cou
 function asideClasse(c){
   const up = S.devoirs.filter(d => d.classe_id === c.id && d.date_limite && ouvert(d) && !d.brouillon && (S.prof || !renduDe(d, moi()))).slice(0, 3);
   return `<aside class="caside">
-    ${(c.liens && c.liens.length) || S.prof ? `<div class="box"><div class="boxhead"><h3>Liens de la classe</h3>${S.prof ? `<button class="ib sm" data-act="editliens" data-c="${esc(c.id)}" aria-label="Modifier les liens" title="Modifier les liens">${icon("edit")}</button>` : ""}</div>
+    ${(c.liens && c.liens.length) || S.prof ? `<div class="box"><div class="boxhead"><h3>${S.prof ? "Liens de la classe" : "Liens utiles pour toi"}</h3>${S.prof ? `<button class="ib sm" data-act="editliens" data-c="${esc(c.id)}" aria-label="Modifier les liens" title="Modifier les liens">${icon("edit")}</button>` : ""}</div>
       <div class="classlinks">${(c.liens || []).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${icon("links")}<span>${esc(l.nom)}</span></a>`).join("")}</div>
       ${S.prof && !(c.liens || []).length ? `<span class="muted" style="font-size:.82rem">Ajoute des liens utiles : manuel, simulateur, Capytale…</span>` : ""}</div>` : ""}
     <div class="box"><h3>À venir</h3>${up.length ? up.map(d => `<span class="muted" style="font-size:.8rem">${dueOf(d).replace("Échéance : ", "")}</span><a href="#/devoir/${d.id}" class="uplink">${esc(d.titre)}</a>`).join("") : `<span class="muted">Aucun devoir à remettre dans les jours qui viennent</span>`}<a class="linkbtn" href="#/todo">Tout afficher</a></div>
@@ -2852,7 +2860,14 @@ const nbUrgents = () => S.prof ? (S.urgents || []).filter(m => !m.lu).length : 0
 /* icône de la barre du haut (prof) */
 const boutonUrgences = () => S.prof ? `<a class="ib urgbtn" href="#/urgences" title="Messagerie d'urgence" aria-label="Messagerie d'urgence${nbUrgents() ? " (" + nbUrgents() + " non lus)" : ""}">${icon("urgent")}${nbUrgents() ? `<span class="badge">${nbUrgents() > 99 ? "99+" : nbUrgents()}</span>` : ""}</a>` : "";
 /* onglet élève, à côté de « Mes notes » */
-const ongletUrgent = c => S.prof ? "" : `<button role="tab" class="urgtab" data-act="urgent" data-c="${esc(c.id)}">${icon("urgent")}<span class="tl">Message urgent à ${esc(nomProfCourt())}</span><span class="tc">Urgent</span></button>`;
+/* réponses du prof pas encore vues par l'élève (mémorisé sur son appareil) */
+const cleVuUrg = () => "pp_urg_vu_" + (S.user && S.user.id);
+const reponsesNonVues = cid => { if (S.prof) return 0; let vu = ""; try { vu = localStorage.getItem(cleVuUrg()) || ""; } catch (_) {}
+  return (S.urgents || []).filter(m => m.reponse && m.repondu_le && m.repondu_le > vu && (!cid || m.classe_id === cid)).length; };
+const marquerReponsesVues = () => { const d = (S.urgents || []).map(m => m.repondu_le || "").sort().pop(); if (d) try { localStorage.setItem(cleVuUrg(), d); } catch (_) {} };
+const supUrg = n => n ? `<sup class="urgsup" title="${n} nouvelle${n > 1 ? "s" : ""} réponse${n > 1 ? "s" : ""}">${n}</sup>` : "";
+const ongletUrgent = c => { if (S.prof) return ""; const n = reponsesNonVues(c.id);
+  return `<button role="tab" class="urgtab" data-act="urgent" data-c="${esc(c.id)}">${icon("urgent")}<span class="tl">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span><span class="tc">Urgent${supUrg(n)}</span></button>`; };
 function modalUrgent(m){
   const mes = (S.urgents || []).filter(x => x.classe_id === m.classe).slice(0, 5);
   return `<h2>${icon("urgent")} Message urgent à ${esc(nomProfCourt())}</h2>
@@ -3181,7 +3196,7 @@ document.addEventListener("click", async e => {
 
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
-    case "urgent": e.preventDefault(); fermerMenus(); S.modal = {kind:"urgent", classe:a.dataset.c}; render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
+    case "urgent": e.preventDefault(); fermerMenus(); S.modal = {kind:"urgent", classe:a.dataset.c}; marquerReponsesVues(); render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
     case "urgrep": case "urglu": case "urgsend": case "urgsuppr": e.preventDefault(); await actionUrgence(act, a); return;
     case "odorphelins": { e.preventDefault(); toast("Recherche des dossiers de cours supprimés…");
       try { const l = await dossiersOrphelins(); if (!l.length) { toast("Aucun dossier de cours supprimé dans OneDrive ✓"); return; }
@@ -3390,7 +3405,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   chargerNotifs().catch(() => {});
   if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
   if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
-  setInterval(() => { if (document.visibilityState === "visible") { chargerNotifs().catch(() => {}); if (S.prof) chargerUrgents(); } }, 180000);
+  setInterval(async () => { if (document.visibilityState === "visible") { chargerNotifs().catch(() => {}); const avant = reponsesNonVues(); await chargerUrgents(); if (!S.prof && reponsesNonVues() !== avant && !S.modal && !S.ed) render(); } }, 180000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });
 })();
 })();
