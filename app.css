@@ -941,3 +941,7 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .drawer .it.sublink{height:34px;padding-left:66px;font-weight:400;font-size:.88rem;color:var(--muted)}
 .drawer .it.sublink:hover{color:var(--ink)}
 .drawer .it.sublink+.it:not(.sublink){margin-top:4px}
+/* Messagerie d'urgence dans le menu : nom entier + pastille rouge nette */
+.drawer .it .lbl.urglbl{white-space:nowrap;overflow:visible}
+.drawer .urgico{position:relative;display:inline-flex;flex:none}
+.drawer .it .urgn{position:absolute;top:-11px;right:-15px;margin:0;min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;background:var(--bad);color:#fff;font-size:.75rem;font-weight:700;line-height:1;box-shadow:0 0 0 2px var(--surface)}

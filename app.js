@@ -257,7 +257,7 @@ function drawer(r){
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
     <a class="it" href="#/todo" ${cur("todo")}>${icon(S.prof ? "check" : "todo")}<span class="lbl">${S.prof ? "À corriger" : "À faire"}</span></a>
-    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}>${icon("urgent")}<span class="lbl">Messagerie d'urgence${nbUrgents() ? ` <b class="urgn">${nbUrgents()}</b>` : ""}</span></a>` : ""}
+    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a>` : ""}
     ${actives().map(c => `<a class="it" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl">${esc(c.nom)}<small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
     ${liensUtilesEleve()}<a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
