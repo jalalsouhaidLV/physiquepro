@@ -21,7 +21,9 @@ window.PHYSIQUEPRO = {
     { nom: "PIX Orga", url: "https://orga.pix.fr/connexion", icone: "logo-pixorga", couleur: "#3D68FF", prof: true },
     { nom: "WhatsApp Web", url: "https://web.whatsapp.com/", icone: "logo-whatsapp", couleur: "#25D366" },
     { nom: "E-mail Outlook", url: "https://outlook.office.com",     icone: "logo-outlook", couleur: "#0F6CBD" },
-    { nom: "OneDrive", url: "https://glfl-my.sharepoint.com/_layouts/15/MySite.aspx?MySiteRedirect=AllDocuments", icone: "logo-onedrive", couleur: "#0364B8" }
+    { nom: "OneDrive", url: "https://glfl-my.sharepoint.com/_layouts/15/MySite.aspx?MySiteRedirect=AllDocuments", icone: "logo-onedrive", couleur: "#0364B8" },
+    { nom: "Claude", url: "https://claude.ai/login", icone: "logo-claude", couleur: "#D97757", ordi: true },
+    { nom: "ChatGPT", url: "https://chatgpt.com/auth/login", icone: "logo-chatgpt", couleur: "#10A37F", ordi: true }
   ],
 
   outils: [

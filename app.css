@@ -1013,7 +1013,7 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .toplogo{height:48px;width:auto;display:block}
 :root[data-theme="dark"] .toplogo{background:#fff;border-radius:8px;padding:3px 6px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toplogo{background:#fff;border-radius:8px;padding:3px 6px}}
-@media (max-width:1250px){.toplogo{display:none}}
+@media (max-width:1340px){.toplogo{display:none}}
 .drawer .it .lbl.lbl2{white-space:normal;overflow:visible;line-height:1.2}
 .drawer .it:has(.lbl2){height:auto;min-height:48px;padding-top:6px;padding-bottom:6px}
 .notifbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:10px;padding:8px 12px;font-size:.88rem}
@@ -1072,3 +1072,4 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 @keyframes cpin{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 @media (max-width:1100px){#coinPerso{left:16px}}
 @media (max-width:600px){#coinPerso{left:8px;right:8px;width:auto;top:70px;height:min(70vh,520px)}}
+@media (max-width:600px){.quick a.qordi{display:none}}
