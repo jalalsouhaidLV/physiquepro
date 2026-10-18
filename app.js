@@ -2876,8 +2876,6 @@ function vPublic(r){
     <nav class="pubres"><a href="#/simulations">${icon("atom")}<span><b>Simulations</b><small>Toutes les simulations PhET du programme, à côté de la page</small></span></a><a href="#/physique">${icon("ruler")}<span><b>Outils Scientifiques Importants</b><small>Unités, éléments, formules, chimie, SNT, SI…</small></span></a><a href="#/outils">${icon("tools")}<span><b>Boîte à outils</b><small>Les sites utiles par matière</small></span></a></nav>
     ${blocScientifique()}
     ${blocDecouvertes()}
-    <section class="homepanel"><div class="homehead"><h1>Cours</h1></div>
-      ${PUB.classes.length ? `<div class="cards pubcards">${PUB.classes.map(cartePublique).join("")}</div>` : `<p class="muted" style="margin:0">Connecte-toi pour voir tes cours.</p>`}</section>
     <section class="homepanel"><div class="homehead"><h1>Boîte à outils</h1><a class="linkbtn" href="#/outils">Tout voir ${icon("ext")}</a></div><div class="puboutils">${blocOutils()}</div></section>
     ${pageFoot()}</div>`;
 }
