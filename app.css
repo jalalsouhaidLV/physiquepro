@@ -811,3 +811,5 @@ sup,sub{line-height:0;font-size:.75em}
 }
 @media (max-width:440px){.topbar .ddplus{display:none}.crumbs{max-width:24vw}}
 @media (max-width:600px){.tabicons .ib:not(:last-child){display:none}.tabicons{gap:0}.crumbs{margin-right:6px}}
+@media (max-width:600px){.tabsbar .tabs a{padding:14px 8px 11px;font-size:.85rem}.tabsbar{padding-left:4px;padding-right:4px;gap:2px}}
+@media (max-width:440px){.tabs .tl{display:none}}
