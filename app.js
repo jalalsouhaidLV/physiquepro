@@ -2186,6 +2186,7 @@ const cheminOD = parts => parts.map(nomOD).map(encodeURIComponent).join("/");
 /* envoie un fichier dans le OneDrive du prof et renvoie {id, web, partage} */
 async function odPut(ch, fichier, scopes){
   let item;
+  if (!fichier || typeof fichier.size !== "number") throw new Error("fichier illisible, ajoute-le à nouveau");
   if (fichier.size <= 4 * 1024 * 1024) item = await graph("/me/drive/root:/" + ch + ":/content?@microsoft.graph.conflictBehavior=rename", { method: "PUT", body: fichier }, true, scopes);
   else {
     const ses = await graph("/me/drive/root:/" + ch + ":/createUploadSession", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) }, true, scopes);
@@ -2193,9 +2194,15 @@ async function odPut(ch, fichier, scopes){
     for (let deb = 0; deb < fichier.size; deb += pas) {
       const fin = Math.min(deb + pas, fichier.size), r = await fetch(ses.uploadUrl, { method: "PUT", headers: { "Content-Range": `bytes ${deb}-${fin - 1}/${fichier.size}` }, body: fichier.slice(deb, fin) });
       if (!r.ok && r.status !== 202) throw new Error("envoi interrompu (" + r.status + ")");
-      if (fin === fichier.size) item = await r.json();
+      if (fin === fichier.size) { try { item = await r.json(); } catch (_) { item = null; } }
     }
   }
+  /* réponse incomplète de Microsoft : on relit le fichier par son chemin */
+  if (!item || !item.id) {
+    await new Promise(ok => setTimeout(ok, 1500));
+    item = await graph("/me/drive/root:/" + ch, {}, true, scopes);
+  }
+  if (!item || !item.id) throw new Error("OneDrive n'a pas confirmé l'envoi du fichier");
   return item;
 }
 async function odEnvoyer(parts, fichier){
@@ -2229,7 +2236,9 @@ async function envoyerEnAttente(e){
   const parts = dossierTravail(e.classe_id, e.theme_id, e.titre.trim());
   for (const x of att) {
     toast("Envoi dans OneDrive : « " + x.label + " »…");
-    const r = await odEnvoyer([...parts, x.pending.name], x.pending);
+    let r;
+    try { r = await odEnvoyer([...parts, x.pending.name], x.pending); }
+    catch (er) { console.error("Envoi OneDrive, nouvel essai", er); await new Promise(ok => setTimeout(ok, 2000)); r = await odEnvoyer([...parts, x.pending.name], x.pending); }
     const i = e.ressources.indexOf(x); e.ressources[i] = ressourceOD(r, x.label);
   }
 }
