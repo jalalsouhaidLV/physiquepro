@@ -1008,3 +1008,9 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .slot.prof.pris{background:var(--accent-soft)}
 .snom{display:flex;align-items:center;gap:2px;font-size:.8rem}
 .monrdv{background:var(--accent-soft);border-radius:8px;padding:8px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+/* logo du lycée au centre de la barre du haut */
+.topbar .topmid{display:flex;justify-content:center;align-items:center;min-width:0;flex:1 1 auto}
+.toplogo{height:48px;width:auto;display:block}
+:root[data-theme="dark"] .toplogo{background:#fff;border-radius:8px;padding:3px 6px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toplogo{background:#fff;border-radius:8px;padding:3px 6px}}
+@media (max-width:1250px){.toplogo{display:none}}

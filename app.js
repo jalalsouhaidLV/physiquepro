@@ -241,7 +241,7 @@ function topbar(r){
   return `<header class="topbar">
     <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a>${crumb}</div>
-    <span class="spacer"></span>
+    <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png" alt="Lycée franco-libanais Verdun" width="79" height="48"></span>
     <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
     ${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
@@ -2822,7 +2822,7 @@ const btnConnexion = (txt = "Se connecter", cls2 = "") => `<button class="btn ${
 function topbarPublic(){
   return `<header class="topbar pubtop">
     <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<b>Physique<span>Pro</span></b></a></div>
-    <span class="spacer"></span>
+    <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png" alt="Lycée franco-libanais Verdun" width="79" height="48"></span>
     <nav class="quick" aria-label="Liens rapides">${R().liensUtiles.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
   </header>`;
 }
