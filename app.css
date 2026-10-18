@@ -1051,3 +1051,6 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .urgold.deprof{background:#fdecea;border-color:#f3b8b2}
 :root[data-theme="dark"] .urgold.deprof{background:var(--surface-2)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .urgold.deprof{background:var(--surface-2)}}
+/* menu : Messagerie d'urgence en rouge, comme le bouton élève */
+.drawer a.it[href="#/urgences"]{color:var(--bad);font-weight:600}
+.drawer a.it[href="#/urgences"] .i{color:var(--bad)}
