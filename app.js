@@ -111,7 +111,7 @@ const ICI = location.origin + location.pathname;
 
 /* ---------- réglages du site (modifiables dans Administration) ---------- */
 const COULEURS = [["pc","Bleu"],["snt","Vert"],["si","Rouge"],["tech","Ocre"],["pix","Bleu pétrole"]];
-const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["logo-numworks","Logo NumWorks (calculatrice)"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
+const ICONES = [["logo-pronote","Logo Pronote"],["logo-lycee","Logo Lycée Verdun"],["logo-pix","Logo PIX"],["logo-outlook","Logo Outlook"],["logo-onedrive","Logo OneDrive"],["logo-pixorga","Logo PIX Orga"],["logo-whatsapp","Logo WhatsApp"],["logo-claude","Logo Claude"],["logo-chatgpt","Logo ChatGPT"],["logo-numworks","Logo NumWorks (calculatrice)"],["logo-copilot","Logo Copilot M365"],["pronote","Pronote (P)"],["pix","PIX"],["ecole","École"],["mail","E-mail"],["nuage","Nuage (OneDrive)"],["links","Lien"],["video","Vidéo"],["cal","Calendrier"],["folder","Dossier"],["tools","Outil"]];
 const clone = o => JSON.parse(JSON.stringify(o));
 function appliquerReglages(d){
   d = d || {};
@@ -227,7 +227,7 @@ function vLogin(message, info){
 const messageErreur = desc => /Database error saving new user|non autoris/i.test(desc) ? "Cette adresse n'est pas autorisée : seules les adresses @" + esc(CFG.domaine) + " peuvent se connecter." : "La connexion a échoué : " + esc(desc);
 
 /* ---------- barre du haut ---------- */
-const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png", "logo-numworks": "logo-numworks.png" };
+const LOGOS_RAPIDES = { "logo-pronote": "logo-pronote.png", "logo-lycee": "logo-lycee.png?v=2", "logo-pix": "logo-pix.png", "logo-outlook": "logo-outlook.png", "logo-onedrive": "logo-onedrive.png", "logo-pixorga": "logo-pixorga.svg", "logo-whatsapp": "logo-whatsapp.png", "logo-claude": "logo-claude.png", "logo-chatgpt": "logo-chatgpt.png", "logo-numworks": "logo-numworks.png", "logo-copilot": "logo-copilot.png" };
 function quickIcon(k){
   if (LOGOS_RAPIDES[k]) return `<img class="qlogo" src="${LOGOS_RAPIDES[k]}" alt="">`;
   if (k === "pronote") return `<b class="qp">P</b>`;
@@ -3556,6 +3556,7 @@ const COTE_A_COTE = {
   "logo-numworks": { titre: "Calculatrice NumWorks", mode: "cadre" },
   "logo-pronote":  { titre: "Pronote", mode: "cadre" },
   "logo-chatgpt":  { titre: "ChatGPT", mode: "fenetre" },
+  "logo-copilot":  { titre: "Copilot M365", mode: "fenetre" },
   "logo-claude":   { titre: "Claude", mode: "fenetre" },
   "logo-whatsapp": { titre: "WhatsApp Web", mode: "fenetre" }
 };
