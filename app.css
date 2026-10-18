@@ -1156,3 +1156,9 @@ html.side-open .quick{scrollbar-width:thin;padding-bottom:2px}
 html.side-open .quick::-webkit-scrollbar{display:block;height:4px}
 html.side-open .quick .qi,html.side-open .quick .qi:has(.qlogo){width:40px;min-width:40px;height:28px;padding:2px}
 html.side-open .quick .qlogo{height:20px;width:34px}
+@media (max-width:1440px){
+  .quick a{padding:4px 2px}
+  .quick .ql{font-size:.6rem;letter-spacing:-.01em}
+  .quick .qi,.quick .qi:has(.qlogo),.quick a.main .qi,.quick a.main .qi:has(.qlogo){width:56px;min-width:56px;height:32px}
+  .quick .qlogo,.quick a.main .qlogo{height:24px;width:46px}
+}
