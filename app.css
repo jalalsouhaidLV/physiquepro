@@ -1572,3 +1572,9 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 
 /* noms des icônes toujours visibles, même sur deux lignes (sauf téléphone) */
 @media (min-width:761px){.quick.deux .ql{display:block!important;font-size:.56rem;max-width:64px}.quick.deux a{display:grid!important}}
+/* nom du cours dans la barre du haut : toujours en entier sur une ligne */
+.topbar .crumbs{flex:0 0 auto!important;min-width:auto}
+.topbar .crumbs .cur{max-width:none!important;overflow:visible}
+.topbar .crumbs .curnom{overflow:visible!important;text-overflow:clip!important;white-space:nowrap}
+.topbar .crumbs .cur small{max-width:220px}
+.topbar .quick{flex:1 1 auto;min-width:0}
