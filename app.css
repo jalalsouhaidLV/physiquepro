@@ -868,3 +868,8 @@ sup,sub{line-height:0;font-size:.75em}
 /* ---- filtre et tri de la liste des élèves ---- */
 .swtools{display:grid;gap:8px;padding:12px 12px 4px;position:sticky;top:0;background:var(--surface);z-index:1}
 .swtools select{width:100%;padding:10px 12px;border-radius:6px 6px 0 0;border:0;border-bottom:1px solid var(--muted);background:var(--surface-2);font:inherit;color:var(--ink)}
+/* ---- menu ⋮ des cartes de cours : ne plus être coupé par le bord de la carte ---- */
+.ccard:has(.dd-menu){overflow:visible;position:relative;z-index:30}
+.ccard:has(.dd-menu) .banner{border-radius:12px 12px 0 0}
+.ccard .cfoot .dd-menu{top:auto;bottom:calc(100% + 4px);right:0}
+.ccard .dd-menu a{justify-content:flex-start;text-align:left}
