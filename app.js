@@ -1230,12 +1230,14 @@ async function enregistrerParametres(){
   if (!s.nom.trim()) { s.err = "Le nom du cours est obligatoire."; return render(); }
   for (const [k2, l] of [["teams_url", "Le lien Teams"], ["dossier_onedrive", "Le lien OneDrive"]]) if (s[k2].trim() && !/^https:\/\//.test(s[k2].trim())) { s.err = l + " doit commencer par https://"; return render(); }
   s.busy = true; render();
+  const ancienNom = (cls(s.id) || {}).nom;
   const { error } = await sb.from("classes").update({ nom:s.nom.trim(), description:s.description.trim(), section:s.section.trim(), niveau:s.niveau.trim(), matiere:s.matiere.trim(), salle:s.salle.trim(),
     symbole:s.symbole.trim() || s.nom.trim().slice(0, 3), couleur:s.couleur, illustration:s.illustration === "auto" ? null : s.illustration, code_actif:s.code_actif, flux_mode:s.flux_mode, flux_devoirs:s.flux_devoirs,
     teams_url:s.teams_url.trim() || null, teams_visible:s.teams_visible, dossier_onedrive:s.dossier_onedrive.trim() || null, moyenne_visible:s.moyenne_visible,
     categories:s.categories.map(x => ({ nom: String(x.nom || "").trim(), coef: Math.max(0, Number(String(x.coef).replace(",", ".")) || 0) })).filter(x => x.nom) }).eq("id", s.id);
   if (error) { s.busy = false; s.err = "Enregistrement impossible : " + error.message; return render(); }
   const id = s.id; S.settings = null; await rafraichir(id); toast("Paramètres enregistrés"); go("/classe/" + id);
+  if (odActif() && ancienNom && ancienNom !== s.nom.trim()) setTimeout(() => rangerDossiersClasses({ [id]: ancienNom }), 1200);
 }
 function moyenneEleve(c){
   return arrondi1(moyenneDe(c, moi(), S.user.id, true).moy);
@@ -1517,6 +1519,7 @@ function admSite(){
       <label class="switch"><span><b>Ranger mes documents dans OneDrive</b><small class="muted">Les nouveaux documents joints vont dans OneDrive au lieu du stockage de PhysiquePro.</small></span><input type="checkbox" data-ad="onedrive" ${A.onedrive ? "checked" : ""}><i aria-hidden="true"></i></label>
       <div class="setrow"><span><b>Documents déjà publiés</b><small class="muted">Copie dans OneDrive les documents importés avant l'activation, puis met à jour les liens.</small></span><button class="btn ghost sm" data-act="odmigrer" ${S.odBusy ? "disabled" : ""}>${S.odBusy ? "Copie en cours… " + (S.odN || 0) : "Ranger dans OneDrive"}</button></div>
       <div class="setrow"><span><b>Confidentialité des dossiers</b><small class="muted">Les élèves ne voient jamais tes dossiers OneDrive : seulement les fichiers publiés pour eux sur le site. Les fichiers des brouillons restent privés jusqu'à leur publication. Vérification automatique à chaque ouverture du site.</small></span><button class="btn ghost sm" data-act="odconf">${icon("key")} Vérifier maintenant</button></div>
+      <div class="setrow"><span><b>Dossiers des cours</b><small class="muted">Un dossier par cours, au nom actuel du cours : renomme les anciens dossiers, fusionne les doublons et met à jour les liens. Se fait aussi automatiquement quand tu renommes un cours.</small></span><button class="btn ghost sm" data-act="odranger">${icon("folder")} Ranger les dossiers</button></div>
     </section>
     <section class="edcard"><h2>${icon("comment")} Remarques de correction</h2>
       <p class="muted" style="margin:0;font-size:.85rem">Une remarque par ligne. Elles s'insèrent en un clic quand tu notes un travail.</p>
@@ -2542,6 +2545,80 @@ async function synchroPartages(silencieux, dossiers){
   } catch (e) { if (!silencieux) toast("Confidentialité OneDrive : " + (e.message || e)); }
   finally { confEnCours = false; }
 }
+
+/* ---------- dossiers de classe : un dossier par cours, au nom actuel du cours ----------
+   Renomme, fusionne les doublons (ex. « Terminale spé PC » + « Terminale spé PC 26-27 »), met à jour les adresses
+   des fichiers, le lien du dossier dans les paramètres du cours, puis revérifie que rien n'est partagé. */
+const NOMS_INITIAUX = { tle: "Terminale spé PC", "1re": "1re spé PC", snt: "SNT", si: "Option SI", "3e": "Technologie 3e", pix: "PIX" };
+async function enfantsOD(id){
+  const out = []; let url = "/me/drive/items/" + encodeURIComponent(id) + "/children?$select=id,name,folder,file,webUrl&$top=200";
+  while (url) { const j = await graph(url, {}, false); out.push(...(j.value || [])); url = j["@odata.nextLink"] || null; }
+  return out;
+}
+const patchOD = (id, corps) => graph("/me/drive/items/" + encodeURIComponent(id) + "?@microsoft.graph.conflictBehavior=rename", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) }, false);
+async function fusionnerOD(srcId, dstId){
+  const dst = new Map((await enfantsOD(dstId)).map(x => [x.name.toLowerCase(), x]));
+  for (const x of await enfantsOD(srcId)) {
+    const y = dst.get(x.name.toLowerCase());
+    if (y && x.folder && y.folder) { await fusionnerOD(x.id, y.id); await supprimerSiVide(x.id); }
+    else await patchOD(x.id, { parentReference: { id: dstId } });
+  }
+}
+/* un dossier vide part dans la corbeille OneDrive (récupérable) ; un dossier non vide n'est jamais supprimé */
+async function supprimerSiVide(id){ if (!(await enfantsOD(id)).length) await graph("/me/drive/items/" + encodeURIComponent(id), { method: "DELETE" }, false); }
+let rangerEnCours = false;
+async function rangerDossiersClasses(anciens = {}){
+  if (!S.prof || !odActif() || rangerEnCours) return;
+  rangerEnCours = true; const bilan = { renommes: 0, fusionnes: 0, liens: 0, autres: [] };
+  try {
+    await jetonGraph(true);
+    const racine = await graph("/me/drive/root:/" + encodeURIComponent(OD_RACINE), {}, false);
+    let top = (await enfantsOD(racine.id)).filter(x => x.folder);
+    const parId = new Map(top.map(x => [x.id, x])), parNom = n => top.find(x => x.name.toLowerCase() === nomOD(n).toLowerCase());
+    /* 1. à quel cours appartient chaque dossier ? d'après l'emplacement des fichiers de ce cours, puis d'après le nom */
+    const objets = S.devoirs.map(o => ({ table: "devoirs", o }));
+    for (const c of S.classes) { const data = await chargerClasse(c.id); (data.supports || []).forEach(o => objets.push({ table: "supports", o })); }
+    const dossiersDe = {}, votes = {}; S.classes.forEach(c => dossiersDe[c.id] = new Set());
+    for (const { o } of objets) {
+      const r = (o.ressources || []).find(x => x.od && x.od.id); if (!r || !dossiersDe[o.classe_id]) continue;
+      try { const it = await graph("/me/drive/items/" + encodeURIComponent(r.od.id) + "?$select=id,parentReference", {}, false);
+        const seg = decodeURIComponent((it.parentReference && it.parentReference.path) || "").split(":/")[1] || "", parts = seg.split("/");
+        if (parts[0] === OD_RACINE && parts[1]) { const f = parNom(parts[1]); if (f) { const v = votes[f.id] = votes[f.id] || {}; v[o.classe_id] = (v[o.classe_id] || 0) + 1; } } } catch (_) {}
+    }
+    /* un dossier appartient au cours qui y a le plus de fichiers */
+    for (const [fid, v] of Object.entries(votes)) { const cid = Object.keys(v).sort((a, b) => v[b] - v[a])[0]; dossiersDe[cid].add(fid); }
+    const pris = new Set(Object.values(dossiersDe).flatMap(s => [...s]));
+    for (const c of S.classes) for (const n of [c.nom, anciens[c.id], NOMS_INITIAUX[c.id]].filter(Boolean)) { const f = parNom(n); if (f && !pris.has(f.id)) { dossiersDe[c.id].add(f.id); pris.add(f.id); } }
+    /* 2. un seul dossier par cours, au nom actuel du cours */
+    for (const c of S.classes) {
+      const ids = [...dossiersDe[c.id]]; if (!ids.length) continue;
+      const cible = ids.find(id => parId.get(id).name.toLowerCase() === nomOD(c.nom).toLowerCase()) || ids[0];
+      for (const id of ids) if (id !== cible) { await fusionnerOD(id, cible); await supprimerSiVide(id); bilan.fusionnes++; }
+      let f = parId.get(cible);
+      if (f.name !== nomOD(c.nom)) { f = await patchOD(cible, { name: nomOD(c.nom) }); bilan.renommes++; }
+      const web = (await graph("/me/drive/items/" + encodeURIComponent(cible) + "?$select=webUrl", {}, false)).webUrl;
+      if (web && c.dossier_onedrive !== web) { const { error } = await sb.from("classes").update({ dossier_onedrive: web }).eq("id", c.id); if (!error) { c.dossier_onedrive = web; bilan.liens++; } }
+    }
+    top = (await enfantsOD(racine.id)).filter(x => x.folder);
+    bilan.autres = top.filter(x => !S.classes.some(c => nomOD(c.nom).toLowerCase() === x.name.toLowerCase())).map(x => x.name);
+    /* 3. adresses des fichiers déplacés (documents, copies des élèves, travaux rendus) */
+    const webDe = async id => { try { return (await graph("/me/drive/items/" + encodeURIComponent(id) + "?$select=webUrl", {}, false)).webUrl; } catch (_) { return null; } };
+    for (const { table, o } of objets) {
+      let ch = false; for (const r of o.ressources || []) if (r.od && r.od.id) { const w = await webDe(r.od.id); if (w && w !== r.od.web) { if (r.prive || r.url === r.od.web) r.url = w; r.od.web = w; ch = true; } }
+      if (ch) await sb.from(table).update({ ressources: o.ressources }).eq("id", o.id);
+    }
+    for (const x of S.copies || []) { const w = await webDe(x.od_id); if (w && w !== x.web) { await sb.from("copies").update({ web: w }).eq("id", x.id); x.web = w; } }
+    for (const r of S.rendus) { let ch = false; const fs = (r.fichiers || []).map(f => ({ ...f })); for (const f of fs) if (f.od && f.od.id) { const w = await webDe(f.od.id); if (w && w !== f.od.web) { f.od = { ...f.od, web: w }; ch = true; } }
+      if (ch) { const { error } = await sb.from("rendus").update({ fichiers: fs }).eq("id", r.id); if (!error) r.fichiers = fs; } }
+    /* 4. confidentialité : aucun dossier partagé */
+    const el = new Set((S.toutesInscriptions || []).map(x => String(x.email).toLowerCase()));
+    const nd = await dossiersPrives(el); try { localStorage.setItem("pp_conf_dossiers", String(Date.now())); } catch (_) {}
+    S.cache = {}; await rafraichir();
+    toast(`Dossiers OneDrive rangés : ${bilan.renommes} renommé(s), ${bilan.fusionnes} doublon(s) fusionné(s)${nd ? ", " + nd + " partage(s) retiré(s)" : ""}${bilan.autres.length ? " · hors cours : " + bilan.autres.join(", ") : ""}`);
+    return bilan;
+  } catch (e) { toast("Rangement OneDrive : " + (e.message || e)); }
+  finally { rangerEnCours = false; render(); }
+}
 /* ---------- import depuis Google Classroom ---------- */
 const MOIS_FR = { janv: 0, "févr": 1, fevr: 1, mars: 2, avr: 3, mai: 4, juin: 5, juil: 6, "août": 7, aout: 7, sept: 8, oct: 9, nov: 10, "déc": 11, dec: 11 };
 const META_CR = /^(Aucune date limite|Date limite.*|À rendre.*|Échéance.*|\d+|Remis|Rendus?|Attribués?|Notés?|Afficher les instructions|Afficher le support|Afficher le devoir|Afficher la question|Modifier le support|Modifier le devoir|Modifier la question|PDF|Microsoft Word|Microsoft Excel|Microsoft PowerPoint|Google (Docs|Sheets|Slides|Forms|Drive|Dessins)|Formulaires Google|Image|Vidéo|YouTube|Vidéo YouTube.*|Lien|Dossier|\d+ minutes?|\d+:\d+)$/i;
@@ -2721,7 +2798,7 @@ function vPublic(r){
   return `<div class="page wide home">
     <section class="pubhero">
       <div><h1>Bienvenue sur l'espace de cours de M. ${esc(R().prof.nom)}</h1>
-      <p class="muted">Cours, documents, devoirs et questionnaires de physique-chimie, SNT et sciences de l'ingénieur. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
+      <p class="muted">Cours, documents, devoirs et ressources de Physique-Chimie, SNT Sciences Numériques et Technologie, Sciences de l'Ingénieur SI, et Technologie. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
       ${btnConnexion("Se connecter avec Microsoft 365", "pubbig")}
     </section>
     <section class="homepanel"><div class="homehead"><h1>Cours</h1></div>
@@ -3019,6 +3096,7 @@ document.addEventListener("click", async e => {
 
     /* devoirs : professeur */
     case "ptab": S.ptab = a.dataset.t; render(); return;
+    case "odranger": e.preventDefault(); toast("Rangement des dossiers OneDrive…"); await rangerDossiersClasses(); return;
     case "odconf": e.preventDefault(); toast("Vérification de la confidentialité OneDrive…"); await synchroPartages(false, true); await rafraichir(); render(); return;
     case "voirstat": { e.preventDefault(); S.swFiltre = a.dataset.f === "anoter" ? "anoter" : a.dataset.f; S.ptab = "travaux"; S.sel = null; fermerMenus();
       if (r.v === "devoir" && r.a === a.dataset.d) render(); else go("/devoir/" + a.dataset.d); return; }
