@@ -2151,8 +2151,9 @@ async function msalInit(){
   if (!window.msal) throw new Error("la bibliothèque Microsoft n'a pas pu être chargée");
   msalApp = new window.msal.PublicClientApplication(MSAL_CFG); await msalApp.initialize(); return msalApp;
 }
-async function jetonGraph(interactif){
-  const app = await msalInit(), req = { scopes: ["Files.ReadWrite"], loginHint: moi() };
+const SCOPES_COPIE = ["Files.ReadWrite", "Files.Read.All"];
+async function jetonGraph(interactif, scopes){
+  const app = await msalInit(), req = { scopes: scopes || ["Files.ReadWrite"], loginHint: moi() };
   const compte = app.getAllAccounts().find(a => (a.username || "").toLowerCase() === moi());
   try {
     if (compte) return (await app.acquireTokenSilent({ ...req, account: compte })).accessToken;
@@ -2162,8 +2163,8 @@ async function jetonGraph(interactif){
     return (await app.acquireTokenPopup(req)).accessToken;
   }
 }
-async function graph(chemin, opt = {}, interactif = true){
-  const t = await jetonGraph(interactif);
+async function graph(chemin, opt = {}, interactif = true, scopes){
+  const t = await jetonGraph(interactif, scopes);
   const r = await fetch(chemin.startsWith("http") ? chemin : "https://graph.microsoft.com/v1.0" + chemin, { ...opt, headers: { Authorization: "Bearer " + t, ...(opt.headers || {}) } });
   if (!r.ok) { let m = r.status + ""; try { const j = await r.json(); m = (j.error && j.error.message) || m; } catch (_) {} const er = new Error(m); er.status = r.status; throw er; }
   return r.status === 204 ? null : r.json();
@@ -2171,11 +2172,11 @@ async function graph(chemin, opt = {}, interactif = true){
 const nomOD = s => String(s || "").replace(/[\\/:*?"<>|#%]+/g, " ").replace(/\s+/g, " ").trim().replace(/^\.+|\.+$/g, "").slice(0, 120) || "Sans titre";
 const cheminOD = parts => parts.map(nomOD).map(encodeURIComponent).join("/");
 /* envoie un fichier dans le OneDrive du prof et renvoie {id, web, partage} */
-async function odPut(ch, fichier){
+async function odPut(ch, fichier, scopes){
   let item;
-  if (fichier.size <= 4 * 1024 * 1024) item = await graph("/me/drive/root:/" + ch + ":/content?@microsoft.graph.conflictBehavior=rename", { method: "PUT", body: fichier });
+  if (fichier.size <= 4 * 1024 * 1024) item = await graph("/me/drive/root:/" + ch + ":/content?@microsoft.graph.conflictBehavior=rename", { method: "PUT", body: fichier }, true, scopes);
   else {
-    const ses = await graph("/me/drive/root:/" + ch + ":/createUploadSession", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) });
+    const ses = await graph("/me/drive/root:/" + ch + ":/createUploadSession", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) }, true, scopes);
     const pas = 320 * 1024 * 16;
     for (let deb = 0; deb < fichier.size; deb += pas) {
       const fin = Math.min(deb + pas, fichier.size), r = await fetch(ses.uploadUrl, { method: "PUT", headers: { "Content-Range": `bytes ${deb}-${fin - 1}/${fichier.size}` }, body: fichier.slice(deb, fin) });
@@ -2296,17 +2297,17 @@ async function ouvrirCopie(r, ctx, win){
   const nom = nomOD(r.label || (r.path || "").split("/").pop().replace(/^\d+-/, ""));
   const c = ctx.classe ? cls(ctx.classe) : null, ch = cheminOD(["PhysiquePro", c ? c.nom : "Documents", nom]);
   let item = null;
-  try { item = await graph("/me/drive/root:/" + ch, {}, false); } catch (e) { if (e.status !== 404) throw e; }
+  try { item = await graph("/me/drive/root:/" + ch, {}, false, SCOPES_COPIE); } catch (e) { if (e.status !== 404) throw e; }
   if (!item) {
     attente(win, "Création de ta copie de « " + esc(nom) + " »…");
     let blob;
     if (r.path) { const { data, error } = await sb.storage.from(r.bucket || "documents").createSignedUrl(r.path, 600); if (error) throw error; blob = await (await fetch(data.signedUrl)).blob(); }
     else {
-      const it = await graph("/shares/u!" + b64u(r.url) + "/driveItem", { headers: { Prefer: "redeemSharingLinkIfNecessary" } }, false);
+      const it = await graph("/shares/u!" + b64u(r.url) + "/driveItem", { headers: { Prefer: "redeemSharingLinkIfNecessary" } }, false, SCOPES_COPIE);
       const url = it["@microsoft.graph.downloadUrl"]; if (!url) throw new Error("document introuvable");
       const res = await fetch(url); if (!res.ok) throw new Error("lecture du document impossible (" + res.status + ")"); blob = await res.blob();
     }
-    item = await odPut(ch, blob);
+    item = await odPut(ch, blob, SCOPES_COPIE);
   }
   memoCopie(ctx, item, nom);
   win.location.href = item.webUrl;
@@ -2317,7 +2318,7 @@ async function copieOffice(a){
   const win = window.open("", "_blank");
   if (!win) { toast("Autorise les fenêtres (pop-up) pour ce site, puis réessaie."); return; }
   attente(win, "Ouverture de ta copie…");
-  try { await jetonGraph(false); }
+  try { await jetonGraph(false, SCOPES_COPIE); }
   catch (e) { win.close(); S.modal = { kind: "copieauth", r, ctx }; render(); return; }
   try { await ouvrirCopie(r, ctx, win); }
   catch (e) { win.close(); toast("Copie impossible : " + (e.message || e)); }
@@ -2325,7 +2326,7 @@ async function copieOffice(a){
 /* première fois : l'élève autorise PhysiquePro à utiliser son OneDrive (clic direct = fenêtre Microsoft autorisée) */
 async function copieAutoriser(){
   const m = S.modal; if (!m) return;
-  try { await jetonGraph(true); } catch (e) { toast("Autorisation OneDrive refusée ou impossible."); return; }
+  try { await jetonGraph(true, SCOPES_COPIE); } catch (e) { toast("Autorisation OneDrive refusée ou impossible."); return; }
   S.modal = null; render();
   const win = window.open("", "_blank"); if (!win) { toast("Autorise les fenêtres (pop-up) pour ce site, puis réessaie."); return; }
   attente(win, "Ouverture de ta copie…");
@@ -2334,7 +2335,7 @@ async function copieAutoriser(){
 async function joindreCopie(id, nom){
   try {
     toast("Ajout de ta copie…");
-    const it = await graph("/me/drive/items/" + encodeURIComponent(id), {}, true), url = it["@microsoft.graph.downloadUrl"];
+    const it = await graph("/me/drive/items/" + encodeURIComponent(id), {}, true, SCOPES_COPIE), url = it["@microsoft.graph.downloadUrl"];
     const blob = await (await fetch(url)).blob();
     S.files.push(new File([blob], nom, { type: blob.type || "application/octet-stream" })); render(); toast("« " + nom + " » ajouté à ton travail");
   } catch (e) { toast("Impossible de joindre la copie : " + (e.message || e)); }
