@@ -4313,11 +4313,34 @@ document.addEventListener("keydown", e => { if (!FC.rev || route().v !== "revisi
   if (e.key === " ") clic("fcflip"); else if (e.key === "1" && FC.rev.retournee) clic("fcnon"); else if (e.key === "2" && FC.rev.retournee) clic("fcoui"); });
 
 /* ---------- Compteur de visites (prof) : comptes, visites, personnes en ligne ---------- */
-let presenceOn = false;
+let presenceOn = false, presenceRpc = true;
+function idSession(){ const k = "pp_sess_" + (S.user && S.user.id); try { let v = localStorage.getItem(k); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))); localStorage.setItem(k, v); } return v; } catch (_) { return null; } }
+function nomAppareil(){
+  const u = navigator.userAgent, os = /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Windows/.test(u) ? "Windows" : /Mac OS X/.test(u) ? "Mac" : /CrOS/.test(u) ? "Chromebook" : /Linux/.test(u) ? "Linux" : "Appareil";
+  const nav = /Edg\//.test(u) ? "Edge" : /OPR\//.test(u) ? "Opera" : /Firefox\//.test(u) ? "Firefox" : /Chrome\//.test(u) ? "Chrome" : /Safari\//.test(u) ? "Safari" : "Navigateur";
+  return os + " · " + nav + (window.matchMedia && matchMedia("(display-mode: standalone)").matches ? " (application)" : "");
+}
+async function signalerPresence(){
+  if (!S.user) return;
+  const id = idSession();
+  if (presenceRpc && id) {
+    const { data, error } = await sb.rpc("pp_presence", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible" });
+    if (!error) { if (data === true) deconnexionForcee(); return; }
+    if (/pp_presence|function/i.test(error.message || "")) presenceRpc = false;   // étape 23 pas encore installée
+  }
+  if (document.visibilityState === "visible") sb.rpc("pp_visite").then(() => {}, () => {});
+}
+async function deconnexionForcee(){
+  try { localStorage.removeItem("pp_sess_" + (S.user && S.user.id)); sessionStorage.setItem("pp_kick", "1"); } catch (_) {}
+  try { await sb.auth.signOut({ scope: "local" }); } catch (_) {}
+  /* on ferme aussi la session Microsoft de ce navigateur, sinon l'élève suivant serait connecté automatiquement */
+  location.replace("https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri=" + encodeURIComponent(ICI));
+}
 function demarrerPresence(){
   if (presenceOn) return; presenceOn = true;
-  setInterval(() => { if (document.visibilityState === "visible" && S.user) sb.rpc("pp_visite").then(() => {}, () => {}); }, 60000);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.user) sb.rpc("pp_visite").then(() => {}, () => {}); });
+  signalerPresence();
+  setInterval(signalerPresence, 30000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") signalerPresence(); });
   if (S.prof) { chargerStatsVisites(); setInterval(chargerStatsVisites, 60000); }
 }
 async function chargerStatsVisites(){
@@ -4330,7 +4353,7 @@ function compteurVisites(){
   return `<div class="compteur"><span class="cpt" title="Comptes créés depuis l'ouverture du site">${icon("people")}<b>${v.comptes}</b> personne${v.comptes > 1 ? "s" : ""} déjà connectée${v.comptes > 1 ? "s" : ""}</span>
     <span class="cpt" title="Visites cumulées (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} au total</span>
     <span class="cpt" title="Connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> aujourd'hui</span>
-    <span class="cpt enligne" title="${esc(noms.join(", "))}${(v.noms || []).length > 12 ? "…" : ""}"><i class="pastille"></i><b>${v.enligne}</b> en ligne maintenant</span></div>`;
+    <button class="cpt enligne" data-act="enligne" title="Voir qui est en ligne et déconnecter une session"><i class="pastille"></i><b>${v.enligne}</b> en ligne maintenant</button></div>`;
 }
 
 /* ---------- Glisser-déposer des cours dans le menu de gauche ---------- */
@@ -5199,6 +5222,65 @@ document.addEventListener("click", async e => {
   else { try { await navigator.clipboard.writeText(a.dataset.c); toast("« " + a.dataset.c + " » copié"); } catch (_) { toast("Copie impossible"); } }
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("azPanel") && !document.querySelector(".modal, dialog[open]")) document.getElementById("azPanel").remove(); });
+/* =====================================================================
+   Personnes en ligne (professeur) : liste détaillée et déconnexion à distance
+   ===================================================================== */
+const SES = { liste: null, err: "", q: "", t: null, arme: null };
+const heureCourte = d => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const ilYa = d => { const m = Math.round((Date.now() - new Date(d)) / 60000); return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : `il y a ${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`; };
+async function chargerSessions(){
+  const { data, error } = await sb.rpc("pp_sessions");
+  if (error) { SES.err = /pp_sessions|function/i.test(error.message) ? "La liste détaillée n'est pas encore installée (étape 23 de la base de données)." : error.message; SES.liste = []; }
+  else { SES.err = ""; SES.liste = typeof data === "string" ? JSON.parse(data) : (data || []); }
+  dessinerSessions();
+}
+function ligneSession(x){
+  const etat = x.deconnecter ? `<span class="sest attente">Déconnexion demandée…</span>` : x.en_ligne ? (x.visible ? `<span class="sest on">En ligne</span>` : `<span class="sest fond">Onglet en arrière-plan</span>`) : `<span class="sest off">Inactif · vu ${ilYa(x.vu_le)}</span>`;
+  const btn = x.moi ? `<span class="muted sesmoi">Toi (cette page)</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
+  return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted">${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
+}
+function dessinerSessions(){
+  const z = document.querySelector("#sesPanel .sescorps"); if (!z) return;
+  if (!SES.liste) { z.innerHTML = `<p class="muted">Chargement…</p>`; return; }
+  if (SES.err) { z.innerHTML = `<p class="ores err">${esc(SES.err)}</p>`; return; }
+  const q = sansAccent(SES.q), L = SES.liste.filter(x => !q || sansAccent([x.nom, x.email, x.classes, x.appareil].join(" ")).includes(q));
+  const on = L.filter(x => x.en_ligne), off = L.filter(x => !x.en_ligne), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter).length;
+  z.innerHTML = `<section><h4>En ligne maintenant · ${on.length}</h4>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
+    <section><h4>Sessions restées ouvertes (vues dans les 18 dernières heures) · ${off.length}</h4><p class="muted sesaide">Navigateur fermé sans se déconnecter, par exemple sur un ordinateur du lycée. La déconnexion se fera dès que ce navigateur rouvrira le site.</p>${off.map(ligneSession).join("") || `<p class="muted">Aucune.</p>`}</section>`;
+  const tous = document.querySelector('#sesPanel [data-act="sesdecotous"]'); if (tous) { tous.disabled = !nbEl; tous.className = "btn sm " + (SES.arme === "tous" ? "danger" : "ghost"); tous.innerHTML = `${icon("logout")} ${SES.arme === "tous" ? `Confirmer : déconnecter ${nbEl} session${nbEl > 1 ? "s" : ""} d'élèves ?` : "Déconnecter tous les élèves"}`; }
+}
+function ouvrirSessions(){
+  if (document.getElementById("sesPanel")) return;
+  const p = document.createElement("div"); p.id = "sesPanel"; p.className = "sesfond";
+  p.innerHTML = `<div class="sesboite" role="dialog" aria-modal="true" aria-label="Personnes en ligne"><header>${icon("people")}<b>Personnes connectées</b><button class="ib" data-act="sesfermer" aria-label="Fermer">${icon("x")}</button></header>
+    <div class="sesbarre"><input type="search" id="sesQ" placeholder="Chercher un nom, une classe…" aria-label="Chercher"><button class="btn sm ghost" data-act="sesdecotous">${icon("logout")} Déconnecter tous les élèves</button></div>
+    <p class="muted sesaide">La déconnexion prend effet en moins de 30 secondes. Elle ferme aussi la session Microsoft de ce navigateur : l'élève suivant devra entrer son propre mot de passe.</p>
+    <div class="sescorps"></div></div>`;
+  document.body.appendChild(p);
+  p.addEventListener("click", e => { if (e.target === p) fermerSessions(); });
+  p.querySelector("#sesQ").addEventListener("input", e => { SES.q = e.target.value; dessinerSessions(); });
+  SES.liste = null; SES.arme = null; dessinerSessions(); chargerSessions();
+  clearInterval(SES.t); SES.t = setInterval(chargerSessions, 15000);
+}
+function fermerSessions(){ document.getElementById("sesPanel")?.remove(); clearInterval(SES.t); }
+let sesArmeT = null;
+const armer = id => { SES.arme = id; dessinerSessions(); clearTimeout(sesArmeT); sesArmeT = setTimeout(() => { SES.arme = null; dessinerSessions(); }, 5000); };
+document.addEventListener("click", async e => {
+  const a = e.target.closest && e.target.closest('[data-act="enligne"],[data-act="sesfermer"],[data-act="sesdeco"],[data-act="sesdecotous"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  const act = a.dataset.act;
+  if (act === "enligne") { if (S.prof) ouvrirSessions(); return; }
+  if (act === "sesfermer") { fermerSessions(); return; }
+  const id = act === "sesdecotous" ? "tous" : a.dataset.id;
+  if (SES.arme !== id) { armer(id); return; }
+  SES.arme = null; clearTimeout(sesArmeT); a.disabled = true;
+  const { data, error } = await sb.rpc("pp_deconnecter", { p_session: id === "tous" ? null : id });
+  if (error) toast("Déconnexion impossible : " + error.message);
+  else toast(id === "tous" ? `${data || 0} session${data > 1 ? "s" : ""} d'élèves vont être déconnectées` : "La session va être déconnectée dans les 30 secondes");
+  chargerSessions();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("sesPanel")) fermerSessions(); });
+/* message affiché à l'élève après une déconnexion à distance */
+try { if (sessionStorage.getItem("pp_kick")) { sessionStorage.removeItem("pp_kick"); setTimeout(() => toast("Tu as été déconnecté par ton professeur. Pense à te déconnecter quand tu quittes un ordinateur du lycée."), 1500); } } catch (_) {}
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
@@ -5313,7 +5395,7 @@ document.addEventListener("click", async e => {
     case "favori": { e.preventDefault(); e.stopPropagation(); basculerFavori(a.dataset.nom); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
-    case "logout": e.preventDefault(); await sb.auth.signOut(); location.replace(ICI); return;
+    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = localStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); localStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut(); location.replace(ICI); return;
     case "menu": e.preventDefault(); S.menu = S.menu === a.dataset.m ? null : a.dataset.m; S.dd = false; S.me = false; render(); return;
     case "reload": S.cache = {}; await chargerTout().catch(() => {}); render(); return;
     case "toggle": S.open = S.open === a.dataset.id ? null : a.dataset.id; render(); return;
@@ -5712,7 +5794,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   if (fresh && !S.prof && !pj && route().v === "accueil" && actives().length === 1) history.replaceState(null, "", ICI + "#/classe/" + encodeURIComponent(actives()[0].id));
   render();
   chargerNotifs().catch(() => {});
-  sb.rpc("pp_visite").then(() => {}, () => {}); demarrerPresence();
+  demarrerPresence();
   if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
   if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
   setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
