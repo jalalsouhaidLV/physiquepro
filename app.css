@@ -1694,3 +1694,67 @@ html.a11y-contraste .btn,html.a11y-contraste .ib{outline:1px solid var(--line)}
 .decconst .declbl{color:var(--accent)}
 .decconst .linkbtn{margin-top:4px}
 .udexpl{grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+
+/* ===== Formulaires physique / chimie ===== */
+.fbarre{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.fchips{display:flex;flex-wrap:wrap;gap:6px}
+.fchips .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fbarre .simq{flex:1 1 260px;max-width:420px}
+.fintro{margin:4px 0 8px;font-size:.88rem}
+.fsection{margin-top:14px}
+.fsection h2{font-size:1.2rem;margin:0 0 10px;display:flex;align-items:baseline;gap:10px}
+.fsection h2 small{font-size:.8rem;font-weight:500;color:var(--muted)}
+.fgrille{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px;align-items:start}
+.fcarte{background:var(--surface,#fff);border:1px solid var(--line,#dadce0);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.fcarte header{display:flex;align-items:flex-start;gap:8px}
+.fcarte header h3{margin:0;font-size:.98rem;flex:1;line-height:1.3}
+.fcarte header .simniv{margin:1px 0 0;flex:none}
+.fcarte header .ib{width:28px;height:28px;flex:none}
+.fcarte header .ib .i{width:16px;height:16px}
+.fformule{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:1.12rem;background:color-mix(in srgb,var(--accent,#11647e) 7%,transparent);border-radius:9px;padding:7px 10px;text-align:center;overflow-x:auto;white-space:nowrap}
+.fcarte .ochamps{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.fcarte .ochamp{font-size:.76rem}
+.fcarte .ochin input{padding:6px 8px;font-size:.9rem}
+.fcarte .ochin em{font-size:.75rem;padding:0 7px}
+.fcarte .ores{padding:7px 10px}
+.fmuet{margin:0;font-size:.8rem;color:var(--muted)}
+.faide{margin:0;font-size:.78rem;color:var(--muted);line-height:1.4}
+.fspec h3{font-size:.98rem}
+.avtab td,.avtab th{font-size:.82rem;white-space:nowrap}
+
+/* ===== Unités de données, version 3e ===== */
+.udexpl{display:flex!important;flex-direction:column;gap:10px}
+.udpas{display:flex;gap:12px;align-items:flex-start;background:var(--bg,#f6f8f9);border-radius:12px;padding:12px 14px}
+.udnum{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:grid;place-items:center}
+.udpas>div{flex:1;min-width:0}
+.udescalier{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 6px}
+.udescalier span{background:var(--accent);color:#fff;font-weight:700;padding:6px 12px;border-radius:9px}
+.udescalier i{font-style:normal;font-size:.8rem;color:var(--accent);font-weight:600}
+.udescalier i::after{content:" →"}
+.udordres{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:8px}
+.udordres span{background:var(--surface,#fff);border-radius:9px;padding:7px 10px;display:flex;flex-direction:column;font-size:.86rem}
+.udordres b{color:var(--accent)}
+.udex{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+
+/* ===== Panneau Raccourcis AZERTY ===== */
+#azPanel{position:fixed;right:18px;bottom:18px;width:min(420px,calc(100vw - 24px));max-height:min(78vh,720px);display:flex;flex-direction:column;background:var(--surface,#fff);color:var(--ink);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);border:1px solid var(--line,#dadce0);z-index:9000;overflow:hidden}
+.azhead{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--accent);color:#fff;cursor:move;user-select:none;touch-action:none}
+.azhead b{flex:1}
+.azhead .ib{color:#fff}
+.azbarre{padding:10px 12px;border-bottom:1px solid var(--line,#dadce0);display:flex;flex-direction:column;gap:6px}
+.azbarre input{border:1px solid var(--line,#dadce0);border-radius:9px;padding:7px 10px;font:inherit;background:var(--bg,#fff);color:var(--ink)}
+.azbarre small{color:var(--muted);font-size:.74rem;line-height:1.35}
+.azcorps{overflow-y:auto;padding:4px 12px 12px}
+.azcorps h4{margin:12px 0 6px;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.azl{display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line,#e5e7eb)}
+.azc{flex:none;min-width:40px;height:36px;border-radius:9px;border:1px solid var(--line,#dadce0);background:var(--bg,#f6f8f9);color:var(--ink);font:inherit;font-size:1.2rem;font-weight:600;cursor:pointer}
+.azc:hover{border-color:var(--accent);background:var(--accent-soft)}
+.azt{flex:none;width:150px;font-size:.88rem;font-weight:600}
+.azk{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:.85rem}
+.azk small{width:100%;color:var(--muted);font-size:.72rem}
+.azk i{font-style:normal;color:var(--muted);font-size:.78rem}
+kbd{display:inline-block;min-width:22px;text-align:center;padding:2px 7px;border-radius:6px;border:1px solid var(--line,#c8ccd0);border-bottom-width:2px;background:var(--bg,#fff);font-family:inherit;font-size:.82rem;font-weight:600}
+.vl{position:relative;display:inline-block;padding-top:.35em;line-height:1}
+.vl::before{content:"";position:absolute;top:.05em;left:0;right:0;height:.5em;background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 8'%3E%3Cpath d='M0 4h18M14 1l4 3-4 3' fill='none' stroke='%23333' stroke-width='1.4'/%3E%3C/svg%3E")}
+:root[data-theme="dark"] .vl::before{filter:invert(1)}
+.fformule sub,.fformule sup,.ochamp sub,.ochamp sup{font-size:.7em}
