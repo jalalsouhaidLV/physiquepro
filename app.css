@@ -810,3 +810,4 @@ sup,sub{line-height:0;font-size:.75em}
   .quick .qi:has(.qlogo){padding:2px}
 }
 @media (max-width:440px){.topbar .ddplus{display:none}.crumbs{max-width:24vw}}
+@media (max-width:600px){.tabicons .ib:not(:last-child){display:none}.tabicons{gap:0}.crumbs{margin-right:6px}}
