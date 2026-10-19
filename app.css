@@ -1823,3 +1823,7 @@ body .brandtx small{font-weight:600!important}
 .stp.rouge i{background:#d93025;box-shadow:0 0 0 3px rgba(217,48,37,.18)}
 @keyframes stpPulse{50%{box-shadow:0 0 0 6px rgba(30,142,62,.08)}}
 @media (prefers-reduced-motion:reduce){.stp.vert i{animation:none}}
+.drawer .statprof{padding:0 12px 8px 64px}
+.drawer .stp{box-shadow:none;background:var(--surface-2,#e8eef3);padding:4px 12px;font-size:.84rem;color:var(--ink)}
+.drawer .stp.vert{background:#e6f4ea;color:#137333}
+.drawer .stp.rouge{background:#fde8e8;color:#a50e0e}

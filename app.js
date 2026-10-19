@@ -263,7 +263,7 @@ function drawer(r){
     <hr>
     ${S.prof ? "" : `<a class="it" href="#/todo" ${cur("todo")}>${icon("todo")}<span class="lbl">À faire</span></a>`}
     ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it${nbUrgents() ? " actif" : ""}" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl lbl2">Demande de matériel au Préparateur de Labo</span></a>` : ""}
-    ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve${n ? " actif" : ""}" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span></a>` : ""; })()}
+    ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve${n ? " actif" : ""}" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span></a>${statutProf()}` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt()}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
     ${actives().map(c => `<a class="it itcours" data-cid="${esc(c.id)}" title="Glisse pour changer l'ordre" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl"><span class="cnom">${esc(c.nom)}</span><small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
@@ -287,7 +287,7 @@ function liensUtilesEleve(){
   return `<div class="it ithead">${icon("links")}<span class="lbl">Liens utiles pour toi</span></div>${L.map(l => `<a class="it sublink" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.c.nom)}"><span class="lbl">${esc(l.nom)}</span></a>`).join("")}`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
-const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : statutProf()}</div>${logos}</div>`;
+const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : ""}</div>${logos}</div>`;
 const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
@@ -4344,7 +4344,7 @@ function demarrerPresence(){
   if (presenceOn) return; presenceOn = true;
   signalerPresence();
   setInterval(signalerPresence, 30000);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") signalerPresence(); });
+  document.addEventListener("visibilitychange", signalerPresence); window.addEventListener("pagehide", signalerPresence);
   if (S.prof) { chargerStatsVisites(); setInterval(chargerStatsVisites, 60000); }
 }
 async function chargerStatsVisites(){
@@ -5292,10 +5292,8 @@ const STP = { d: null, t: null };
 function statutProf(){
   if (S.prof || !S.user) return "";
   const d = STP.d; if (!d) return `<div class="statprof"></div>`;
-  const decal = Date.now() - new Date(d.maintenant || Date.now()), vu = d.vu ? new Date(d.vu).getTime() + decal : 0, min = vu ? Math.floor((Date.now() - vu) / 60000) : Infinity;
-  const [cl, txt] = d.actif ? ["vert", "connecté et actif"] : min < 5 ? ["orange", "connecté mais inactif"] : ["rouge", "déconnecté"];
-  const det = cl === "vert" ? "" : vu ? ` · vu ${min < 1 ? "à l'instant" : min < 60 ? "il y a " + min + " min" : min < 1440 ? "il y a " + Math.floor(min / 60) + " h" : "le " + new Date(vu).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : "";
-  return `<div class="statprof"><span class="stp ${cl}" title="${cl === "vert" ? "Ton professeur a le site ouvert en ce moment." : cl === "orange" ? "Ton professeur est connecté mais n'utilise pas le site en ce moment." : "Ton professeur n'est pas connecté au site."}"><i></i><b>${esc(nomProfCourt())}</b> ${txt}${det}</span></div>`;
+  const ok = !!d.actif;
+  return `<div class="statprof"><span class="stp ${ok ? "vert" : "rouge"}" title="${ok ? "Ton professeur est connecté et utilise le site en ce moment." : "Ton professeur n'est pas disponible sur le site en ce moment."}"><i></i>${ok ? "Disponible" : "Indisponible"}</span></div>`;
 }
 async function chargerStatutProf(){
   if (S.prof || !S.user) return;
@@ -5304,7 +5302,7 @@ async function chargerStatutProf(){
   document.querySelectorAll(".statprof").forEach(z => z.outerHTML = statutProf());
 }
 const _demarrerPresence = demarrerPresence;
-demarrerPresence = function(){ _demarrerPresence(); if (!S.prof && !STP.t) { chargerStatutProf(); STP.t = setInterval(() => { if (document.visibilityState === "visible") chargerStatutProf(); }, 30000); } };
+demarrerPresence = function(){ _demarrerPresence(); if (!S.prof && !STP.t) { chargerStatutProf(); STP.t = setInterval(chargerStatutProf, 15000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") chargerStatutProf(); }); } };
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
