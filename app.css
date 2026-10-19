@@ -1788,3 +1788,15 @@ button.cpt.enligne:hover{box-shadow:0 0 0 2px var(--ok),var(--shadow)}
 .sest.attente{background:#fde8e8;color:#a50e0e}
 .sesmoi{font-size:.78rem;white-space:nowrap}
 @media (max-width:600px){.sesl{flex-wrap:wrap}.sest{order:3}.sesl .btn{order:4;margin-left:auto}}
+
+/* ===== Sous-titre sous PhysiquePro ===== */
+.brandtx{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+.brandtx small{font-size:.74rem;color:var(--muted);font-weight:600;white-space:nowrap;margin-top:2px;letter-spacing:0}
+@media (max-width:600px){.topbar .brandtx small,.pubtop .brandtx small{display:none}}
+/* ===== Compteur sous le bandeau du haut ===== */
+.foot.headband .hbtxt{display:flex;flex-direction:column;gap:10px;min-width:0}
+.foot.headband .compteur{justify-content:flex-start;margin-top:0}
+/* ===== Tout le site en gras (prof, élèves, déconnecté) ===== */
+body *:not(svg):not(svg *):not(.katex):not(.katex *){font-weight:600!important}
+body :is(h1,h2,h3,h4,h5,b,strong,th,.btn,.brand b,.chip.on,kbd):not(.katex *){font-weight:800!important}
+body .brandtx small{font-weight:600!important}
