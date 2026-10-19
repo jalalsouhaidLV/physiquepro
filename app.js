@@ -4354,10 +4354,10 @@ async function chargerStatsVisites(){
 function compteurVisites(){
   if (!S.prof || !S.stv) return S.prof ? `<div class="compteur"></div>` : "";
   const v = S.stv, noms = (v.noms || []).slice(0, 12);
-  return `<div class="compteur"><span class="cpt" title="Comptes créés depuis l'ouverture du site">${icon("people")}<b>${v.comptes}</b> personne${v.comptes > 1 ? "s" : ""} déjà connectée${v.comptes > 1 ? "s" : ""}</span>
-    <span class="cpt" title="Visites cumulées (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} au total</span>
-    <span class="cpt" title="Connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> aujourd'hui</span>
-    <button class="cpt enligne" data-act="enligne" title="Voir qui est en ligne et déconnecter une session"><i class="pastille"></i><b>${v.enligne}</b> en ligne maintenant</button></div>`;
+  return `<div class="compteur"><span class="cpt" title="Élèves qui se sont déjà connectés au site">${icon("people")}<b>${v.comptes}</b> élève${v.comptes > 1 ? "s" : ""} déjà connecté${v.comptes > 1 ? "s" : ""}</span>
+    <span class="cpt" title="Visites des élèves (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} d'élèves</span>
+    <span class="cpt" title="Élèves connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</span>
+    <button class="cpt enligne" data-act="enligne" title="Voir qui est en ligne et déconnecter une session"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} en ligne</button></div>`;
 }
 
 /* ---------- Glisser-déposer des cours dans le menu de gauche ---------- */
@@ -5257,7 +5257,7 @@ function dessinerSessions(){
 function ouvrirSessions(){
   if (document.getElementById("sesPanel")) return;
   const p = document.createElement("div"); p.id = "sesPanel"; p.className = "sesfond";
-  p.innerHTML = `<div class="sesboite" role="dialog" aria-modal="true" aria-label="Personnes en ligne"><header>${icon("people")}<b>Personnes connectées</b><button class="ib" data-act="sesfermer" aria-label="Fermer">${icon("x")}</button></header>
+  p.innerHTML = `<div class="sesboite" role="dialog" aria-modal="true" aria-label="Élèves connectés"><header>${icon("people")}<b>Élèves connectés</b><button class="ib" data-act="sesfermer" aria-label="Fermer">${icon("x")}</button></header>
     <div class="sesbarre"><input type="search" id="sesQ" placeholder="Chercher un nom, une classe…" aria-label="Chercher"><button class="btn sm ghost" data-act="sesdecotous">${icon("logout")} Déconnecter tous les élèves</button></div>
     <p class="muted sesaide">La déconnexion prend effet en moins de 30 secondes. Elle ferme aussi la session Microsoft de ce navigateur : l'élève suivant devra entrer son propre mot de passe.</p>
     <div class="sescorps"></div></div>`;
