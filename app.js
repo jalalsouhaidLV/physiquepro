@@ -5237,7 +5237,7 @@ async function chargerSessions(){
 function ligneSession(x){
   if (!x.nom || x.nom.includes("@")) x.nom = nomDepuisEmail(x.email || x.nom || "?");
   const etat = x.deconnecter ? `<span class="sest attente">Déconnexion demandée…</span>` : x.en_ligne ? (x.visible ? `<span class="sest on">En ligne</span>` : `<span class="sest fond">Onglet en arrière-plan</span>`) : `<span class="sest off">Inactif · vu ${ilYa(x.vu_le)}</span>`;
-  const btn = x.moi ? `<span class="muted sesmoi">Toi (cette page)</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
+  const btn = x.moi ? `<span class="muted sesmoi">${x.id === idSession() ? "Toi (cette page)" : "Toi (autre appareil)"}</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
   return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted">${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
 }
 function dessinerSessions(){
