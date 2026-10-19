@@ -2897,7 +2897,7 @@ function demanderConnexion(suite){
 }
 /* ---------- Message urgent (élève → prof) et Messagerie d'urgence (prof) ---------- */
 IC.urgent = '<path d="M12 3l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.1"/>';
-const nomProfCourt = () => { const w = String(R().prof.nom || "").trim().split(/\s+/); const up = w.filter(x => x.length > 1 && x === x.toUpperCase()); return "M. " + (up.length ? up.join(" ") : w[w.length - 1] || ""); };
+const nomProfCourt = () => { const w = String(R().prof.nom || "").trim().split(/\s+/); const up = w.filter(x => x.length > 1 && x === x.toUpperCase()); return "M.\u00a0" + (up.length ? up.join(" ") : w[w.length - 1] || ""); };
 async function chargerUrgents(){
   try { const r = await sb.from("messages_urgents").select("*").order("cree_le", { ascending: false }).limit(300); S.urgents = r.error ? (S.urgents || []) : r.data; }
   catch (_) { S.urgents = S.urgents || []; }
