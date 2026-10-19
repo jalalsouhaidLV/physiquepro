@@ -7,6 +7,7 @@ window.PHYSIQUEPRO = {
   supabaseKey: "sb_publishable_o2Km-g2VoDde3e2aYKKKgA_i2EmGdoD",
 
   domaine: "lycee-verdun.edu.lb",
+  prefixeEleve: "lv.",          // adresses des élèves : lv.prenom.nom@lycee-verdun.edu.lb
   prof: {
     nom: "Jalal SOUHAID",
     email: "jalal.souhaid@lycee-verdun.edu.lb",

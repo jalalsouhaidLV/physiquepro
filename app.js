@@ -19,7 +19,7 @@ const fmtQuand = d => sameDay(d, now()) ? fmtT(d) : fmtShort(d) + (d.getFullYear
 const fmtNote = n => n == null || n === "" ? "" : String(Math.round(Number(n) * 100) / 100).replace(".", ",");
 const sameDay = (a, b) => a.toDateString() === b.toDateString();
 const initials = n => String(n || "?").split(/[\s.\-]+/).filter(Boolean).map(x => x[0]).join("").slice(0, 2).toUpperCase();
-const nomDepuisEmail = e => String(e || "").split("@")[0].split(".").map(x => x.split("-").map(y => y.charAt(0).toUpperCase() + y.slice(1)).join("-")).join(" ");
+const nomDepuisEmail = e => String(e || "").split("@")[0].replace(/^lv\./i, "").split(".").map(x => x.split("-").map(y => y.charAt(0).toUpperCase() + y.slice(1)).join("-")).join(" ");
 const dueTxt = d => {
   const t = now(); if (sameDay(d, t)) return "Aujourd'hui, " + fmtT(d);
   const y = new Date(t); y.setDate(t.getDate() + 1); if (sameDay(d, y)) return "Demain, " + fmtT(d);
@@ -207,7 +207,7 @@ function vLogin(message, info){
     <div class="brand" style="cursor:default;padding:0">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(R().prof.nom)}</small></span></div>
     <div><h2 style="font-size:1.4rem">Connexion</h2><p class="muted" style="margin:.3rem 0 0">Utilise ton compte Microsoft 365 du lycée.</p></div>
     ${message ? `<div class="${info ? "notice" : "err"}">${message}</div>` : ""}
-    <div class="field"><label for="mail">Adresse Microsoft 365</label><input id="mail" type="email" placeholder="prenom.nom@${esc(CFG.domaine)}" autocomplete="username"></div>
+    <div class="field"><label for="mail">Adresse Microsoft 365</label><input id="mail" type="email" placeholder="${esc(CFG.prefixeEleve ?? "lv.")}prenom.nom@${esc(CFG.domaine)}" autocomplete="username"></div>
     <div id="mailErr" class="err" hidden></div>
     <button class="btn" id="loginBtn">Se connecter</button>
     <p class="muted" style="margin:0;font-size:.82rem">Tu passeras par la page Microsoft habituelle pour taper ton mot de passe, puis tu reviendras ici.</p>
@@ -1298,8 +1298,8 @@ function vModal(){
   else if (m.kind === "ajouteleves") { const c = cls(m.classe);
     body = `<h2>Ajouter des élèves${c ? " · " + esc(c.nom) : ""}</h2>
       ${m.fixe ? "" : `<div class="field"><label for="mClasse">Dans le cours</label><select id="mClasse" data-mclasse="1">${actives().map(x => `<option value="${esc(x.id)}" ${x.id === m.classe ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>`}
-      <div class="field"><label for="mListe">Colle la liste (une ligne par élève)</label><textarea id="mListe" rows="7" placeholder="prenom.nom@${esc(CFG.domaine)}&#10;HADDAD Lina&#10;Karim Saad ; karim.saad@${esc(CFG.domaine)}">${esc(m.texte || "")}</textarea></div>
-      <p class="muted" style="margin:0;font-size:.8rem">Accepté : une adresse, « NOM Prénom » copié depuis Pronote ou Excel (l'adresse prenom.nom@${esc(CFG.domaine)} est alors déduite), ou les deux sur la même ligne.</p>
+      <div class="field"><label for="mListe">Colle la liste (une ligne par élève)</label><textarea id="mListe" rows="7" placeholder="${esc(CFG.prefixeEleve ?? "lv.")}prenom.nom@${esc(CFG.domaine)}&#10;HADDAD Lina&#10;Karim Saad ; ${esc(CFG.prefixeEleve ?? "lv.")}karim.saad@${esc(CFG.domaine)}">${esc(m.texte || "")}</textarea></div>
+      <p class="muted" style="margin:0;font-size:.8rem">Accepté : une adresse, « NOM Prénom » copié depuis Pronote ou Excel (l'adresse ${esc(CFG.prefixeEleve ?? "lv.")}prenom.nom@${esc(CFG.domaine)} est alors déduite), ou les deux sur la même ligne.</p>
       <div id="mApercu">${apercuListe(m)}</div>`; ok = "Ajouter"; }
   else if (m.kind === "renomeleve") { body = `<h2>Modifier le nom</h2><p class="muted" style="margin:0;font-size:.85rem">${esc(m.email)}</p><div class="field"><label for="mNomEl">Nom affiché (dans tous les cours)</label><input id="mNomEl" value="${esc(m.nom)}"></div>`; }
   else if (m.kind === "autrescours") { body = `<h2>Ajouter à un autre cours</h2><p class="muted" style="margin:0">${m.emails.length} élève${m.emails.length > 1 ? "s" : ""} sélectionné${m.emails.length > 1 ? "s" : ""}.</p>
@@ -1679,7 +1679,7 @@ function analyserListe(txt, classe){
         let nomF, prenom;
         if (maj.length && maj.length < parts.length) { nomF = maj.join(" "); prenom = parts.filter(p => !maj.includes(p)).join(" "); }
         else { prenom = parts[0]; nomF = parts.slice(1).join(" "); }
-        email = norm(prenom) + "." + norm(nomF) + dom; nom = cap(prenom) + " " + nomF.toUpperCase(); deduit = true;
+        email = (CFG.prefixeEleve ?? "lv.") + norm(prenom) + "." + norm(nomF) + dom; nom = cap(prenom) + " " + nomF.toUpperCase(); deduit = true;
       }
     }
     if (email && !email.endsWith(dom)) err = "Adresse hors du lycée (" + dom + ").";
@@ -2491,7 +2491,7 @@ async function genererCopies(silencieux){
     for (const t of taches) {
       try {
         if (!cache[t.r.od.id]) { const it = await graph("/me/drive/items/" + encodeURIComponent(t.r.od.id), {}, false); cache[t.r.od.id] = await (await fetch(it["@microsoft.graph.downloadUrl"])).blob(); }
-        const nom = nomOD(t.r.label || "document"), nomE = nomOD(t.e.nom || t.e.email.split("@")[0]);
+        const nom = nomOD(t.r.label || "document"), nomE = nomOD(t.e.nom || nomDepuisEmail(t.e.email));
         const item = await odPut(cheminOD([OD_RACINE, ...dossierTravail(t.o.classe_id, t.o.theme_id, t.o.titre), "Copies élèves", nomE + " - " + nom]), cache[t.r.od.id]);
         await graph("/me/drive/items/" + item.id + "/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipients: [{ email: t.e.email }], roles: ["write"], requireSignIn: true, sendInvitation: false }) }, false);
         const row = { classe_id: t.o.classe_id, objet: t.objet, objet_id: t.o.id, source: t.r.od.id, eleve_email: t.e.email, nom, od_id: item.id, web: item.webUrl };
