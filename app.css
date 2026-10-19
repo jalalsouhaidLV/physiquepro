@@ -1800,3 +1800,15 @@ button.cpt.enligne:hover{box-shadow:0 0 0 2px var(--ok),var(--shadow)}
 body *:not(svg):not(svg *):not(.katex):not(.katex *){font-weight:600!important}
 body :is(h1,h2,h3,h4,h5,b,strong,th,.btn,.brand b,.chip.on,kbd):not(.katex *){font-weight:800!important}
 body .brandtx small{font-weight:600!important}
+
+/* ===== Message urgent : rouge seulement s'il y a du nouveau ===== */
+.drawer .it.urgeleve:not(.actif),.drawer .it.urgeleve:not(.actif) .i,.drawer a.it[href="#/urgences"]:not(.actif) .i,.drawer a.it[href="#/urgences"]:not(.actif) .urglbl{color:var(--ink)}
+.drawer .it.urgeleve:not(.actif) .i,.drawer a.it[href="#/urgences"]:not(.actif) .i{color:var(--muted)}
+/* ===== Cartes de cours : plus de grand vide ===== */
+.ccard,.cards .ccard{min-height:0}
+.ccard .body{padding:16px 16px 8px;min-height:72px}
+.ccard .body .cvide{display:flex;align-items:center;gap:6px;color:var(--ok);font-size:.88rem}
+.ccard .body .cvide .i{width:16px;height:16px}
+.ccard .body .cder{color:var(--muted);font-size:.8rem;line-height:1.35;margin-top:2px;white-space:normal}
+.ccard .body .cder a{display:block;font-size:.84rem}
+.ccard .banner h2{word-break:normal!important;overflow-wrap:normal!important;hyphens:manual!important}
