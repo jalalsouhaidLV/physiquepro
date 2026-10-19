@@ -1812,3 +1812,14 @@ body .brandtx small{font-weight:600!important}
 .ccard .body .cder{color:var(--muted);font-size:.8rem;line-height:1.35;margin-top:2px;white-space:normal}
 .ccard .body .cder a{display:block;font-size:.84rem}
 .ccard .banner h2{word-break:normal!important;overflow-wrap:normal!important;hyphens:manual!important}
+
+/* ===== Élèves : statut du professeur ===== */
+.statprof:empty{display:none}
+.stp{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:.82rem;color:var(--muted)}
+.stp b{color:var(--ink)}
+.stp i{width:11px;height:11px;border-radius:50%;flex:none}
+.stp.vert i{background:#1e8e3e;box-shadow:0 0 0 3px rgba(30,142,62,.2);animation:stpPulse 2s infinite}
+.stp.orange i{background:#f29900;box-shadow:0 0 0 3px rgba(242,153,0,.22)}
+.stp.rouge i{background:#d93025;box-shadow:0 0 0 3px rgba(217,48,37,.18)}
+@keyframes stpPulse{50%{box-shadow:0 0 0 6px rgba(30,142,62,.08)}}
+@media (prefers-reduced-motion:reduce){.stp.vert i{animation:none}}

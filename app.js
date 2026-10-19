@@ -287,7 +287,7 @@ function liensUtilesEleve(){
   return `<div class="it ithead">${icon("links")}<span class="lbl">Liens utiles pour toi</span></div>${L.map(l => `<a class="it sublink" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.c.nom)}"><span class="lbl">${esc(l.nom)}</span></a>`).join("")}`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
-const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${compteurVisites()}</div>${logos}</div>`;
+const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : statutProf()}</div>${logos}</div>`;
 const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
@@ -5286,6 +5286,25 @@ document.addEventListener("click", async e => {
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("sesPanel")) fermerSessions(); });
 /* message affiché à l'élève après une déconnexion à distance */
 try { if (sessionStorage.getItem("pp_kick")) { sessionStorage.removeItem("pp_kick"); setTimeout(() => toast("Tu as été déconnecté par ton professeur. Pense à te déconnecter quand tu quittes un ordinateur du lycée."), 1500); } } catch (_) {}
+
+/* ---------- Pour les élèves : le professeur est-il en ligne ? ---------- */
+const STP = { d: null, t: null };
+function statutProf(){
+  if (S.prof || !S.user) return "";
+  const d = STP.d; if (!d) return `<div class="statprof"></div>`;
+  const decal = Date.now() - new Date(d.maintenant || Date.now()), vu = d.vu ? new Date(d.vu).getTime() + decal : 0, min = vu ? Math.floor((Date.now() - vu) / 60000) : Infinity;
+  const [cl, txt] = d.actif ? ["vert", "connecté et actif"] : min < 5 ? ["orange", "connecté mais inactif"] : ["rouge", "déconnecté"];
+  const det = cl === "vert" ? "" : vu ? ` · vu ${min < 1 ? "à l'instant" : min < 60 ? "il y a " + min + " min" : min < 1440 ? "il y a " + Math.floor(min / 60) + " h" : "le " + new Date(vu).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : "";
+  return `<div class="statprof"><span class="stp ${cl}" title="${cl === "vert" ? "Ton professeur a le site ouvert en ce moment." : cl === "orange" ? "Ton professeur est connecté mais n'utilise pas le site en ce moment." : "Ton professeur n'est pas connecté au site."}"><i></i><b>${esc(nomProfCourt())}</b> ${txt}${det}</span></div>`;
+}
+async function chargerStatutProf(){
+  if (S.prof || !S.user) return;
+  const { data, error } = await sb.rpc("pp_statut_prof"); if (error) return;
+  STP.d = typeof data === "string" ? JSON.parse(data) : data;
+  document.querySelectorAll(".statprof").forEach(z => z.outerHTML = statutProf());
+}
+const _demarrerPresence = demarrerPresence;
+demarrerPresence = function(){ _demarrerPresence(); if (!S.prof && !STP.t) { chargerStatutProf(); STP.t = setInterval(() => { if (document.visibilityState === "visible") chargerStatutProf(); }, 30000); } };
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
