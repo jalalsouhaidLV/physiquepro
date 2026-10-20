@@ -205,7 +205,7 @@ const noteQuiz = (q, r) => r ? Math.round(r.score / Math.max(1, r.sur) * (q.poin
 /* ---------- connexion ---------- */
 function vLogin(message, info){
   app.innerHTML = `<div class="login"><div class="card">
-    <div class="brand" style="cursor:default;padding:0">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(R().prof.nom)}</small></span></div>
+    <div class="brand" style="cursor:default;padding:0">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></div>
     <div><h2 style="font-size:1.4rem">Connexion</h2><p class="muted" style="margin:.3rem 0 0">Utilise ton compte Microsoft 365 du lycée.</p></div>
     ${message ? `<div class="${info ? "notice" : "err"}">${message}</div>` : ""}
     <div class="field"><label for="mail">Adresse Microsoft 365</label><input id="mail" type="email" placeholder="${esc(CFG.prefixeEleve ?? "lv.")}prenom.nom@${esc(CFG.domaine)}" autocomplete="username"></div>
@@ -242,7 +242,7 @@ function topbar(r){
   if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none" title="${esc(c.nom)}"><span class="curnom">${esc(c.nom)}</span><small>${esc(c.section)}</small></a>`;
   return `<header class="topbar">
     <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
-    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(R().prof.nom)}</small></span></a>${crumb}</div>
+    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
     ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
     ${lanceurApps()}
@@ -288,8 +288,8 @@ function liensUtilesEleve(){
   return `<div class="it ithead">${icon("links")}<span class="lbl">Liens utiles pour toi</span></div>${L.map(l => `<a class="it sublink" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.c.nom)}"><span class="lbl">${esc(l.nom)}</span></a>`).join("")}`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
-const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : ""}</div></div>`;
-const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
+const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : ""}</div></div>`;
+const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
 
@@ -2856,7 +2856,7 @@ async function connecter(suite){
 const btnConnexion = (txt = "Se connecter", cls2 = "") => `<button class="btn ${cls2}" data-act="pubconnect">${icon("logout")} ${txt}</button>`;
 function topbarPublic(){
   return `<header class="topbar pubtop">
-    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(R().prof.nom)}</small></span></a></div>
+    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a></div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
     <nav class="quick pubquick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).slice(0, 12).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
   </header>`;
@@ -2876,7 +2876,7 @@ function vPublic(r){
   if (r.v === "outils") return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">Boîte à outils</h1><span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a class="linkbtn" href="#/">${icon("left")} Accueil</a>${btnConnexion("Se connecter avec Microsoft 365")}</span></div>${blocOutils()}${pageFoot()}</div>`;
   return `<div class="page wide home">
     <section class="pubhero">
-      <div><h1>Bienvenue sur l'espace de cours de M. ${esc(R().prof.nom)}</h1>
+      <div><h1>Bienvenue sur l'espace de cours de M. ${esc(nomProfSans())}</h1>
       <p class="muted">Cours, documents, devoirs et ressources de Physique-Chimie, SNT (Sciences Numériques et Technologie), SI (Sciences de l'Ingénieur), et Technologie. Connecte-toi avec ton compte Microsoft 365 du lycée (@${esc(CFG.domaine)}) pour accéder à tes cours.</p></div>
       <button class="btn pubbig pubm365" data-act="pubconnect"><img src="logo-m365-carre.png" alt="" width="26" height="26"> Se connecter avec Microsoft 365</button>
     </section>
@@ -2900,7 +2900,9 @@ function demanderConnexion(suite){
 }
 /* ---------- Message urgent (élève → prof) et Messagerie d'urgence (prof) ---------- */
 IC.urgent = '<path d="M12 3l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.1"/>';
-const nomProfCourt = () => { const w = String(R().prof.nom || "").trim().split(/\s+/); const up = w.filter(x => x.length > 1 && x === x.toUpperCase()); return "M.\u00a0" + (up.length ? up.join(" ") : w[w.length - 1] || ""); };
+/* nom du prof sans civilité (évite « M. M. SOUHAID » si le nom saisi commence déjà par M.) */
+function nomProfSans(){ return String(R().prof.nom || "").replace(/^\s*(M\.|Mr\.?|Monsieur|Mme|Madame|Mlle)\s+/i, "").trim(); }
+const nomProfCourt = () => { const w = nomProfSans().split(/\s+/); const up = w.filter(x => x.length > 1 && x === x.toUpperCase()); return "M.\u00a0" + (up.length ? up.join(" ") : w[w.length - 1] || ""); };
 async function chargerUrgents(){
   try { const r = await sb.from("messages_urgents").select("*").order("cree_le", { ascending: false }).limit(300); S.urgents = r.error ? (S.urgents || []) : r.data; }
   catch (_) { S.urgents = S.urgents || []; }
