@@ -4350,7 +4350,7 @@ function demarrerPresence(){
   signalerPresence();
   setInterval(signalerPresence, 30000);
   document.addEventListener("visibilitychange", signalerPresence); window.addEventListener("pagehide", signalerPresence);
-  if (S.prof) { chargerStatsVisites(); setInterval(chargerStatsVisites, 60000); }
+  if (S.prof) { chargerStatsVisites(); setInterval(() => { if (document.visibilityState === "visible") chargerStatsVisites(); }, 20000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") chargerStatsVisites(); }); }
 }
 async function chargerStatsVisites(){
   if (!S.prof) return; const { data, error } = await sb.rpc("pp_stats_visites"); if (error || !data) return;
