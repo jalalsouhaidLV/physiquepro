@@ -2056,3 +2056,8 @@ body.labouvert{overflow:hidden}
 .bdefi .bok{background:var(--ok-bg);color:var(--ok);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 @media (max-width:860px){.binrang{grid-template-columns:repeat(4,1fr)}.labscene.deux{grid-template-rows:auto auto}.labscene.deux .labcv{height:240px}}
 @media (prefers-reduced-motion:reduce){.vg-onde,.vg-rot,.vg-n.vg-off{animation:none}}
+/* voyant Disponible / Indisponible à côté du nom du prof */
+.drawer .urgnom{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.drawer .urgnom .statprof{padding:0;display:inline-flex}
+.drawer .urgnom .stp{padding:2px 8px;gap:5px;font-size:.72rem;font-weight:700;line-height:1.3}
+.drawer .urgnom .stp i{width:8px;height:8px}

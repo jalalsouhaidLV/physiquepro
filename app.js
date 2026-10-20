@@ -264,7 +264,7 @@ function drawer(r){
     <hr>
     ${S.prof ? "" : `<a class="it" href="#/todo" ${cur("todo")}>${icon("todo")}<span class="lbl">À faire</span></a>`}
     ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it${nbUrgents() ? " actif" : ""}" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl lbl2">Demande de matériel au Préparateur de Labo</span></a>` : ""}
-    ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve${n ? " actif" : ""}" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span></a>${statutProf()}` : ""; })()}
+    ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve${n ? " actif" : ""}" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à <span class="urgnom">${esc(nomProfCourt())}${supUrg(n)}${statutProf()}</span></span></a>` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt()}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
     ${actives().map(c => `<a class="it itcours" data-cid="${esc(c.id)}" title="Glisse pour changer l'ordre" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl"><span class="cnom" title="${esc(c.nom)}">${esc(nomCourtCours(c.nom))}</span><small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
@@ -5320,9 +5320,9 @@ try { if (sessionStorage.getItem("pp_kick")) { sessionStorage.removeItem("pp_kic
 const STP = { d: null, t: null };
 function statutProf(){
   if (S.prof || !S.user) return "";
-  const d = STP.d; if (!d) return `<div class="statprof"></div>`;
+  const d = STP.d; if (!d) return `<span class="statprof"></span>`;
   const ok = !!d.actif;
-  return `<div class="statprof"><span class="stp ${ok ? "vert" : "rouge"}" title="${ok ? "Ton professeur est connecté et utilise le site en ce moment." : "Ton professeur n'est pas disponible sur le site en ce moment."}"><i></i>${ok ? "Disponible" : "Indisponible"}</span></div>`;
+  return `<span class="statprof"><span class="stp ${ok ? "vert" : "rouge"}" title="${ok ? "Ton professeur est connecté et utilise le site en ce moment." : "Ton professeur n'est pas disponible sur le site en ce moment."}"><i></i>${ok ? "Disponible" : "Indisponible"}</span></span>`;
 }
 async function chargerStatutProf(){
   if (S.prof || !S.user) return;
