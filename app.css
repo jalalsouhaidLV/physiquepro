@@ -1863,3 +1863,39 @@ body .brandtx small{font-weight:600!important}
 @media (max-width:440px){.topbar .quick{justify-content:flex-start!important;gap:6px!important;flex:1}}
 .ccard .banner h2{text-wrap:wrap!important}
 .ccard .banner h2.long{padding-right:56px!important}
+
+/* ===== Outils repliables sur téléphone ===== */
+@media (max-width:760px){
+  .fcarte header{cursor:pointer}
+  .fcarte:not(.fspec):not(.ouvert)>:not(header):not(.fformule){display:none}
+  .fcarte.fspec h3{cursor:pointer}
+  .fcarte.fspec:not(.ouvert)>:not(h3){display:none}
+  .fcarte:not(.ouvert) header h3::after,.fcarte.fspec:not(.ouvert) h3::after{content:" ▸";color:var(--accent)}
+  .fcarte.ouvert header h3::after,.fcarte.fspec.ouvert h3::after{content:" ▾";color:var(--accent)}
+  .fgrille{gap:8px}
+  .fcarte{padding:10px 12px}
+}
+/* ===== Pour s'entraîner (chapitres) ===== */
+.pratique{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c,var(--accent)) 7%,var(--surface))}
+.prlbl{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-right:4px}
+.prlbl .i{width:15px;height:15px}
+.prchip{display:inline-flex;align-items:center;border-radius:999px;background:var(--surface);border:1px solid var(--line,#dadce0);overflow:hidden}
+.prchip button{border:0;background:none;font:inherit;font-size:.86rem;color:var(--ink);padding:6px 12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.prchip button .i{width:15px;height:15px;color:var(--accent)}
+.prchip button:hover{background:var(--accent-soft)}
+.prchip .prx{padding:6px 10px 6px 4px;color:var(--muted);font-size:1rem}
+.prplus{border:1px dashed var(--accent);background:none;color:var(--accent);border-radius:999px;padding:6px 12px;font:inherit;font-size:.84rem;display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.prplus .i{width:14px;height:14px}
+.prliste{display:flex;flex-direction:column;gap:4px}
+.prl{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line,#e5e7eb);border-radius:10px;background:var(--surface);padding:8px 12px;font:inherit;color:var(--ink);cursor:pointer}
+.prl>.i{flex:none;width:18px;height:18px;color:var(--accent)}
+.prl span{flex:1;min-width:0;display:flex;flex-direction:column}
+.prl small{color:var(--muted);font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prl i{font-style:normal;font-size:.78rem;color:var(--accent);white-space:nowrap}
+.prl.on{border-color:#34a853;background:#e6f4ea}
+.prl.on i{color:#137333}
+/* ===== Technologie : orange chaud au lieu du brun terne ===== */
+:root{--tech:#C0570E;--b-tech:#B3500C}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tech:#F2A15F}}
+:root[data-theme="dark"]{--tech:#F2A15F}
+@media (max-width:1500px){.topbar:has(.crumbs .cur) .quick.deux{grid-template-columns:repeat(var(--qc,12),64px)}.topbar:has(.crumbs .cur) .quick.deux .qi,.topbar:has(.crumbs .cur) .quick.deux .qi:has(.qlogo){width:48px;min-width:48px}.topbar:has(.crumbs .cur) .quick.deux .ql{max-width:64px!important}}

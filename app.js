@@ -122,11 +122,12 @@ function appliquerReglages(d){
     onedrive: !!d.onedrive,
     preparateur: typeof d.preparateur === "string" ? d.preparateur : "",
     simulations: Array.isArray(d.simulations) ? d.simulations : [],
+    pratique: d.pratique && typeof d.pratique === "object" && !Array.isArray(d.pratique) ? d.pratique : {},
     remarques: Array.isArray(d.remarques) ? d.remarques : ["Très bon travail.", "Attention aux unités.", "Chiffres significatifs à revoir.", "Justifie davantage ton raisonnement.", "Schéma incomplet ou non légendé.", "Relis la consigne.", "Bon raisonnement, mais erreur de calcul."]
   };
 }
 const R = () => S.R;
-const reglagesData = () => ({ prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: R().liensUtiles, outils: R().outils, remarques: R().remarques, onedrive: R().onedrive, preparateur: R().preparateur || "", simulations: R().simulations || [] });
+const reglagesData = () => ({ prof: { nom: R().prof.nom, titre: R().prof.titre }, liensUtiles: R().liensUtiles, outils: R().outils, remarques: R().remarques, onedrive: R().onedrive, preparateur: R().preparateur || "", simulations: R().simulations || [], pratique: R().pratique || {} });
 
 /* ---------- état ---------- */
 const S = {
@@ -266,7 +267,7 @@ function drawer(r){
     ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve${n ? " actif" : ""}" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à ${esc(nomProfCourt())}${supUrg(n)}</span></a>${statutProf()}` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt()}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
-    ${actives().map(c => `<a class="it itcours" data-cid="${esc(c.id)}" title="Glisse pour changer l'ordre" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl"><span class="cnom">${esc(c.nom)}</span><small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
+    ${actives().map(c => `<a class="it itcours" data-cid="${esc(c.id)}" title="Glisse pour changer l'ordre" href="#/classe/${esc(c.id)}" ${r.v === "classe" && r.a === c.id ? 'aria-current="page"' : ""}><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span class="lbl"><span class="cnom" title="${esc(c.nom)}">${esc(nomCourtCours(c.nom))}</span><small>${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(c.section)}</small></span></a>`).join("")}
     <hr>${arch && S.prof ? `<a class="it" href="#/archives" ${cur("archives")}>${icon("archive")}<span class="lbl">Cours archivés</span></a>` : ""}
     ${liensUtilesEleve()}<div class="sect">${icon("flask")} Ressources</div>
     <a class="it" href="#/revisions" ${cur("revisions")}>${icon("cards")}<span class="lbl">Révisions et flashcards</span></a>
@@ -582,7 +583,7 @@ function vTravaux(c, data){
     <span class="spacer"></span>${groupes.length ? `<button class="linkbtn" data-act="toutreduire">${S.reduits.size ? "Tout développer" : "Tout réduire"}</button>` : ""}</div>`;
   return `<div class="page" style="--c:var(${C(c.couleur).c})">${head}
     ${visibles.length ? visibles.map(g => `<section class="theme${S.prof ? " movable" : ""}" data-tid="${gid(g)}"><div class="themehead">${S.prof && g.t ? `<span class="grip" title="Glisser pour déplacer" aria-hidden="true">⋮⋮</span>` : ""}<h2>${esc(g.titre)}</h2><button class="ib sm" data-act="reduire" data-id="${gid(g)}" aria-label="${S.reduits.has(gid(g)) ? "Développer" : "Réduire"}">${icon(S.reduits.has(gid(g)) ? "chevdown" : "chevup")}</button>${themeMenu(g)}</div>
-      ${S.reduits.has(gid(g)) ? "" : g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir, un questionnaire ou une documentation." : "Rien pour l'instant."}</p>`}</section>`).join("")
+      ${S.reduits.has(gid(g)) || !g.t ? "" : blocPratique(String(g.t.id))}${S.reduits.has(gid(g)) ? "" : g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir, un questionnaire ou une documentation." : "Rien pour l'instant."}</p>`}</section>`).join("")
       : `<div class="emptystate"><b>${S.prof ? "Crée ton premier élément" : "Aucun travail pour l'instant."}</b><span>${S.prof ? "Crée un thème (par exemple « Chapitre 1 »), puis ajoute des devoirs, des questionnaires et des documentations." : "Ton professeur n'a encore rien publié dans ce cours."}</span></div>`}
     ${pageFoot()}</div>`;
 }
@@ -4318,7 +4319,7 @@ document.addEventListener("keydown", e => { if (!FC.rev || route().v !== "revisi
 
 /* ---------- Compteur de visites (prof) : comptes, visites, personnes en ligne ---------- */
 let presenceOn = false, presenceRpc = true;
-function idSession(){ const k = "pp_sess_" + (S.user && S.user.id); try { let v = localStorage.getItem(k); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))); localStorage.setItem(k, v); } return v; } catch (_) { return null; } }
+function idSession(){ const k = "pp_sess_" + (S.user && S.user.id); try { let v = sessionStorage.getItem(k); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))); sessionStorage.setItem(k, v); } return v; } catch (_) { return null; } }
 function nomAppareil(){
   const u = navigator.userAgent, os = /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Windows/.test(u) ? "Windows" : /Mac OS X/.test(u) ? "Mac" : /CrOS/.test(u) ? "Chromebook" : /Linux/.test(u) ? "Linux" : "Appareil";
   const nav = /Edg\//.test(u) ? "Edge" : /OPR\//.test(u) ? "Opera" : /Firefox\//.test(u) ? "Firefox" : /Chrome\//.test(u) ? "Chrome" : /Safari\//.test(u) ? "Safari" : "Navigateur";
@@ -4335,7 +4336,7 @@ async function signalerPresence(){
   if (document.visibilityState === "visible") sb.rpc("pp_visite").then(() => {}, () => {});
 }
 async function deconnexionForcee(){
-  try { localStorage.removeItem("pp_sess_" + (S.user && S.user.id)); sessionStorage.setItem("pp_kick", "1"); } catch (_) {}
+  try { sessionStorage.removeItem("pp_sess_" + (S.user && S.user.id)); sessionStorage.setItem("pp_kick", "1"); } catch (_) {}
   try { await sb.auth.signOut({ scope: "local" }); } catch (_) {}
   /* on ferme aussi la session Microsoft de ce navigateur, sinon l'élève suivant serait connecté automatiquement */
   location.replace("https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri=" + encodeURIComponent(ICI));
@@ -4959,6 +4960,7 @@ document.addEventListener("click", e => {
    (Terminale, Première, Seconde). Chaque outil : on remplit toutes les
    valeurs sauf une, l'inconnue est calculée (résolution numérique).
    ===================================================================== */
+const FOPEN = new Set();
 const DEG = Math.PI / 180, sinD = x => Math.sin(x * DEG), cosD = x => Math.cos(x * DEG);
 const K_ = { G: 6.674e-11, c: 2.998e8, h: 6.626e-34, e: 1.602e-19, NA: 6.022e23, R: 8.314, k: 8.99e9, F: 96485, I0: 1e-12, mn: 1.67e-27, W: 2.898e-3 };
 /* [id, section, niveau affiché, titre, formule, variables [clé, libellé, unité, défaut], équation o => [membre gauche, membre droit], aide] */
@@ -5104,7 +5106,8 @@ function carteFormule(t, dom){
   else if (vides.length === 1) { const [k, lib, u] = vides[0], x = resoudreInconnue(eq, o, k); res = x == null ? `<div class="ores err">Pas de solution avec ces valeurs : vérifie-les.</div>` : `<div class="ores bon"><b>${jolie(lib)} = ${fmt4(x)}${u ? " " + esc(u) : ""}</b></div>`; }
   else if (vides.length > 1) { if (V.some(v => v[3] == null && String(val(v)).trim() !== "")) res = `<p class="fmuet">Remplis toutes les valeurs sauf celle à calculer.</p>`; }
   else res = `<p class="fmuet">Vide la case de la grandeur à calculer.</p>`;
-  return `<article class="fcarte" data-niv="${esc(niv)}"><header><span class="simniv">${esc(niv)}</span><h3>${jolie(titre)}</h3><button class="ib" data-act="fclr" data-p="${esc("F_" + dom + "_" + id + "_")}" title="Effacer" aria-label="Effacer">${icon("restore")}</button></header>
+  const k0 = dom + ":" + id, ouv = FOPEN.has(k0) || V.some(v => OV[cle(v[0])] !== undefined && String(OV[cle(v[0])]).trim() !== "");
+  return `<article class="fcarte${ouv ? " ouvert" : ""}" data-niv="${esc(niv)}" data-k="${esc(k0)}"><header data-act="fouvre"><span class="simniv">${esc(niv)}</span><h3>${jolie(titre)}</h3><button class="ib" data-act="fclr" data-p="${esc("F_" + dom + "_" + id + "_")}" title="Effacer" aria-label="Effacer">${icon("restore")}</button></header>
     <div class="fformule">${jolie(formule)}</div>
     <div class="ochamps">${V.map(v => `<label class="ochamp"><span>${jolie(v[1])}</span><span class="ochin"><input id="${cle(v[0])}" data-oi="1" value="${esc(val(v))}" inputmode="decimal" autocomplete="off">${v[2] ? `<em>${esc(v[2])}</em>` : ""}</span></label>`).join("")}</div>
     ${res}${aide ? `<p class="faide">${esc(aide)}</p>` : ""}</article>`;
@@ -5126,7 +5129,7 @@ function vueFormulaires(dom, liste, speciaux){
   }).join("");
   return barreNiveaux(dom) + `<p class="muted fintro">Dans chaque outil, remplis toutes les valeurs sauf une : la grandeur laissée vide est calculée automatiquement. Les nombres s'écrivent 0,5 ou 6,02e23 (= 6,02 × 10²³).</p>` + (total ? sections : `<p class="muted">Aucun outil ne correspond à ta recherche.</p>`);
 }
-const spec = (html, mots) => ({ html: html.replace('<section class="ocarte"', '<section class="ocarte fcarte fspec"'), mots });
+const spec = (html, mots) => { const k0 = "sp:" + mots.split(" ").slice(0, 3).join("-"); return { html: html.replace('<section class="ocarte"', `<section class="ocarte fcarte fspec${FOPEN.has(k0) ? " ouvert" : ""}" data-k="${k0}"`).replace(/<h3>/, '<h3 data-act="fouvre">'), mots }; };
 
 /* ---------- outils spéciaux de chimie ---------- */
 function carteAvancement(){
@@ -5179,7 +5182,9 @@ OUTILS_PLUS.chimie = function(){
 IC.pendule = IC.pendule || '<path d="M4 3h16M12 3l-4 12"/><circle cx="7.5" cy="17" r="3"/>';
 OUTILS_PLUS.phys = () => vueFormulaires("phy", F_PHY, {});
 document.addEventListener("click", e => {
-  const a = e.target.closest && e.target.closest('[data-act="fniv"],[data-act="fclr"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  const a = e.target.closest && e.target.closest('[data-act="fniv"],[data-act="fclr"],[data-act="fouvre"]'); if (!a) return;
+  if (a.dataset.act === "fouvre") { if (e.target.closest('[data-act="fclr"]') || window.innerWidth > 760) return; const c = a.closest(".fcarte"); if (!c) return; e.preventDefault(); const k = c.dataset.k; if (FOPEN.has(k)) { FOPEN.delete(k); c.classList.remove("ouvert"); } else { FOPEN.add(k); c.classList.add("ouvert"); } return; }
+  e.preventDefault(); e.stopPropagation();
   if (a.dataset.act === "fniv") OV["fniv_" + a.dataset.d] = a.dataset.n;
   else { const p = a.dataset.p; Object.keys(OV).forEach(k => { if (k.startsWith(p)) delete OV[k]; }); }
   render();
@@ -5235,7 +5240,10 @@ const ilYa = d => { const m = Math.round((Date.now() - new Date(d)) / 60000); re
 async function chargerSessions(){
   const { data, error } = await sb.rpc("pp_sessions");
   if (error) { SES.err = /pp_sessions|function/i.test(error.message) ? "La liste détaillée n'est pas encore installée (étape 23 de la base de données)." : error.message; SES.liste = []; }
-  else { SES.err = ""; SES.liste = typeof data === "string" ? JSON.parse(data) : (data || []); }
+  else { SES.err = ""; const brut = typeof data === "string" ? JSON.parse(data) : (data || []), vus = new Map();
+    /* un même navigateur peut avoir plusieurs onglets : on n'en garde qu'un (le plus récent, visible en priorité) */
+    brut.sort((a, b) => (b.visible && b.en_ligne) - (a.visible && a.en_ligne) || new Date(b.vu_le) - new Date(a.vu_le)).forEach(x => { const k = x.email + "|" + x.appareil; if (!vus.has(k)) vus.set(k, x); });
+    SES.liste = [...vus.values()]; }
   dessinerSessions();
 }
 function ligneSession(x){
@@ -5303,6 +5311,76 @@ async function chargerStatutProf(){
 }
 const _demarrerPresence = demarrerPresence;
 demarrerPresence = function(){ _demarrerPresence(); if (!S.prof && !STP.t) { chargerStatutProf(); STP.t = setInterval(chargerStatutProf, 15000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") chargerStatutProf(); }); } };
+/* =====================================================================
+   « Pour s'entraîner » : le professeur relie simulations et outils aux chapitres
+   + nom court des cours dans le menu
+   ===================================================================== */
+function nomCourtCours(nom){
+  let n = String(nom || "");
+  if (n.length <= 24) return n;
+  return n.replace(/\bTerminale\b/gi, "Tle").replace(/Première/gi, "1re").replace(/\bSeconde\b/gi, "2nde")
+    .replace(/spécialité/gi, "spé").replace(/\bPhysique[- ]Chimie\b/gi, "PC").replace(/\bTechnologie\b/gi, "Techno")
+    .replace(/\bSciences de l'ingénieur\b/gi, "SI").replace(/\bSciences numériques et technologie\b/gi, "SNT").replace(/\s+/g, " ").trim();
+}
+const PR_ONG = [["unites", "Convertisseur d'unités"], ["tableau", "Tableau périodique"], ["formules", "Éditeur de formules"], ["mesures", "Mesures et incertitudes"], ["constantes", "Constantes"], ["courbes", "Traceur de courbes"], ["snt", "Bits et octets (SNT)"]];
+function cataloguePratique(){
+  const L = [];
+  SIMS.forEach(g => g.l.forEach(x => L.push({ k: "s:" + x.url, t: x.t, type: "Simulation", sous: g.cat + (x.niv ? " · " + x.niv : ""), ic: "atom" })));
+  (R().simulations || []).forEach(x => L.push({ k: "s:" + x.url, t: x.t, type: "Simulation", sous: "Ajoutée par toi", ic: "atom" }));
+  F_PHY.forEach(t => L.push({ k: "f:phy:" + t[0], t: t[3], type: "Outil de physique", sous: t[4] + " · " + t[2], ic: "pendule" }));
+  F_CHI.forEach(t => L.push({ k: "f:chi:" + t[0], t: t[3], type: "Outil de chimie", sous: t[4] + " · " + t[2], ic: "flask" }));
+  PR_ONG.forEach(([k, t]) => L.push({ k: "o:" + k, t, type: "Outil", sous: "Outils Scientifiques Importants", ic: "ruler" }));
+  return L;
+}
+const elemPratique = k => { const c = cataloguePratique().find(x => x.k === k); if (c) return c; if (k.startsWith("s:")) return { k, t: "Simulation", type: "Simulation", ic: "atom" }; return null; };
+function blocPratique(tid){
+  const L = ((R().pratique || {})[tid] || []).map(elemPratique).filter(Boolean);
+  if (!L.length && !S.prof) return "";
+  return `<div class="pratique"><span class="prlbl">${icon("flask")} Pour s'entraîner</span>${L.map(x => `<span class="prchip"><button data-act="prouvrir" data-k="${esc(x.k)}" title="${esc(x.type)}">${icon(x.ic)}${esc(x.t)}</button>${S.prof ? `<button class="prx" data-act="prretire" data-tid="${esc(tid)}" data-k="${esc(x.k)}" aria-label="Retirer">×</button>` : ""}</span>`).join("")}${S.prof ? `<button class="prplus" data-act="prajout" data-tid="${esc(tid)}">${icon("plus")} ${L.length ? "Ajouter" : "Ajouter une simulation ou un outil"}</button>` : ""}</div>`;
+}
+async function sauverPratique(tid, liste){
+  const p = { ...(R().pratique || {}) }; if (liste.length) p[tid] = liste; else delete p[tid];
+  const data = { ...reglagesData(), pratique: p };
+  const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() });
+  if (error) { toast("Enregistrement impossible : " + error.message); return false; }
+  appliquerReglages(data); return true;
+}
+const PR = { tid: null, q: "" };
+function dessinerChoixPratique(){
+  const z = document.querySelector("#prPanel .prliste"); if (!z) return;
+  const deja = new Set((R().pratique || {})[PR.tid] || []), q = sansAccent(PR.q);
+  const L = cataloguePratique().filter(x => !q || sansAccent(x.t + " " + x.type + " " + (x.sous || "")).includes(q)).slice(0, 80);
+  z.innerHTML = L.map(x => `<button class="prl${deja.has(x.k) ? " on" : ""}" data-act="prbascule" data-k="${esc(x.k)}">${icon(x.ic)}<span><b>${esc(x.t)}</b><small>${esc(x.type)}${x.sous ? " · " + esc(x.sous) : ""}</small></span><i>${deja.has(x.k) ? "✓ Ajouté" : "+ Ajouter"}</i></button>`).join("") || `<p class="muted">Aucun résultat.</p>`;
+}
+function ouvrirChoixPratique(tid){
+  PR.tid = tid; PR.q = "";
+  const p = document.createElement("div"); p.id = "prPanel"; p.className = "sesfond";
+  p.innerHTML = `<div class="sesboite" role="dialog" aria-modal="true" aria-label="Pour s'entraîner"><header>${icon("flask")}<b>Pour s'entraîner : simulations et outils du chapitre</b><button class="ib" data-act="prfermer" aria-label="Fermer">${icon("x")}</button></header>
+    <div class="sesbarre"><input type="search" id="prQ" placeholder="Chercher : pendule, pH, dilution, lentille, circuit…" aria-label="Chercher"></div>
+    <p class="muted sesaide">Clique pour ajouter ou retirer. Les élèves verront ces liens en haut du chapitre et les ouvriront en un clic.</p>
+    <div class="sescorps prliste"></div></div>`;
+  document.body.appendChild(p);
+  p.addEventListener("click", e => { if (e.target === p) fermerChoixPratique(); });
+  p.querySelector("#prQ").addEventListener("input", e => { PR.q = e.target.value; dessinerChoixPratique(); });
+  dessinerChoixPratique(); setTimeout(() => p.querySelector("#prQ").focus(), 50);
+}
+function fermerChoixPratique(){ document.getElementById("prPanel")?.remove(); render(); }
+function ouvrirPratique(k){
+  if (k.startsWith("s:")) { const x = elemPratique(k); ouvrirSimu(x.t, k.slice(2)); return; }
+  if (k.startsWith("o:")) { S.phyOng = k.slice(2); go("/physique"); return; }
+  const [, dom, id] = k.split(":"), t = (dom === "phy" ? F_PHY : F_CHI).find(x => x[0] === id);
+  S.phyOng = dom === "phy" ? "phys" : "chimie"; OV["fniv_" + dom] = "tout"; OV["fQ_" + dom] = t ? t[3] : ""; FOPEN.add(dom + ":" + id); go("/physique");
+}
+document.addEventListener("click", async e => {
+  const a = e.target.closest && e.target.closest('[data-act="prouvrir"],[data-act="prretire"],[data-act="prajout"],[data-act="prfermer"],[data-act="prbascule"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  const act = a.dataset.act;
+  if (act === "prouvrir") ouvrirPratique(a.dataset.k);
+  else if (act === "prajout") { if (S.prof) ouvrirChoixPratique(a.dataset.tid); }
+  else if (act === "prfermer") fermerChoixPratique();
+  else if (act === "prretire") { const L = ((R().pratique || {})[a.dataset.tid] || []).filter(k => k !== a.dataset.k); if (await sauverPratique(a.dataset.tid, L)) render(); }
+  else if (act === "prbascule") { const L = ((R().pratique || {})[PR.tid] || []).slice(), i = L.indexOf(a.dataset.k); if (i >= 0) L.splice(i, 1); else L.push(a.dataset.k); if (await sauverPratique(PR.tid, L)) dessinerChoixPratique(); }
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("prPanel")) fermerChoixPratique(); });
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
@@ -5418,7 +5496,7 @@ document.addEventListener("click", async e => {
     case "favori": { e.preventDefault(); e.stopPropagation(); basculerFavori(a.dataset.nom); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
-    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = localStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); localStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut(); location.replace(ICI); return;
+    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); sessionStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut(); location.replace(ICI); return;
     case "menu": e.preventDefault(); S.menu = S.menu === a.dataset.m ? null : a.dataset.m; S.dd = false; S.me = false; render(); return;
     case "reload": S.cache = {}; await chargerTout().catch(() => {}); render(); return;
     case "toggle": S.open = S.open === a.dataset.id ? null : a.dataset.id; render(); return;
