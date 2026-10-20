@@ -287,7 +287,7 @@ function liensUtilesEleve(){
   return `<div class="it ithead">${icon("links")}<span class="lbl">Liens utiles pour toi</span></div>${L.map(l => `<a class="it sublink" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.c.nom)}"><span class="lbl">${esc(l.nom)}</span></a>`).join("")}`;
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
-const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : ""}</div>${logos}</div>`;
+const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : ""}</div></div>`;
 const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(R().prof.nom)}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
@@ -315,7 +315,7 @@ function carte(c, archivee){
         : `${deplacerMenu(c)}${c.code ? `<a href="#" data-act="copylien" data-code="${esc(c.code)}">${icon("links")} Copier le lien d'invitation</a>` : ""}<a href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Modifier</a><a href="#" data-act="copiercours" data-c="${esc(c.id)}">${icon("copy")} Copier</a><a href="#" data-act="archiver" data-c="${esc(c.id)}" data-on="1">${icon("archive")} Archiver</a>`}</div>` : ""}</div>`;
   return `<article class="ccard${archivee ? " archived" : " movable"}" data-cid="${esc(c.id)}" style="--bb:var(${k.b})">
     <div style="position:relative">
-      <a class="banner" href="#/classe/${esc(c.id)}">${bannerArt(c)}${archivee ? "" : badgeCarte(c)}<h2>${esc(c.nom)}</h2>${c.section ? `<p>${esc(c.section)}</p>` : ""}<span class="teacher">${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(R().prof.nom)}</span></a>
+      <a class="banner" href="#/classe/${esc(c.id)}">${bannerArt(c)}${archivee ? "" : badgeCarte(c)}<h2${c.nom.length > 26 ? ' class="long"' : ""}>${esc(c.nom)}</h2>${c.section ? `<p>${esc(c.section)}</p>` : ""}<span class="teacher">${S.prof ? nbTxt(S.nbEleves[c.id]) : esc(R().prof.nom)}</span></a>
       ${S.prof ? "" : avatarP(R().prof.nom, "lg ph")}
     </div>
     <div class="body">${body}</div>
@@ -674,7 +674,7 @@ function vCP(did, email){
   const list = (S.cp || {})[cpKey(did, email)] || [];
   return `<div class="yourwork"><header><h2 style="font-size:1rem">${icon("comment")} Commentaires privés</h2></header>
     ${list.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div></div>`).join("") || `<span class="muted" style="font-size:.85rem">${S.prof ? "Aucun échange avec cet élève." : "Pose une question à ton professeur : seul lui verra ce message."}</span>`}
-    <div class="comform"><input id="cpIn" placeholder="${S.prof ? "Ajouter un commentaire privé…" : "Ajouter un commentaire privé…"}" aria-label="Commentaire privé"><button class="ib" data-act="cpsend" data-d="${did}" data-e="${esc(email)}" aria-label="Envoyer">${icon("send")}</button></div></div>`;
+    <div class="comform"><input id="cpIn" placeholder="${S.prof ? "Écrire à l'élève…" : "Écrire au professeur…"}" aria-label="Commentaire privé"><button class="ib" data-act="cpsend" data-d="${did}" data-e="${esc(email)}" aria-label="Envoyer">${icon("send")}</button></div></div>`;
 }
 
 /* ---------- devoir côté élève ---------- */
@@ -3718,7 +3718,7 @@ function chargerPourTableau(){
   if (S.prof && !S.demandes && typeof chargerDemandes === "function") L.push(chargerDemandes().catch(() => {}));
   if (L.length) Promise.all(L).then(() => { if (route().v === "accueil" && !S.modal) render(); });
 }
-const tuile = (href, ic, n, lib, ton, sous) => `<a class="kpi ${ton || ""}" href="${href}"><span class="kpiic">${icon(ic)}</span><span class="kpitxt"><b>${n}</b><span>${lib}</span>${sous ? `<small>${sous}</small>` : ""}</span></a>`;
+const tuile = (href, ic, n, lib, ton, sous) => n === 0 ? "" : `<a class="kpi ${ton || ""}" href="${href}"><span class="kpiic">${icon(ic)}</span><span class="kpitxt"><b>${n}</b><span>${lib}</span>${sous ? `<small>${sous}</small>` : ""}</span></a>`;
 function blocTableauDeBord(){
   chargerPourTableau();
   const t = now(), dans7 = new Date(+t + 7 * 864e5), aujourdhui = d => sameDay(D(d), t);
@@ -3753,7 +3753,7 @@ function blocTableauDeBord(){
   }
   return `<section class="tdb"><div class="tdbhead"><div><h1>${salut()} ${esc(premierPrenom())}</h1><p>${esc(fmtD(t).replace(/^./, m => m.toUpperCase()))}</p></div>
       <button class="tdbsearch" data-act="recherche" aria-label="Rechercher (Ctrl+K)">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
-    <div class="kpis">${tuiles}</div></section>`;
+    ${tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent, aucun élève à surveiller." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
 }
 
 /* ---------- #7 Recherche universelle (Ctrl+K) ---------- */
@@ -4270,7 +4270,7 @@ VUES_PRO.revisions = function(r){
     <p class="muted" style="margin:0">${S.prof ? "Crée des cartes question/réponse pour chaque chapitre : les élèves les révisent, les cartes ratées reviennent jusqu'à ce qu'elles soient sues." : "Choisis un chapitre et révise : retourne la carte, puis dis si tu savais. Les cartes ratées reviennent jusqu'à ce que tu les saches."}</p>
     ${d.err ? `<p class="err">${esc(d.err)}</p>` : ""}
     ${d.l.length ? `<div><button class="btn" data-act="fcrev" data-t="tout">${icon("cards")} Réviser tout le cours (${d.l.length} cartes)</button></div>` : ""}
-    <div class="fcgrille">${groupes.map(g => { const m = maitrise(g.cartes); return `<section class="fcchap"><div class="fcchaph"><h2>${esc(g.titre)}</h2>${g.cartes.length ? `<span class="fcmaitr" title="Cartes sues"><i style="width:${m}%"></i></span><small>${m} %</small>` : ""}</div>
+    <div class="fcgrille">${groupes.filter(g => S.prof || g.cartes.length).map(g => { const m = maitrise(g.cartes); return `<section class="fcchap"><div class="fcchaph"><h2>${esc(g.titre)}</h2>${g.cartes.length ? `<span class="fcmaitr" title="Cartes sues"><i style="width:${m}%"></i></span><small>${m} %</small>` : ""}</div>
         <p class="muted" style="margin:0;font-size:.85rem">${g.cartes.length} carte${g.cartes.length > 1 ? "s" : ""}${g.docs.length ? ` · ${g.docs.length} fiche${g.docs.length > 1 ? "s" : ""} de cours` : ""}</p>
         ${g.docs.length ? `<div class="fcdocs">${g.docs.slice(0, 4).map(s => `<a href="#/classe/${esc(cid)}/travaux">${icon("support")} ${esc(s.titre)}</a>`).join("")}</div>` : ""}
         <div class="fcact">${g.cartes.length ? `<button class="btn tonal sm" data-act="fcrev" data-t="${g.id ?? "none"}">${icon("cards")} Réviser</button>` : ""}${S.prof ? `<button class="btn ghost sm" data-act="fcedit" data-t="${g.id ?? "none"}">${icon("edit")} ${g.cartes.length ? "Modifier les cartes" : "Créer des cartes"}</button>` : ""}</div>
@@ -5377,7 +5377,8 @@ async function render(){
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + navMobile(r) + (S.modal ? vModal() : "");
     { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
-      document.title = (r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
+      Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
+      document.title = (dv0 ? dv0.titre + (cd0 ? " · " + cd0.nom : "") + " · " : r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
     { const pg = app.querySelector("main.content > .page"); if (pg && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };
     const iz = document.getElementById("impZip"); if (iz) iz.onchange = () => { const f = [...iz.files]; iz.value = ""; if (f.length) importerZip(f).catch(er => { S.imp.busy = false; toast("Zip : " + (er.message || er)); render(); }); };
@@ -5811,7 +5812,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   }
   try { await chargerTout(); } catch (e) { app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger tes données : ${esc(e.message)}</div></div>`; return; }
   if (S.prof) S.nom = R().prof.nom;
-  try { S.recent = localStorage.getItem("pp_recent") === "1"; S.swTri = localStorage.getItem("pp_tri") || "statut"; } catch (_) {}
+  try { S.recent = localStorage.getItem("pp_recent") !== "0"; S.swTri = localStorage.getItem("pp_tri") || "statut"; } catch (_) {}
   /* juste après la connexion : un élève inscrit dans un seul cours arrive directement dans ce cours */
   if (fresh && !S.prof && !pj && route().v === "accueil" && actives().length === 1) history.replaceState(null, "", ICI + "#/classe/" + encodeURIComponent(actives()[0].id));
   render();

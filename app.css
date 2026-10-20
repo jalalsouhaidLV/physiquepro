@@ -1827,3 +1827,39 @@ body .brandtx small{font-weight:600!important}
 .drawer .stp{box-shadow:none;background:var(--surface-2,#e8eef3);padding:4px 12px;font-size:.84rem;color:var(--ink)}
 .drawer .stp.vert{background:#e6f4ea;color:#137333}
 .drawer .stp.rouge{background:#fde8e8;color:#a50e0e}
+
+/* ===== Finitions (note /20) ===== */
+/* tuiles d'accueil : pas de texte coupé, message unique si tout est à jour */
+.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.kpitxt span,.kpitxt small{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+.kpiok{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:var(--r-lg,18px);background:var(--surface);box-shadow:var(--shadow)}
+.kpiok>.i{flex:none;width:40px;height:40px;padding:9px;border-radius:12px;background:#e6f4ea;color:#137333}
+.kpiok span{display:flex;flex-direction:column;gap:2px}
+.kpiok small{color:var(--muted);font-size:.85rem}
+/* cartes de cours : nom long un peu plus petit */
+.ccard .banner h2.long{font-size:1.12rem;line-height:1.2}
+/* pièces jointes : nom de fichier sur 2 lignes au lieu d'être coupé */
+.att.rcards .rtxt b{white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;line-height:1.3}
+/* bandeau du haut sans logos (ils restent en pied de page) */
+.foot.headband{justify-content:flex-start}
+/* téléphone : logo visible, et l'essentiel d'abord sur l'accueil */
+@media (max-width:600px){
+  .topbar .crumbs{display:flex!important;flex:0 0 auto;max-width:none!important;margin-right:2px}
+  .topbar .crumbs .brand{display:flex!important;padding:0}
+  .topbar .crumbs .brandtx,.topbar .crumbs .sep,.topbar .crumbs .cur{display:none!important}
+  .page.home{display:flex!important;flex-direction:column}
+  .page.home>.headband{order:-2}
+  .page.home>.tdb{order:-1}
+  .page.home>.recent{order:0}
+  .page.home>.homepanel{order:1}
+  .page.home>.sciday{order:2}
+  .page.home>.decouvertes{order:3}
+  .page.home>.foot:not(.headband),.page.home>.compteur{order:9}
+}
+.ccard .banner h2.long{font-size:1.1rem!important;line-height:1.2!important}
+@media (max-width:600px){.kpis{grid-template-columns:1fr 1fr!important}}
+@media (max-width:440px){.topbar .quick a:nth-child(n+3){display:none!important}}
+.ccard .banner h2.long{max-width:100%!important;padding-top:22px}
+@media (max-width:440px){.topbar .quick{justify-content:flex-start!important;gap:6px!important;flex:1}}
+.ccard .banner h2{text-wrap:wrap!important}
+.ccard .banner h2.long{padding-right:56px!important}
