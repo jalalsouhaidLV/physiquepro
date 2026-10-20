@@ -4362,7 +4362,7 @@ function compteurVisites(){
   return `<div class="compteur"><span class="cpt" title="Élèves qui se sont déjà connectés au site">${icon("people")}<b>${v.comptes}</b> élève${v.comptes > 1 ? "s" : ""} déjà connecté${v.comptes > 1 ? "s" : ""}</span>
     <span class="cpt" title="Visites des élèves (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} d'élèves</span>
     <span class="cpt" title="Élèves connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</span>
-    <button class="cpt enligne" data-act="enligne" title="Voir qui est en ligne et déconnecter une session"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} en ligne</button></div>`;
+    <button class="cpt enligne" data-act="enligne" title="Voir qui est en ligne et déconnecter une session"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} en ligne${v.inactifs ? `<span class="cptinact"><i></i>${v.inactifs} inactif${v.inactifs > 1 ? "s" : ""}</span>` : ""}</button></div>`;
 }
 
 /* ---------- Glisser-déposer des cours dans le menu de gauche ---------- */
@@ -5269,18 +5269,22 @@ async function chargerSessions(){
 }
 function ligneSession(x){
   if (!x.nom || x.nom.includes("@")) x.nom = nomDepuisEmail(x.email || x.nom || "?");
-  const etat = x.deconnecter ? `<span class="sest attente">Déconnexion demandée…</span>` : x.en_ligne ? (x.visible ? `<span class="sest on">En ligne</span>` : `<span class="sest fond">Onglet en arrière-plan</span>`) : `<span class="sest off">Inactif · vu ${ilYa(x.vu_le)}</span>`;
+  const st = x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
+  const etat = st === "attente" ? `<span class="sest attente">Déconnexion demandée…</span>` : st === "actif" ? (x.visible ? `<span class="sest on">En ligne</span>` : `<span class="sest fond">En ligne · onglet en arrière-plan</span>`)
+    : st === "expiree" ? `<span class="sest exp">Déconnecté automatiquement</span>` : `<span class="sest inact">Inactif · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>`;
   const btn = x.moi ? `<span class="muted sesmoi">${x.id === idSession() ? "Toi (cette page)" : "Toi (autre appareil)"}</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
-  return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted">${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
+  return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted">${x.lycee ? `<span class="seslyc">${icon("lieu")} Lycée</span> ` : ""}${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
 }
 function dessinerSessions(){
   const z = document.querySelector("#sesPanel .sescorps"); if (!z) return;
   if (!SES.liste) { z.innerHTML = `<p class="muted">Chargement…</p>`; return; }
   if (SES.err) { z.innerHTML = `<p class="ores err">${esc(SES.err)}</p>`; return; }
   const q = sansAccent(SES.q), L = SES.liste.filter(x => !q || sansAccent([x.nom, x.email, x.classes, x.appareil].join(" ")).includes(q));
-  const on = L.filter(x => x.en_ligne), off = L.filter(x => !x.en_ligne), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter).length;
-  z.innerHTML = `<section><h4>En ligne maintenant · ${on.length}</h4>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
-    <section><h4>Sessions restées ouvertes (vues dans les 18 dernières heures) · ${off.length}</h4><p class="muted sesaide">Navigateur fermé sans se déconnecter, par exemple sur un ordinateur du lycée. La déconnexion se fera dès que ce navigateur rouvrira le site.</p>${off.map(ligneSession).join("") || `<p class="muted">Aucune.</p>`}</section>`;
+  const stx = x => x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
+  const on = L.filter(x => stx(x) === "actif"), off = L.filter(x => stx(x) === "inactif" || stx(x) === "attente"), exp = L.filter(x => stx(x) === "expiree"), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter && stx(x) !== "expiree").length;
+  z.innerHTML = `<section><h4><i class="pt vert"></i>En ligne maintenant · ${on.length}</h4>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
+    <section><h4><i class="pt orange"></i>Inactifs · ${off.length}</h4><p class="muted sesaide">Connectés mais sans activité depuis plus de 5 minutes (page laissée ouverte, ou navigateur fermé sans se déconnecter).</p>${off.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
+    ${exp.length ? `<section><h4><i class="pt gris"></i>Déconnectés automatiquement · ${exp.length}</h4><p class="muted sesaide">Sessions du lycée restées 15 minutes sans activité : l'élève est déconnecté, et si son navigateur est fermé, la déconnexion se fait dès que l'ordinateur rouvre PhysiquePro.</p>${exp.map(ligneSession).join("")}</section>` : ""}`;
   const tous = document.querySelector('#sesPanel [data-act="sesdecotous"]'); if (tous) { tous.disabled = !nbEl; tous.className = "btn sm " + (SES.arme === "tous" ? "danger" : "ghost"); tous.innerHTML = `${icon("logout")} ${SES.arme === "tous" ? `Confirmer : déconnecter ${nbEl} session${nbEl > 1 ? "s" : ""} d'élèves ?` : "Déconnecter tous les élèves"}`; }
 }
 function ouvrirSessions(){
@@ -5985,6 +5989,97 @@ function initBinaire(p){
   LAB.dessiner = null; dessinBinaire();
 }
 Object.assign(LAB_DEF, { onde: { ui: uiOnde, init: initOnde }, radio: { ui: uiRadio, init: initRadio }, atome: { ui: uiAtome, init: initAtome }, binaire: { ui: uiBinaire, init: initBinaire } });
+/* =====================================================================
+   Activité réelle et déconnexion automatique au lycée
+   · l'activité (souris, clavier, toucher, défilement) est mémorisée pour tous les onglets
+   · au lycée (réseau enregistré par le professeur) : avertissement après 14 min sans activité,
+     déconnexion de PhysiquePro et de Microsoft après 15 min
+   · si Chrome a été fermé puis rouvert au lycée plus de 15 min après : déconnexion immédiate
+   ===================================================================== */
+const ACT = { t: 0, charge: Date.now(), ecrit: 0, limite: null, lycee: false, rpc2: true, avert: null, verifie: false };
+const cleAct = () => "pp_act_" + (S.user && S.user.id);
+function derniereActivite(){
+  let t = ACT.t; try { t = Math.max(t, Number(localStorage.getItem(cleAct())) || 0); } catch (_) {}
+  const conn = S.user && S.user.last_sign_in_at ? Date.parse(S.user.last_sign_in_at) : 0;
+  const v = Math.max(t, conn || 0);
+  return v || ACT.charge;          /* jamais d'activité connue sur ce navigateur : on part du chargement */
+}
+function noterActivite(){
+  if (ACT.avert) return;                                         /* pendant l'avertissement, seul le bouton compte */
+  ACT.t = Date.now();
+  if (ACT.t - ACT.ecrit > 10000 && S.user) { ACT.ecrit = ACT.t; try { localStorage.setItem(cleAct(), String(ACT.t)); } catch (_) {} }
+}
+["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach(ev => window.addEventListener(ev, noterActivite, { passive: true, capture: true }));
+let actMv = 0; window.addEventListener("mousemove", () => { const n = Date.now(); if (n - actMv > 5000) { actMv = n; noterActivite(); } }, { passive: true });
+
+const _signalerPresence = signalerPresence;
+signalerPresence = async function(){
+  if (!S.user) return;
+  const id = idSession();
+  if (!ACT.rpc2 || !id) return _signalerPresence();
+  const inactif = Math.max(0, Math.round((Date.now() - derniereActivite()) / 1000));
+  const { data, error } = await sb.rpc("pp_presence2", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible", p_inactif: inactif });
+  if (error) { if (/pp_presence2|function/i.test(error.message || "")) { ACT.rpc2 = false; return _signalerPresence(); } return; }
+  const r = typeof data === "string" ? JSON.parse(data) : (data || {});
+  if (r.kick) { deconnexionForcee(); return; }
+  ACT.lycee = !!r.lycee; ACT.limite = S.prof ? null : (r.limite || null);
+  /* première vérification : Chrome rouvert au lycée longtemps après la dernière activité */
+  if (!ACT.verifie) { ACT.verifie = true; if (ACT.limite && inactif >= ACT.limite) { deconnexionAuto(); return; } }
+};
+setInterval(() => {
+  if (!S.user || !ACT.limite || S.prof) return;
+  const inactif = (Date.now() - derniereActivite()) / 1000;
+  if (inactif >= ACT.limite) deconnexionAuto();
+  else if (inactif >= ACT.limite - 60 && !ACT.avert) avertirInactivite();
+  else if (inactif < ACT.limite - 60 && ACT.avert) fermerAvert();
+}, 5000);
+
+function avertirInactivite(){
+  const o = document.createElement("div"); o.id = "inactAvert"; o.className = "inactfond";
+  o.innerHTML = `<div class="inactbox" role="alertdialog" aria-modal="true" aria-labelledby="inactT"><div class="inactrond"><svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="23"/><circle class="inactarc" cx="26" cy="26" r="23"/></svg><b id="inactN">60</b></div>
+    <h2 id="inactT">Tu es toujours là ?</h2><p>Tu es sur un ordinateur du lycée et tu n'as rien fait depuis un moment. Pour protéger ton compte, tu vas être déconnecté.</p>
+    <button class="btn" id="inactOk">${icon("check")} Je suis là, rester connecté</button></div>`;
+  document.body.appendChild(o);
+  const fin = derniereActivite() + ACT.limite * 1000;
+  ACT.avert = setInterval(() => { const n = Math.max(0, Math.ceil((fin - Date.now()) / 1000)), z = document.getElementById("inactN"); if (z) z.textContent = n; if (n <= 0) deconnexionAuto(); }, 250);
+  o.querySelector("#inactOk").addEventListener("click", () => { fermerAvert(); noterActivite(); ACT.ecrit = 0; noterActivite(); signalerPresence(); });
+  setTimeout(() => o.querySelector("#inactOk").focus(), 50);
+}
+function fermerAvert(){ clearInterval(ACT.avert); ACT.avert = null; document.getElementById("inactAvert")?.remove(); }
+let decoEnCours = false;
+async function deconnexionAuto(){
+  if (decoEnCours) return; decoEnCours = true; fermerAvert();
+  try { const id = idSession(); if (id) await sb.rpc("pp_fin_session", { p_session: id }); } catch (_) {}
+  try { localStorage.removeItem(cleAct()); sessionStorage.setItem("pp_auto", "1"); } catch (_) {}
+  deconnexionForcee();
+  try { sessionStorage.removeItem("pp_kick"); } catch (_) {}   /* le message affiché sera celui de la déconnexion automatique */
+}
+try { if (sessionStorage.getItem("pp_auto")) { sessionStorage.removeItem("pp_auto"); sessionStorage.removeItem("pp_kick"); setTimeout(() => toast("Tu as été déconnecté automatiquement après 15 minutes sans activité sur un ordinateur du lycée."), 1500); } } catch (_) {}
+
+/* ---------- Professeur : réseau du lycée, dans le panneau « Élèves connectés » ---------- */
+const RES = { etat: null };
+async function chargerReseau(action){
+  const { data, error } = await sb.rpc("pp_reseau_lycee", { p_action: action || "etat" });
+  RES.etat = error ? { err: /pp_reseau_lycee|function/i.test(error.message) ? "Étape 32 de la base de données pas encore installée." : error.message } : (typeof data === "string" ? JSON.parse(data) : data);
+  dessinerReseau();
+}
+function dessinerReseau(){
+  const z = document.getElementById("sesReseau"); if (!z) return; const e = RES.etat;
+  if (!e) { z.innerHTML = ""; return; }
+  if (e.err) { z.innerHTML = `<p class="ores err">${esc(e.err)}</p>`; return; }
+  z.innerHTML = `<div class="resl ${e.ici ? "ok" : ""}">${icon("lieu")}<div><b>${e.ici ? "Tu es sur le réseau du lycée." : e.nb ? "Tu n'es pas sur le réseau du lycée en ce moment." : "Réseau du lycée pas encore enregistré."}</b>
+    <small>${e.nb ? `Au lycée, un élève inactif depuis 15 minutes est déconnecté automatiquement (avec un avertissement 1 minute avant). À la maison, il reste connecté.` : `Quand tu es au lycée, clique sur « Enregistrer ce réseau » : les élèves connectés depuis le lycée seront déconnectés après 15 minutes sans activité.`}</small></div>
+    ${e.ici ? "" : `<button class="btn sm" data-act="resajout">${icon("check")} Je suis au lycée : enregistrer ce réseau</button>`}${e.nb ? `<button class="btn sm ghost" data-act="resoubli" title="Effacer les réseaux enregistrés (${e.nb})">Oublier</button>` : ""}</div>`;
+}
+const _ouvrirSessions = ouvrirSessions;
+ouvrirSessions = function(){ _ouvrirSessions(); const c = document.querySelector("#sesPanel .sescorps"); if (c && !document.getElementById("sesReseau")) { c.insertAdjacentHTML("beforebegin", `<div id="sesReseau"></div>`); chargerReseau(); } };
+document.addEventListener("click", async e => {
+  const a = e.target.closest && e.target.closest('[data-act="resajout"],[data-act="resoubli"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  if (a.dataset.act === "resoubli" && !a.dataset.arme) { a.dataset.arme = "1"; a.textContent = "Confirmer ?"; a.classList.add("danger"); setTimeout(() => dessinerReseau(), 4000); return; }
+  await chargerReseau(a.dataset.act === "resajout" ? "ajouter" : "oublier");
+  toast(a.dataset.act === "resajout" ? "Réseau du lycée enregistré" : "Réseaux du lycée oubliés");
+}, true);
+IC.lieu = IC.lieu || '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>';
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
