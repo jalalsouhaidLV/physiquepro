@@ -3620,7 +3620,7 @@ function ouvrirCote(cle, url, nom){
     <div class="sidehead">${logo ? `<img src="${esc(logo)}" alt="" width="22" height="22">` : ""}<b>${esc(o.titre || nom)}</b>
       ${o.remplacer && S.prof ? `<label class="ib sm" title="Remplacer le fichier Excel" aria-label="Remplacer le fichier Excel" style="cursor:pointer">${icon("upload")}<input type="file" accept=".xlsx,.xls" data-calfile="1" hidden></label>` : ""}
       <button class="ib sm" data-sp="cote" title="Mettre de l'autre côté" aria-label="Mettre le panneau de l'autre côté">${icon("swap")}</button>
-      <a class="ib sm" href="${esc(url)}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet">${icon("ext")}</a>
+      <a class="ib sm" href="${esc(o.lienExt || url)}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet">${icon("ext")}</a>
       <button class="ib sm" data-sp="fermer" title="Fermer" aria-label="Fermer ${esc(o.titre)}">${icon("x")}</button></div>
     ${o.mode === "televerser" ? `<div class="sidefen"><img src="logo-excel.png" alt="" width="64" height="64"><b>Aucun calendrier pour l'instant</b><p>Choisis le fichier Excel du calendrier dynamique : il sera rangé dans ton espace privé (invisible des élèves) et s'affichera ici.</p><label class="btn">${icon("upload")} Choisir le fichier Excel<input type="file" accept=".xlsx,.xls" data-calfile="1" hidden></label></div>` : ""}
     ${o.mode === "cadre" ? `<div class="sidevue"${o.virtuel ? ` data-virtuel="${o.virtuel}"` : ""}><iframe src="${esc(url)}" title="${esc(o.titre)}" allow="clipboard-read; clipboard-write; fullscreen; microphone; camera" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
@@ -4383,8 +4383,16 @@ document.addEventListener("dragstart", e => { if (e.target.closest && e.target.c
 
 /* ---------- Calendrier dynamique (Excel privé du prof, affiché à côté de la page) ---------- */
 const CAL_CHEMIN = "prof/calendrier-dynamique.xlsx";
+/* lien Google Drive du calendrier partagé par la direction : toujours la dernière version */
+const CAL_DRIVE = "1YXfbYl-v3lrAA1VUjQO4WGC1NTR_SYRe";
+function lienCalendrier(){
+  const l = (R().liensUtiles || []).find(x => x.icone === "logo-calendrier"), u = l && /^https?:\/\//.test(l.url || "") ? l.url : "https://drive.google.com/file/d/" + CAL_DRIVE + "/view";
+  const id = (u.match(/\/(?:file|spreadsheets)\/d\/([\w-]{20,})/) || [])[1];
+  return id ? { vue: "https://drive.google.com/file/d/" + id + "/preview", ext: "https://docs.google.com/spreadsheets/d/" + id + "/edit" } : { vue: u, ext: u };
+}
 async function ouvrirCalendrier(forcer){
   if (SP.cle === "logo-calendrier" && !forcer) { fermerCote(); return; }
+  { const L = lienCalendrier(), o = COTE_A_COTE["logo-calendrier"]; o.mode = "cadre"; o.remplacer = false; o.lienExt = L.ext; SP.cle = null; ouvrirCote("logo-calendrier", L.vue, "Calendrier"); return; }
   const { data, error } = await sb.storage.from("documents").createSignedUrl(CAL_CHEMIN, 3600);
   if (error || !data || !data.signedUrl) { COTE_A_COTE["logo-calendrier"].mode = "televerser"; SP.cle = null; ouvrirCote("logo-calendrier", "#", "Calendrier"); return; }
   COTE_A_COTE["logo-calendrier"].mode = "cadre"; SP.cle = null;
