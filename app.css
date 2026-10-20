@@ -1899,3 +1899,30 @@ body .brandtx small{font-weight:600!important}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tech:#F2A15F}}
 :root[data-theme="dark"]{--tech:#F2A15F}
 @media (max-width:1500px){.topbar:has(.crumbs .cur) .quick.deux{grid-template-columns:repeat(var(--qc,12),64px)}.topbar:has(.crumbs .cur) .quick.deux .qi,.topbar:has(.crumbs .cur) .quick.deux .qi:has(.qlogo){width:48px;min-width:48px}.topbar:has(.crumbs .cur) .quick.deux .ql{max-width:64px!important}}
+
+/* ===== Typographie : gras mesuré (hiérarchie 500 / 600 / 800) ===== */
+body *:not(svg):not(svg *):not(.katex):not(.katex *){font-weight:500!important}
+body :is(label,.lbl,.cnom,.ql,.tabs a,.tabs button,.chip,.pill,.simniv,.kpitxt span,.declbl,.prlbl,.etapeh small,.nlib,.rel,.stp,th,.btn,kbd):not(.katex *){font-weight:600!important}
+body :is(h1,h2,h3,h4,h5,b,strong,.brand b,.kpitxt b,.chip.on,.etapeh b):not(.katex *){font-weight:800!important}
+body .brandtx small{font-weight:600!important}
+/* ===== Chapitre en 3 étapes ===== */
+.etape{margin:6px 0 4px}
+.etapeh{display:flex;align-items:baseline;gap:8px;padding:8px 4px 4px;border-bottom:1px dashed var(--line,#dadce0);margin-bottom:2px}
+.etn{flex:none;align-self:center;width:22px;height:22px;border-radius:50%;background:var(--c,var(--accent));color:#fff;font-size:.78rem;display:grid;place-items:center}
+.etapeh b{font-size:.95rem;color:var(--c,var(--accent))}
+.etapeh small{color:var(--muted);font-size:.78rem}
+.etape .pratique{margin:6px 0}
+/* ===== Échéances en temps restant ===== */
+.rel{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;font-size:.74rem;white-space:nowrap;vertical-align:middle}
+.rel.urgent{background:#fde8e8;color:#a50e0e}
+.rel.bientot{background:#fef3e0;color:#9a5b00}
+.rel.large{background:#e6f4ea;color:#137333}
+.rel.retard{background:#d93025;color:#fff}
+.recentrow .rel{margin-left:auto;margin-right:8px}
+/* ===== Fil du cours ===== */
+.post.notif .nlib{display:block;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--c,var(--accent));margin-bottom:2px}
+/* ===== Bandeau du haut sur téléphone ===== */
+@media (max-width:600px){
+  .foot.headband .hbtxt>span{display:none}
+  .foot.headband:not(:has(.compteur:not(:empty))){display:none}
+}

@@ -348,9 +348,9 @@ function blocRecent(){
   items.sort((a, b) => D(a.o.date_limite) - D(b.o.date_limite));
   const ligne = it => { const o = it.o, c = cls(o.classe_id);
     let droite = "";
-    if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); droite = `<span class="muted">${el.filter(e => renduDe(o, e.email)).length} rendu(s) / ${el.length}</span>`; }
+    if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
     else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${e.t}</span>`; }
-    return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${droite}</a>`; };
+    return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
   return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "À rendre récemment" : "À faire bientôt"}</h2>
       <button class="ib" data-act="recent" title="${S.recent ? "Réduire" : "Développer"}" aria-label="${S.recent ? "Réduire" : "Développer"}" aria-expanded="${S.recent}">${icon(S.recent ? "up" : "expand")}</button></div>
     ${S.recent ? (items.length ? `<div class="recentlist">${items.slice(0, 10).map(ligne).join("")}</div>` : `<p class="muted" style="margin:0">Aucun travail avec une date limite cette semaine ou la semaine dernière.</p>`) : ""}</section>`;
@@ -485,8 +485,8 @@ function vFlux(c, data){
 }
 function vNotif(it){
   const o = it.o, isQ = it.k === "devoir" && o.type === "question", href = it.k === "devoir" ? "#/devoir/" + o.id : it.k === "quiz" ? "#/quiz/" + o.id : "#/classe/" + o.classe_id + "/travaux";
-  const lib = isQ ? "une nouvelle question" : it.k === "devoir" ? "un nouveau devoir" : it.k === "quiz" ? "un nouveau questionnaire" : "un nouveau support";
-  return `<a class="post notif" href="${href}"><span class="ico">${icon(isQ ? "question" : it.k, "")}</span><span class="tt">${esc(R().prof.nom)} a publié ${lib} : ${esc(o.titre)}<small>${fmtQuand(it.date)}</small></span></a>`;
+  const lib = isQ ? "Nouvelle question" : it.k === "devoir" ? "Nouveau devoir" : it.k === "quiz" ? "Nouveau questionnaire" : "Nouveau support";
+  return `<a class="post notif" href="${href}"><span class="ico">${icon(isQ ? "question" : it.k, "")}</span><span class="tt"><span class="nlib">${lib}</span>${esc(o.titre)}<small>${fmtQuand(it.date)} · ${esc(R().prof.nom)}</small></span></a>`;
 }
 function vAnnonce(c, a, data){
   const coms = data.coms.filter(x => x.annonce_id === a.id), mien = S.prof || a.auteur === S.user.id;
@@ -583,7 +583,7 @@ function vTravaux(c, data){
     <span class="spacer"></span>${groupes.length ? `<button class="linkbtn" data-act="toutreduire">${S.reduits.size ? "Tout développer" : "Tout réduire"}</button>` : ""}</div>`;
   return `<div class="page" style="--c:var(${C(c.couleur).c})">${head}
     ${visibles.length ? visibles.map(g => `<section class="theme${S.prof ? " movable" : ""}" data-tid="${gid(g)}"><div class="themehead">${S.prof && g.t ? `<span class="grip" title="Glisser pour déplacer" aria-hidden="true">⋮⋮</span>` : ""}<h2>${esc(g.titre)}</h2><button class="ib sm" data-act="reduire" data-id="${gid(g)}" aria-label="${S.reduits.has(gid(g)) ? "Développer" : "Réduire"}">${icon(S.reduits.has(gid(g)) ? "chevdown" : "chevup")}</button>${themeMenu(g)}</div>
-      ${S.reduits.has(gid(g)) || !g.t ? "" : blocPratique(String(g.t.id))}${S.reduits.has(gid(g)) ? "" : g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir, un questionnaire ou une documentation." : "Rien pour l'instant."}</p>`}</section>`).join("")
+      ${S.reduits.has(gid(g)) ? "" : g.t ? etapesChapitre(g, c) : g.items.length ? g.items.map(workItem).join("") : `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir, un questionnaire ou une documentation." : "Rien pour l'instant."}</p>`}</section>`).join("")
       : `<div class="emptystate"><b>${S.prof ? "Crée ton premier élément" : "Aucun travail pour l'instant."}</b><span>${S.prof ? "Crée un thème (par exemple « Chapitre 1 »), puis ajoute des devoirs, des questionnaires et des documentations." : "Ton professeur n'a encore rien publié dans ce cours."}</span></div>`}
     ${pageFoot()}</div>`;
 }
@@ -866,8 +866,8 @@ function vTodo(){
   };
   const L = {attribues:"Attribués", manquants:"Manquants", termines:"Terminés"}, list = groups[S.todoTab];
   const ligne = it => { const o = it.d || it.q, c = cls(o.classe_id); let right;
-    if (it.d) { const e = etat(o, moi()); right = e.t === "Noté" ? `<span class="mono" style="color:var(--ink)">${fmtNote(e.note)}/${o.points}</span>` : e.t === "Rendu" ? "Rendu" : dueOf(o).replace("Échéance : ", ""); }
-    else { const r = resultatDe(o, S.user.id); right = r ? `<span class="mono" style="color:var(--ink)">${fmtNote(noteQuiz(o, r))}/${o.points}</span>` : o.date_limite ? dueTxt(D(o.date_limite)).replace("Échéance : ", "") : "Aucune date limite"; }
+    if (it.d) { const e = etat(o, moi()); right = e.t === "Noté" ? `<span class="mono" style="color:var(--ink)">${fmtNote(e.note)}/${o.points}</span>` : e.t === "Rendu" ? "Rendu" : dueOf(o).replace("Échéance : ", "") + (e.t === "Attribué" ? relEch(o.date_limite) : ""); }
+    else { const r = resultatDe(o, S.user.id); right = r ? `<span class="mono" style="color:var(--ink)">${fmtNote(noteQuiz(o, r))}/${o.points}</span>` : o.date_limite ? dueTxt(D(o.date_limite)).replace("Échéance : ", "") + relEch(o.date_limite) : "Aucune date limite"; }
     return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${it.d ? "#/devoir/" : "#/quiz/"}${o.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(it.d ? "devoir" : "quiz", "")}</span><span class="tt">${esc(o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${right}</span></a></div>`; };
   return `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs" role="tablist">${Object.keys(L).map(k => `<button role="tab" aria-selected="${S.todoTab === k}" data-act="todotab" data-t="${k}">${L[k]} <span class="muted mono">${groups[k].length}</span></button>`).join("")}</div></div>
   <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(ligne).join("") : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail manquant." : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
@@ -3855,7 +3855,7 @@ VUES_PRO.semaine = function(){
     const c = cls(d.classe_id), e = S.prof ? null : etat(d, moi());
     const fait = S.prof ? aCorriger(d) === 0 && rendusDe(d).length > 0 : !!(e && (e.t === "Rendu" || e.t === "Noté"));
     items.push({ d: D(d.date_limite), titre: d.titre, c, href: "#/devoir/" + d.id, ic: d.type === "question" ? "question" : "devoir", fait,
-      etat: S.prof ? `${rendusDe(d).length} rendu(s) · ${aCorriger(d)} à corriger` : e.t, k: S.prof ? (aCorriger(d) ? "warn" : "ok") : e.k });
+      etat: S.prof ? `${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""} · ${aCorriger(d)} à corriger` : e.t, k: S.prof ? (aCorriger(d) ? "warn" : "ok") : e.k });
   });
   S.quiz.filter(q => vis(q) && q.date_limite && dans(D(q.date_limite))).forEach(q => { const c = cls(q.classe_id), r = S.prof ? null : resultatDe(q, S.user.id);
     items.push({ d: D(q.date_limite), titre: q.titre, c, href: "#/quiz/" + q.id, ic: "quiz", fait: S.prof ? D(q.date_limite) < t : !!r, etat: S.prof ? "Questionnaire" : r ? "Fait" : "À faire", k: r ? "ok" : "" }); });
@@ -4918,13 +4918,22 @@ const SAVIEZ = [
 ];
 const jourN = (d = new Date()) => Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 864e5);
 const DEC = { defi: null, rep: null, fait: null };
+/* niveaux de l'élève connecté (d'après ses cours) ; vide = tous les niveaux */
+function niveauxEleve(){
+  if (!S.user || S.prof || typeof actives !== "function") return [];
+  const M = { tle: ["Tle", "1re"], "1re": ["1re", "2nde"], "2nde": ["2nde"], snt: ["SNT", "2nde"], si: ["SI", "2nde"], "3e": ["Techno"], pix: ["SNT"] }, out = new Set();
+  actives().forEach(c => { const k = String(c.symbole || "").toLowerCase(), n = sansAccent(c.nom || ""); const L = M[k] || (/\bsnt\b/.test(n) ? M.snt : /\bsi\b|ingenieur/.test(n) ? M.si : /terminale|\btle\b/.test(n) ? M.tle : /1re|1ere|premiere/.test(n) ? M["1re"] : /seconde|2nde/.test(n) ? M["2nde"] : /3e|3eme|techno/.test(n) ? M["3e"] : /pix/.test(n) ? M.pix : []); L.forEach(x => out.add(x)); });
+  return [...out];
+}
+const defisPourMoi = () => { const N = niveauxEleve(); const I = DEFIS.map((d, i) => i).filter(i => !N.length || N.includes(DEFIS[i][0])); return I.length ? I : DEFIS.map((d, i) => i); };
 function simDuJour(){
-  const L = SIMS.flatMap(g => g.l).filter(x => x.src === "PhET");
+  const N = niveauxEleve(), tout = SIMS.flatMap(g => g.l).filter(x => x.src === "PhET"), adapt = tout.filter(x => !N.length || N.some(n => (x.niv || "").includes(n === "Techno" ? "Techno" : n)));
+  const L = adapt.length ? adapt : tout;
   const x = L[(jourN() * 7) % L.length], slug = (x.url.match(/sims\/html\/([^/]+)\//) || [])[1];
   return { ...x, img: `https://phet.colorado.edu/sims/html/${slug}/latest/${slug}-600.png` };
 }
 function carteDefi(){
-  const i = DEC.defi ?? (jourN() * 5) % DEFIS.length, [niv, q, opts, ok, expl] = DEFIS[i], r = DEC.rep;
+  const I = defisPourMoi(), i = DEC.defi ?? I[(jourN() * 5) % I.length], [niv, q, opts, ok, expl] = DEFIS[i], r = DEC.rep;
   return `<article class="decarte decdefi" id="decDefi"><small class="declbl">${icon("quiz")} Défi du jour <span class="simniv">${esc(niv)}</span></small><h3>${esc(q)}</h3>
     <div class="defiopts">${opts.map((o, k) => `<button class="defiopt${r == null ? "" : k === ok ? " bon" : k === r ? " faux" : " off"}" data-act="defirep" data-k="${k}" ${r == null ? "" : "disabled"}>${esc(o)}</button>`).join("")}</div>
     ${r == null ? "" : `<p class="defiexpl"><b>${r === ok ? "Bravo !" : "Pas tout à fait."}</b> ${esc(expl)}</p><button class="linkbtn" data-act="defiautre">${icon("restore")} Un autre défi</button>`}</article>`;
@@ -4951,7 +4960,7 @@ IC.chevright = IC.chevright || '<path d="m9 6 6 6-6 6"/>';
 document.addEventListener("click", e => {
   const a = e.target.closest && e.target.closest('[data-act="defirep"],[data-act="defiautre"],[data-act="faitautre"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
   if (a.dataset.act === "defirep") DEC.rep = Number(a.dataset.k);
-  else if (a.dataset.act === "defiautre") { const cur = DEC.defi ?? (jourN() * 5) % DEFIS.length; let n; do n = Math.floor(Math.random() * DEFIS.length); while (n === cur); DEC.defi = n; DEC.rep = null; }
+  else if (a.dataset.act === "defiautre") { const I = defisPourMoi(), cur = DEC.defi ?? I[(jourN() * 5) % I.length]; let n; do n = I[Math.floor(Math.random() * I.length)]; while (n === cur && I.length > 1); DEC.defi = n; DEC.rep = null; }
   else { const cur = DEC.fait ?? (jourN() * 3) % SAVIEZ.length; let n; do n = Math.floor(Math.random() * SAVIEZ.length); while (n === cur); DEC.fait = n; }
   const id = a.dataset.act === "faitautre" ? "decFait" : "decDefi", z = document.getElementById(id); if (z) z.outerHTML = a.dataset.act === "faitautre" ? carteFait() : carteDefi();
 }, true);
@@ -5381,6 +5390,31 @@ document.addEventListener("click", async e => {
   else if (act === "prbascule") { const L = ((R().pratique || {})[PR.tid] || []).slice(), i = L.indexOf(a.dataset.k); if (i >= 0) L.splice(i, 1); else L.push(a.dataset.k); if (await sauverPratique(PR.tid, L)) dessinerChoixPratique(); }
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("prPanel")) fermerChoixPratique(); });
+
+/* ---------- Échéance en temps restant (pastille colorée) ---------- */
+function relEch(date, fait){
+  if (!date || fait) return "";
+  const d = D(date), t = now(), j0 = new Date(t); j0.setHours(0, 0, 0, 0); const jd = new Date(d); jd.setHours(0, 0, 0, 0);
+  const jours = Math.round((jd - j0) / 864e5);
+  if (d < t) return `<span class="rel retard">En retard</span>`;
+  const [txt, cl] = jours === 0 ? ["Aujourd'hui", "urgent"] : jours === 1 ? ["Demain", "urgent"] : jours <= 3 ? ["Dans " + jours + " jours", "bientot"] : ["Dans " + jours + " jours", "large"];
+  return `<span class="rel ${cl}">${txt}</span>`;
+}
+
+/* ---------- Chapitre en 3 étapes : Comprendre → S'entraîner → Vérifier ---------- */
+function etapeDe(it){ if (it.k === "support") return 0; if (it.q || it.k === "quiz") return 2; const o = it.d || it.s || it.q; return o && o.type === "question" ? 2 : 1; }
+function etapesChapitre(g, c){
+  const tid = String(g.t.id), E = [[], [], []]; g.items.forEach(it => E[etapeDe(it)].push(it));
+  const pr = blocPratique(tid), fc = (typeof FC !== "undefined" && FC.cours && FC.cours[c.id] && FC.cours[c.id].l) ? FC.cours[c.id].l.filter(x => String(x.theme_id) === tid).length : 0;
+  if (!g.items.length && !pr && !fc) return `<p class="empty">${S.prof ? "Aucun élément. Utilise « Créer » pour ajouter un devoir, un questionnaire ou une documentation." : "Rien pour l'instant."}</p>`;
+  const T = [["1", "Comprendre", "Cours et documents"], ["2", "S'entraîner", "Simulations, outils et exercices"], ["3", "Vérifier", "Questions, questionnaires et révisions"]];
+  return T.map(([n, titre, sous], i) => {
+    const extra = i === 1 ? pr : i === 2 && fc ? `<div class="pratique"><span class="prlbl">${icon("cards")} Révisions</span><span class="prchip"><button data-act="prreviser" data-c="${esc(c.id)}">${icon("cards")}${fc} carte${fc > 1 ? "s" : ""} à réviser</button></span></div>` : "";
+    if (!E[i].length && !extra) return "";
+    return `<div class="etape"><div class="etapeh"><span class="etn">${n}</span><b>${titre}</b><small>${sous}</small></div>${extra}${E[i].map(workItem).join("")}</div>`;
+  }).join("");
+}
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="prreviser"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); S.fcCours = a.dataset.c; go("/revisions"); }, true);
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
