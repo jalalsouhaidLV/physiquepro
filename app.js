@@ -1705,6 +1705,8 @@ async function chargerFichiers(force){
   if (f.error) return S.fich = { err: f.error.message };
   return S.fich = { fichiers: f.data || [], supports: su.data || [], annonces: an.data || [] };
 }
+/* fichiers privés du professeur (calendrier dynamique…) : jamais considérés comme inutilisés */
+const estPrive = x => x.bucket === "documents" && /^prof\//.test(x.chemin);
 function analyseFichiers(){
   const F = S.fich, refs = new Map(), heure = new Date(now() - 3600e3);
   const ajoute = (list, k, lib) => (list || []).forEach(o => (o.ressources || []).forEach(x => x.path && refs.set(x.path, { k, o, lib: lib(o) })));
@@ -1717,7 +1719,7 @@ function analyseFichiers(){
     const P = parClasse[cid] = parClasse[cid] || { docs: 0, docsT: 0, rendus: 0, rendusT: 0 };
     if (x.bucket === "documents") { P.docs++; P.docsT += x.taille; } else { P.rendus++; P.rendusT += x.taille; }
     const utilise = x.bucket === "documents" ? refs.has(x.chemin) : rendusRefs.has(x.chemin);
-    if (!utilise && D(x.cree_le) < heure) orphelins.push(x);
+    if (!utilise && !estPrive(x) && D(x.cree_le) < heure) orphelins.push(x);
   });
   return { refs, parClasse, orphelins, total: F.fichiers.reduce((a, x) => a + x.taille, 0) };
 }
@@ -1726,7 +1728,7 @@ function admFichiers(){
   if (!F) return `<div class="loading"><div><div class="spin"></div>Chargement des fichiers…</div></div>`;
   if (F.err) return `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">Liste des fichiers indisponible : ${esc(F.err)}</div>`;
   const A = analyseFichiers(), quota = 1e9, pc = Math.min(100, Math.round(A.total / quota * 100));
-  const nomC = id => (cls(id) || {}).nom || (id === "?" ? "Devoirs supprimés" : id);
+  const nomC = id => (cls(id) || {}).nom || (id === "?" ? "Devoirs supprimés" : id === "prof" ? "Fichiers privés du professeur (calendrier…)" : id);
   const gros = F.fichiers.filter(x => x.bucket === "documents").sort((a, b) => b.taille - a.taille).slice(0, 12);
   return `<div class="travhead"><span class="spacer"></span><button class="btn ghost sm" data-act="admfichiers">${icon("restore")} Actualiser</button></div>
     <section class="edcard"><h2>${icon("nuage")} Espace utilisé</h2>
@@ -1748,7 +1750,7 @@ function admFichiers(){
 }
 async function purgerFichiers(){
   const A = analyseFichiers(), par = {};
-  A.orphelins.forEach(x => (par[x.bucket] = par[x.bucket] || []).push(x.chemin));
+  A.orphelins.filter(x => !estPrive(x)).forEach(x => (par[x.bucket] = par[x.bucket] || []).push(x.chemin));
   for (const b of Object.keys(par)) for (let i = 0; i < par[b].length; i += 100) { const { error } = await sb.storage.from(b).remove(par[b].slice(i, i + 100)); if (error) throw error; }
   return A.orphelins.length;
 }
