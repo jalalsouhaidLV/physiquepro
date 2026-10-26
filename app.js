@@ -3655,7 +3655,7 @@ function fermerCote(){
   document.querySelectorAll("a.qside").forEach(a => a.classList.remove("on"));
 }
 window.addEventListener("resize", () => { if (document.getElementById("sidePanel")) { if (window.innerWidth <= 760) fermerCote(); else spAppliquer(); } });
-document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a.qside"); if (!a || a.dataset.cle === "logo-calendrier" || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a.qside"); if (!a || a.dataset.cle === "logo-calendrier" || (COTE_A_COTE[a.dataset.cle] || {}).mode === "fenetre" || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
   if (window.innerWidth <= 760) return; e.preventDefault(); e.stopPropagation(); ouvrirCote(a.dataset.cle, a.getAttribute("href"), a.textContent.trim()); }, true);
 
 /* Coin Perso ancré à droite, sur toute la hauteur : la page se resserre, rien n'est caché */
