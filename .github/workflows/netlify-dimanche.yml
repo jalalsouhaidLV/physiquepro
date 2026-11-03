@@ -1,0 +1,22 @@
+# Publication hebdomadaire sur Netlify (dimanche 20 h, heure de Beyrouth en hiver)
+# Copie la branche main dans la branche netlify : Netlify ne publie que cette branche.
+name: Publication Netlify du dimanche
+
+on:
+  schedule:
+    - cron: "0 18 * * 0"   # 18 h UTC = 20 h à Beyrouth (UTC+2) ; 21 h en heure d'été
+  workflow_dispatch:        # bouton « Run workflow » pour publier à la main
+
+permissions:
+  contents: write
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Copier main dans la branche netlify
+        run: git push --force origin HEAD:refs/heads/netlify
