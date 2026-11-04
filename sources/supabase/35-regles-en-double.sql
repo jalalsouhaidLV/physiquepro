@@ -1,7 +1,7 @@
 -- =====================================================================
 --  PhysiquePro · étape 35 : fusion des règles RLS en double (performance seulement)
---  NON APPLIQUÉ par le connecteur (les « drop policy » demandent une confirmation
---  qui n'arrive pas dans le projet) : à coller dans l'éditeur SQL de Supabase.
+--  Appliqué le 4/11/2026 dans l'éditeur SQL de Supabase (le connecteur bloque les
+--  « drop policy »). Ensuite, test d'intrusion 29 : 77/77, tests élève et prof OK.
 --  Mêmes droits qu'avant : chaque « …_lecture » contient déjà est_prof().
 -- =====================================================================
 begin;
