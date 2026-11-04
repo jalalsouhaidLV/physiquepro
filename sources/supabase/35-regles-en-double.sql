@@ -34,7 +34,8 @@ create policy mu_prof_suppr on public.messages_urgents for delete to authenticat
 
 -- rendus : lecture (prof, auteur, binôme) et camarades fusionnées
 drop policy if exists rendus_camarades on public.rendus;
-alter policy rendus_lecture on public.rendus using (public.est_prof() or (auteur = (select auth.uid()))
+-- (auth.uid() direct, sans sous-requête : voir l'étape 34)
+alter policy rendus_lecture on public.rendus using (public.est_prof() or (auteur = auth.uid())
   or (binome_email = public.mon_email()) or public.reponses_visibles(devoir_id));
 
 commit;

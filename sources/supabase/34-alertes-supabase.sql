@@ -64,7 +64,9 @@ alter policy mu_lecture         on public.messages_urgents using (public.est_pro
 alter policy rdvr_lecture       on public.rdv_reservations using (public.est_prof() or (eleve = (select auth.uid())));
 alter policy np_moi             on public.notes_perso      using (id = (select auth.uid())) with check (id = (select auth.uid()));
 
-alter policy rendus_lecture     on public.rendus           using (public.est_prof() or (auteur = (select auth.uid())) or (binome_email = public.mon_email()));
+-- rendus_lecture garde auth.uid() direct : une sous-requête ici provoque « infinite recursion »
+-- quand un élève annule son rendu (rendus_annuler -> corrections -> rendus). Vu au test 29 le 4/11.
+alter policy rendus_lecture     on public.rendus           using (public.est_prof() or (auteur = auth.uid()) or (binome_email = public.mon_email()));
 alter policy mu_envoi           on public.messages_urgents with check ((eleve = (select auth.uid())) and (eleve_email = public.mon_email())
                                                               and public.dans_classe(classe_id) and (lu = false) and (reponse is null) and (de_prof = false));
 
