@@ -7,6 +7,6 @@ Ce dossier est une **sauvegarde des fichiers de travail** du site. Le site publi
 - `supabase/` : les scripts SQL de la base de données, dans l'ordre de leur installation (étapes 01 à 33).
   Les fichiers `29-test-intrusion.sql` et `30-test-fichiers.sql` sont des tests de sécurité : ils annulent tout à la fin et ne modifient rien.
 
-Pour reconstruire `app.js` : copier `build/` et `build.sh` dans un dossier avec un sous-dossier `site/`, lancer `./build.sh`, puis publier `site/app.js` à la racine du dépôt.
+Pour reconstruire `app.js` : depuis la racine du dépôt, lancer `./sources/build/build.sh` (ou `./build.sh` depuis `sources/build/`). Le script écrit directement `app.js` à la racine du dépôt ; si `node --check` trouve une erreur, `app.js` n'est pas modifié. Changer ensuite le numéro `?v=` dans `index.html` si `app.js` a changé.
 
 Publication : GitHub Pages publie la branche `main` à chaque envoi ; Netlify publie la branche `netlify`, copiée depuis `main` chaque dimanche à 18 h UTC par `.github/workflows/netlify-dimanche.yml`.
