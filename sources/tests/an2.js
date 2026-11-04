@@ -1,0 +1,16 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+ const pg=await b.newPage({viewport:{width:1366,height:900}}); const errs=[];pg.on('pageerror',e=>errs.push(e.message)); const body=fs.readFileSync('W_stubE.js','utf8');
+ await pg.route('**/*',r=>{const u=r.request().url(); if(u.includes('/site/index.html'))return r.fulfill({body:fs.readFileSync('/home/claude/github/site/index.html','utf8').replace(/ integrity="[^"]*"/g,''),contentType:'text/html'}); if(u.startsWith('file:'))return r.continue(); if(u.includes('cdn.jsdelivr'))return r.fulfill({body,contentType:'application/javascript'}); return r.fulfill({body:'',status:404});});
+ await pg.goto('file:///home/claude/github/site/index.html#/simulations'); await pg.waitForTimeout(1800);
+ console.log('labs', await pg.$$eval('.labcarte',x=>x.length)); await pg.screenshot({path:'shots/b_sims.png'});
+ const ouvre=async id=>{ await pg.click(`.labcarte[data-l="${id}"]`); await pg.waitForTimeout(400); };
+ await ouvre('onde'); await pg.waitForTimeout(5000); await pg.screenshot({path:'shots/b_onde.png'}); console.log(await pg.$eval('#oInfo',x=>x.innerText.slice(0,120).replace(/\n/g,' ')));
+ await pg.selectOption('#oType','ressort'); await pg.waitForTimeout(300); await pg.screenshot({path:'shots/b_onde2.png'}); await pg.click('[data-act="labfermer"]');
+ await ouvre('radio'); await pg.selectOption('#rV','4'); await pg.click('[data-lab="go"]'); await pg.waitForTimeout(6000); await pg.screenshot({path:'shots/b_radio.png'}); console.log(await pg.$eval('#rInfo',x=>x.innerText.slice(0,120).replace(/\n/g,' '))); await pg.click('[data-act="labfermer"]');
+ await ouvre('atome'); for(const z of [8,11,17,20]){ await pg.fill('#aZ',String(z)); await pg.dispatchEvent('#aZ','input'); await pg.waitForTimeout(200); console.log(z, await pg.$eval('#aInfo',x=>x.innerText.replace(/\n/g,' ').slice(-120))); } await pg.screenshot({path:'shots/b_atome.png'}); await pg.click('[data-act="labfermer"]');
+ await ouvre('binaire'); await pg.click('[data-bit="0"]'); await pg.click('[data-bit="2"]'); await pg.click('[data-bit="7"]'); await pg.fill('#bTxt','A'); await pg.waitForTimeout(200); await pg.screenshot({path:'shots/b_bin.png'}); console.log(await pg.$eval('#bScene',x=>x.innerText.replace(/\n/g,' ').slice(-120)));
+ await pg.click('[data-lab="defi"]'); const n=Number(await pg.$eval('.bnum',x=>x.innerText)); const bits=n.toString(2).padStart(8,'0'); for(let i=0;i<8;i++) if(bits[i]==='1') await pg.click(`[data-bit="${i}"]`); await pg.waitForTimeout(300); console.log('defi',n, await pg.$eval('#bDefi',x=>x.innerText));
+ await pg.click('[data-act="labfermer"]');
+ await pg.setViewportSize({width:390,height:800}); await ouvre('binaire'); await pg.waitForTimeout(300); await pg.screenshot({path:'shots/b_bin_m.png'}); await pg.click('[data-act="labfermer"]'); await ouvre('onde'); await pg.waitForTimeout(1500); await pg.screenshot({path:'shots/b_onde_m.png'});
+ console.log(errs); await b.close();})();

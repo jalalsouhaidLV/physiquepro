@@ -1,0 +1,139 @@
+# Fiche projet — PhysiquePro
+
+*Site de cours de M. Jalal SOUHAID, Lycée franco-libanais Verdun (MLF, Liban). Fiche à jour au 4 novembre 2026, 13 h. Copie dans le dépôt : `sources/FICHE-PHYSIQUEPRO.md`.*
+
+---
+
+## 1. À coller dans les « Instructions » du projet Claude
+
+> Tu travailles sur PhysiquePro, le site de cours de Jalal SOUHAID (professeur de physique-chimie, SNT, SI, Technologie, PIX au Lycée franco-libanais Verdun). Réponds toujours en français.
+> Lis d'abord la fiche « fiche-physiquepro.md » dans les connaissances du projet.
+> Jalal veut que tu fasses tout toi-même : modifier le code, construire, tester, mettre en ligne sur GitHub (par son Chrome), exécuter le SQL dans Supabase, puis vérifier en ligne. Ne code rien d'important avant qu'il ait choisi quand tu proposes plusieurs options.
+> Règles de sécurité : ne jamais taper de mot de passe ni manipuler de clé secrète (service_role) ; ne jamais donner l'accès « anon » aux tables ; toute nouvelle table doit avoir ses droits (grant) et ses règles RLS écrits explicitement.
+> Avant chaque mise en ligne : tester (Playwright), vérifier qu'aucune erreur n'apparaît, puis vérifier sur le site publié.
+
+---
+
+## 2. Adresses
+
+| Quoi | Adresse |
+|---|---|
+| Site (toujours à jour) | https://jalalsouhaidlv.github.io/physiquepro/ |
+| Site, adresse courte (copie publiée chaque dimanche à 20 h) | https://physiquepro.netlify.app/ |
+| Dépôt GitHub | https://github.com/jalalsouhaidLV/physiquepro (compte `jalalsouhaidLV`) |
+| Base de données Supabase | projet `zycuykixcjgmdbeoflsb` — https://supabase.com/dashboard/project/zycuykixcjgmdbeoflsb |
+| Netlify | équipe `jalal-souhaid-6s-pa6e`, projet `physiquepro` (offre gratuite, 300 crédits/mois, période du 30 au 29) |
+| Calendrier dynamique (direction) | Google Drive, fichier `1YXfbYl-v3lrAA1VUjQO4WGC1NTR_SYRe` (« calendrier dynamique 2026-2027.xlsx ») |
+
+---
+
+## 3. Comment le site est construit
+
+- **Site statique** (HTML + CSS + JavaScript sans framework) hébergé sur GitHub Pages, à la racine du dépôt : `index.html`, `app.js` (assemblé, ne pas modifier à la main), `app.css`, `config.js`, `logos.js`, logos `logo-*.png/svg`, icônes `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
+- **`config.js`** est le seul fichier à modifier pour changer un lien, une icône du haut, le nom ou l'email du prof : il contient aussi l'adresse Supabase et la clé *publishable* (publique par nature, sans danger).
+- **Code source découpé** dans `sources/build/` (32 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
+- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202610260700`).
+- **Bibliothèques** chargées depuis jsDelivr avec vérification d'intégrité (SRI) : supabase-js 2.117.2 et msal-browser 3.28.1.
+- **Connexion** : Microsoft 365 du lycée via Supabase Auth (Azure). Seule restriction : adresse en `@lycee-verdun.edu.lb` (élèves `lv.prenom.nom@…`, profs `prenom.nom@…`). Le prof est `jalal.souhaid@lycee-verdun.edu.lb` (rôle « prof » donné automatiquement).
+- **Base de données** Supabase (PostgreSQL) : toutes les tables ont des règles RLS ; les visiteurs non connectés n'ont aucun accès direct ; les fonctions réservées au prof vérifient `est_prof()`.
+- **Fichiers** : espaces de stockage privés `documents` (prof) et `rendus` (élèves). Le calendrier n'y est plus : c'est un lien Google Drive.
+
+---
+
+## 4. Mettre en ligne (procédure utilisée)
+
+1. Modifier `sources/build/*.js` (et `app.css` si besoin), lancer `sources/build/build.sh`, changer le `?v=` dans `index.html`.
+2. Tester localement avec Playwright (bouchons dans `sources/tests/`, mode d'emploi `sources/tests/LISEZMOI-tests.md`).
+3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
+4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
+5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : GitHub > Actions > « Publication Netlify du dimanche » > Run workflow.
+6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 35). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet, ou éditeur SQL dans Chrome (obligatoire pour les `drop policy`, que le connecteur bloque).
+
+---
+
+## 5. Fonctions principales du site
+
+- Cours par classe (Tle spé PC, 1re spé PC, SNT, Option SI, Technologie 3e, PIX), chapitres en 3 étapes (Comprendre / S'entraîner / Vérifier), devoirs, questionnaires, notation sur 20, flashcards, annonces, commentaires.
+- Élèves : « Message urgent à M. SOUHAID » avec voyant **Disponible / Indisponible** à côté du nom, rendez-vous, Coin Perso, À faire.
+- Prof : compteur d'élèves (en ligne / inactifs) et panneau « Élèves connectés » avec déconnexion à distance ; corbeille 30 jours, sauvegardes, onglet Fichiers.
+- Outils Scientifiques Importants : formules physique/chimie, éditeur de formules, convertisseur d'unités, tableau périodique, bits et octets, raccourcis AZERTY.
+- Simulations PhysiquePro animées : dosage pH-métrique, tir parabolique, onde progressive, décroissance radioactive, atome et couches, binaire et octets (+ simulations PhET).
+- Icônes du haut : s'affichent dans un panneau à côté (NumWorks, Pronote, M@gistère, calendrier) ou dans un nouvel onglet Chrome (ChatGPT, Copilot, Gemini, Notebook, Claude, YouTube, WhatsApp, Atena, Orion).
+
+---
+
+## 6. Choix déjà faits par Jalal
+
+- Réponses et site entièrement en français ; texte en « gras mesuré ».
+- Le prof n'est jamais compté dans les statistiques ni les listes.
+- **Pas de déconnexion automatique** des élèves (refusée) : statuts En ligne / Inactif uniquement ; Jalal déconnecte à la main.
+- Netlify publié **une seule fois par semaine** pour économiser les crédits ; GitHub Pages reste la version toujours à jour.
+- Le calendrier dynamique est **un lien** vers le fichier Google Drive de la direction (pas un fichier envoyé).
+- Pas d'intervention de l'administrateur réseau du lycée.
+
+---
+
+## 7. Sécurité (vérifiée le 20 octobre 2026)
+
+- Test d'intrusion « élève contre élève » : **77/77** tentatives bloquées (lecture, modification, usurpation, fonctions du prof).
+- Test sur les fichiers déposés : **13/13** tentatives bloquées.
+- Scripts de test réutilisables : `sources/supabase/29-test-intrusion.sql` et `30-test-fichiers.sql` (tout est annulé à la fin).
+- Limites connues : GitHub Pages n'applique pas d'en-têtes de sécurité HTTP ; MFA et réglages Entra relèvent du lycée ; un code de classe permet à tout compte du lycée de rejoindre la classe.
+- Supabase : depuis le 30 octobre 2026, toute nouvelle table doit recevoir ses `grant` explicitement (jamais à `anon`).
+
+---
+
+## 8. À surveiller
+
+- **Lundi 9 novembre 2026, 7 h** : email automatique à jalal.souhaid@lycee-verdun.edu.lb avec le résultat de la première publication Netlify du dimanche 8 novembre.
+- **Connexion sur physiquepro.netlify.app** : adresses autorisées dans Supabase vérifiées ; test réel avec un compte à faire.
+- **Été** : GitHub met en pause les tâches automatiques (publication du dimanche, tâche « Garder Supabase actif ») après 60 jours sans modification du dépôt — faire une petite mise à jour avant l'été.
+- **Crédits Netlify** : vérifier en début de période (le 30 de chaque mois) qu'il reste de la marge.
+
+---
+
+## 9. Accès, comptes et réglages externes
+
+- **Comptes utilisés** (Jalal se connecte lui-même, Claude ne tape jamais de mot de passe) : GitHub `jalalsouhaidLV` ; Netlify (compte de facturation jalal.souhaid@mlf-liban.org) ; Supabase ; Microsoft 365 du lycée ; Google (calendrier sur Drive).
+- **Supabase Auth > URL Configuration** : Site URL `https://physiquepro.netlify.app/` ; Redirect URLs `https://jalalsouhaidlv.github.io/physiquepro/**` et `https://physiquepro.netlify.app/**`. Fournisseur de connexion : Azure.
+- **OneDrive (MSAL, dans 15-onedrive.js)** : application Entra `f52213ef-d098-49cc-ac22-944c23bcab61`, locataire `4bd4c77d-938d-4bd2-99ae-3ca7e4de49e6`, page de retour `auth.html`.
+- **Netlify** : branche de production `netlify` ; seules les publications de production sont construites ; aperçus de déploiement désactivés.
+- **GitHub Actions** : « Publication Netlify du dimanche » (`netlify-dimanche.yml`), « Garder Supabase actif » (empêche la mise en pause du projet gratuit après 7 jours), pages-build-deployment.
+- **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache les anciens fichiers SQL et de test), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
+- **Sauvegarde du code** : `sources/build/` (32 modules + build.sh), `sources/supabase/` (scripts 01 à 35), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
+
+## 10. Travailler depuis le projet (procédure)
+
+- **État au 4 novembre 2026** : dépôt `jalalsouhaidLV/physiquepro` relié au projet (Paramètres > Environnement), application Claude GitHub installée, droit d'écriture vérifié. Connecteur Supabase disponible dans le projet.
+1. Au début d'un fil : cloner le dépôt (ou `git pull`).
+2. Modifier, assembler avec `sources/build/build.sh`, tester avec Playwright (`sources/tests/`), changer le `?v=`.
+3. `git push` sur `main` → GitHub Pages se met à jour en 1 à 2 minutes. Netlify suit le dimanche.
+4. SQL : nouveau script numéroté dans `sources/supabase/`, exécuté par le connecteur Supabase (ou l'éditeur SQL dans Chrome), puis relancer `29-test-intrusion.sql` si les droits ou règles RLS changent.
+5. Vérifier sur https://jalalsouhaidlv.github.io/physiquepro/ (avec `?r=`), puis répondre à Jalal en français.
+6. Chrome (extension Claude) n'est nécessaire que pour : vérifier le site visuellement, l'éditeur SQL de Supabase, les réglages Netlify / Supabase Auth.
+
+---
+
+## 11. Inventaire
+
+**Modules du site (`sources/build/`)** : 01-core · 02-coque (menu, en-tête) · 03-classe · 04-devoirs · 05-editeurs · 06-questionnaires · 07-parametres · 08-fenetres · 09-evenements (toujours en dernier) · 10-admin (fichiers, purge, sauvegardes) · 11-deplacer · 12-notifs · 13-notation · 14-outils · 15-onedrive (MSAL) · 16-import · 17-public (accueil visiteurs) · 18-urgences (messages urgents, nom du prof) · 19-nouveautes · 20-coinperso (icônes du haut, panneau latéral) · 21-pro (espace prof, calendrier, compteur) · 22-scientifiques · 23-outils-sciences · 24-decouvertes · 25-formulaires · 26-azerty · 27-sessions (élèves connectés, statuts) · 28-pratique · 29-animations · 29-labo (dosage, tir) · 29-labo2 (onde, radioactivité, atome, binaire) · 29-presence (activité réelle des élèves).
+
+**Tables (26, toutes avec RLS)** : classes, inscriptions, profiles, reglages, supports, themes, annonces, commentaires, commentaires_prives, devoirs, rendus, copies, corrections, quiz, quiz_solutions, resultats_quiz, flashcards, notes_perso, messages_urgents, rdv_series, rdv_creneaux, rdv_reservations, demandes_materiel, corbeille, sauvegardes, sessions_ouvertes. (`reseaux_lycee` supprimée à l'étape 33.)
+
+**Fonctions principales** : droits (`est_prof`, `dans_classe`, `domaine_autorise`, `mon_email`, `peut_rendre`, `devoir_ouvert`, `reponses_visibles`, `reponse_modifiable`), élèves (`rejoindre_classe`, `soumettre_quiz`, `pp_quitter_cours`, `pp_reserver`, `pp_annuler_rdv`, `pp_supprimer_compte`), présence (`pp_presence2`, `pp_presence`, `pp_statut_session`, `pp_sessions`, `pp_deconnecter`, `pp_fin_session`, `pp_stats_visites`, `pp_visite`, `pp_statut_prof`), prof (`pp_fichiers`, `pp_vers_corbeille`, `pp_restaurer`, `pp_menage_corbeille`, `pp_sauvegarde`, `pp_verrou_remise`), public (`pp_accueil_public`, seule ouverte aux visiteurs, sans données d'élèves), `pp_ping`. Définitions : `sources/supabase/`.
+
+**Stockage** : `documents` (prof ; dossier `prof/` = fichiers privés, jamais purgés) et `rendus` (un dossier par élève).
+
+**Scripts récents** : 31 compteur en ligne · 32 activité réelle · 33 sans déconnexion automatique · 34 corrections des alertes Supabase (search_path, index, RLS — appliqué le 4/11 par le connecteur) · 35 fusion des règles RLS en double (appliqué le 4/11 dans l'éditeur SQL, test 29 : 77/77).
+
+**Autres fichiers à la racine** : `verification.html` et `test-connexion.html` (pages de diagnostic, cachées sur Netlify par `_redirects`), `README.md`, `.github/workflows/netlify-dimanche.yml`, `.github/workflows/supabase-actif.yml`.
+
+---
+
+## 12. Savoir-faire et historique utiles
+
+- **Éditeur SQL Supabase (Chrome)** : coller le script dans l'éditeur, « Run », accepter « Run without RLS » / « Run query ». Pour lire un long résultat sans rien garder : terminer par une erreur volontaire (`raise exception`), ce qui annule tout.
+- **Fichiers en SQL** : Supabase interdit d'effacer directement dans `storage.objects` ; pour un test, `set local storage.allow_delete_query = 'true'` dans une transaction annulée.
+- **Tests Playwright** : servir `index.html` sans les attributs `integrity` (sinon SRI bloque les bouchons), remplacer `rpc:async n=>` pour simuler les fonctions.
+- **20 octobre 2026** : le fichier du calendrier a été effacé par le bouton « Supprimer les fichiers inutilisés ». Corrigé : les fichiers du dossier `prof/` ne sont plus jamais comptés comme inutilisés, et le calendrier est devenu un lien Google Drive.
+- **Ménage du 4 novembre 2026** : anciens doublons supprimés de la racine du dépôt (16 scripts SQL 06 à 22, dossiers `build/`, `site/`, `supabase/` du 18 octobre) — les bonnes versions sont dans `sources/`. Récupérables dans l'historique Git si besoin.

@@ -1,0 +1,25 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+ const pg=await b.newPage({viewport:{width:1366,height:900}}); const errs=[];pg.on('pageerror',e=>errs.push(e.message)); const body=fs.readFileSync('W_stubE.js','utf8');
+ await pg.route('**/*',r=>{const u=r.request().url(); if(u.includes('/site/index.html'))return r.fulfill({body:fs.readFileSync('/home/claude/github/site/index.html','utf8').replace(/ integrity="[^"]*"/g,''),contentType:'text/html'}); if(u.startsWith('file:'))return r.continue(); if(u.includes('cdn.jsdelivr'))return r.fulfill({body,contentType:'application/javascript'}); return r.fulfill({body:'',status:404});});
+ await pg.goto('file:///home/claude/github/site/index.html#/simulations'); await pg.waitForTimeout(1800);
+ console.log('labs', await pg.$$eval('.labcarte',x=>x.length), 'entree', await pg.$$eval('main.content.entree',x=>x.length));
+ await pg.screenshot({path:'shots/an_sims.png'});
+ await pg.click('.labcarte >> nth=0'); await pg.waitForTimeout(500);
+ await pg.click('[data-lab="cont"]'); await pg.waitForTimeout(9000);
+ await pg.check('#dEq'); await pg.check('#dDer'); await pg.waitForTimeout(400);
+ await pg.screenshot({path:'shots/an_dos.png'});
+ console.log(await pg.$eval('#dInfo',x=>x.innerText.slice(0,300)));
+ await pg.click('[data-act="labfermer"]'); await pg.waitForTimeout(200);
+ await pg.click('.labcarte >> nth=1'); await pg.waitForTimeout(300);
+ await pg.check('#tPrev'); await pg.click('[data-lab="garder"]'); await pg.fill('#tA','60'); await pg.dispatchEvent('#tA','input');
+ await pg.click('[data-lab="lancer"]'); await pg.waitForTimeout(3500);
+ await pg.screenshot({path:'shots/an_tir.png'});
+ console.log(await pg.$eval('#tInfo',x=>x.innerText.slice(0,400)));
+ await pg.click('[data-act="labfermer"]');
+ await pg.setViewportSize({width:390,height:800}); await pg.click('.labcarte >> nth=0'); await pg.waitForTimeout(600); await pg.screenshot({path:'shots/an_mob.png'});
+ await pg.click('[data-act="labfermer"]');
+ await pg.setViewportSize({width:1366,height:900});
+ await pg.goto('file:///home/claude/github/site/index.html#/'); await pg.waitForTimeout(1500);
+ const d=await pg.$('#decDefi'); if(d){ await d.scrollIntoViewIfNeeded(); await pg.click('#decDefi .defiopt >> nth=0'); await pg.waitForTimeout(400); await pg.screenshot({path:'shots/an_defi1.png',clip:await (await pg.$('#decDefi')).boundingBox()}); await pg.waitForTimeout(1400); await pg.screenshot({path:'shots/an_defi2.png',clip:await (await pg.$('#decDefi')).boundingBox()}); console.log('flip', await pg.$eval('#decDefi',x=>x.className)); }
+ console.log(errs); await b.close();})();
