@@ -85,12 +85,12 @@
 
 ## 8. À surveiller
 
-- **Lundi 9 novembre 2026, 7 h** : email automatique à jalal.souhaid@lycee-verdun.edu.lb avec le résultat de la première publication Netlify du dimanche 8 novembre.
+- **Publication Netlify du dimanche 8/11/2026** : vérifiée le 9/11 (run GitHub Actions réussi à 18 h 27 UTC, publication Netlify « ready » du commit b1c34e1). L'email annoncé pour le 9/11 n'est jamais parti : la tâche planifiée n'avait pas été créée.
 - **Connexion sur physiquepro.netlify.app** : adresses autorisées dans Supabase vérifiées ; test réel avec un compte à faire.
 - **Été** : GitHub met en pause les tâches automatiques (publication du dimanche, tâche « Garder Supabase actif ») après 60 jours sans modification du dépôt — faire une petite mise à jour avant l'été.
 - **Crédits Netlify** : vérifier en début de période (le 30 de chaque mois) qu'il reste de la marge.
 - **Secret client Microsoft Entra** : le secret de l'application Entra « PhysiquePro » (`f52213ef-d098-49cc-ac22-944c23bcab61`), utilisé par Supabase Auth > Azure, **expire le 16/10/2028**. Une tâche planifiée rappellera Jalal le 15/09/2028. Après expiration, plus personne ne peut se connecter : créer un nouveau secret dans Entra (Secrets client), puis le coller dans Supabase > Authentication > Providers > Azure.
-- **Tâches planifiées** : rappel du secret Entra le 15/09/2028 ; vérification de la publication Netlify le lundi 9/11/2026 par email.
+- **Tâches planifiées** : rappel du secret Entra le 15/09/2028 à 7 h (Beyrouth), recréé le 9/11/2026 (il n'existait pas) ; il ouvre un nouveau fil dans le projet PhysiquePro. Pour vérifier qu'une tâche existe vraiment : liste des tâches planifiées de claude.ai.
 
 ---
 
