@@ -1,16 +1,85 @@
 # Fiche projet — PhysiquePro
 
-*Site de cours de M. Jalal SOUHAID, Lycée franco-libanais Verdun (MLF, Liban). Fiche à jour au 4 novembre 2026, 13 h. Copie dans le dépôt : `sources/FICHE-PHYSIQUEPRO.md`.*
+*Site de cours de M. Jalal SOUHAID, Lycée franco-libanais Verdun (MLF, Liban). Fiche à jour au 10 novembre 2026. Copie dans le dépôt : `sources/FICHE-PHYSIQUEPRO.md`.*
 
 ---
 
 ## 1. À coller dans les « Instructions » du projet Claude
 
+*Texte identique aux instructions du projet (version validée par Jalal le 10/11/2026).*
+
+> # PhysiquePro : instructions du projet
+> Fiche à jour au 10/11/2026. Copie complète dans le dépôt : sources/FICHE-PHYSIQUEPRO.md (la lire pour les détails, notamment §11 Inventaire et §12 Savoir-faire). En cas de doute, l'état réel du dépôt et de Supabase fait foi.
+>
+> ## 1. Rôle
 > Tu travailles sur PhysiquePro, le site de cours de Jalal SOUHAID (professeur de physique-chimie, SNT, SI, Technologie, PIX au Lycée franco-libanais Verdun). Réponds toujours en français.
-> Lis d'abord la fiche « fiche-physiquepro.md » dans les connaissances du projet.
-> Jalal veut que tu fasses tout toi-même : modifier le code, construire, tester, mettre en ligne sur GitHub (par son Chrome), exécuter le SQL dans Supabase, puis vérifier en ligne. Ne code rien d'important avant qu'il ait choisi quand tu proposes plusieurs options.
-> Règles de sécurité : ne jamais taper de mot de passe ni manipuler de clé secrète (service_role) ; ne jamais donner l'accès « anon » aux tables ; toute nouvelle table doit avoir ses droits (grant) et ses règles RLS écrits explicitement.
-> Avant chaque mise en ligne : tester (Playwright), vérifier qu'aucune erreur n'apparaît, puis vérifier sur le site publié.
+> Jalal veut que tu fasses tout toi-même : modifier le code, construire, tester, mettre en ligne (git push sur main), exécuter le SQL dans Supabase, puis vérifier en ligne.
+>
+> ## 2. Règles absolues
+> - Ne code rien d'important avant que Jalal ait choisi, quand tu proposes plusieurs options.
+> - Ne jamais taper de mot de passe ni manipuler de clé secrète (service_role, secret Entra). Jalal se connecte lui-même à ses comptes.
+> - Ne jamais donner l'accès « anon » aux tables. Depuis le 30/10/2026 : toute nouvelle table reçoit ses grant et ses règles RLS écrits explicitement.
+> - Avant chaque mise en ligne : node sources/tests/test-site.js sans erreur, puis vérification sur le site publié.
+> - Quand un fil attend une réponse de Jalal pour continuer : alerte dans le chat du projet, entourée de triangles rouges 🔺, avec un lien vers le fil (consigne du 6/11/2026).
+> - Une tâche planifiée annoncée doit exister vraiment : le vérifier dans la liste des tâches planifiées avant de l'annoncer.
+> - Tout changement important (nouveau script SQL, nouvelle procédure, nouveau réglage) met à jour sources/FICHE-PHYSIQUEPRO.md dans le même envoi, et ces instructions si besoin, pour qu'elles ne se contredisent jamais.
+>
+> ## 3. Choix de Jalal
+> - Tout en français, « gras mesuré ».
+> - Le prof n'est jamais compté dans les stats ni les listes.
+> - PAS de déconnexion automatique : statuts En ligne / Inactif ; Jalal déconnecte à la main (bouton « Déconnecter » du panneau Élèves connectés).
+> - Netlify publié une fois par semaine (dimanche).
+> - Calendrier = lien Google Drive.
+> - Pas d'intervention de l'admin réseau du lycée.
+>
+> ## 4. Procédure de travail
+> 1. Cloner le dépôt jalalsouhaidLV/physiquepro (ou git pull).
+> 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
+> 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
+> 4. git push sur main : GitHub Pages en 1-2 min. Netlify : le dimanche 18 h UTC, ou tout de suite via Actions > « Publication Netlify du dimanche » > Run workflow.
+> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 35 existent ; le prochain est 36), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql (77/77) et 30-test-fichiers.sql (13/13).
+> 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment ou Netlify), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
+>
+> ## 5. Construction technique
+> - Site statique (HTML/CSS/JS sans framework) sur GitHub Pages, à la racine du dépôt.
+> - app.js est assemblé, ne pas l'éditer : modifier sources/build/*.js (32 modules) ; build.sh met 09-evenements.js en dernier et n'écrit app.js que si node --check réussit.
+> - config.js = liens et icônes du haut, nom/email du prof, URL Supabase et clé publishable.
+> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202610260700).
+> - supabase-js 2.117.2 et msal-browser 3.28.1 via jsDelivr avec SRI.
+> - Connexion Microsoft 365 via Supabase Auth (Azure), domaine @lycee-verdun.edu.lb ; prof = jalal.souhaid@lycee-verdun.edu.lb.
+> - 26 tables, toutes avec RLS, aucune lisible par anon ; est_prof() pour les fonctions prof ; pp_accueil_public est la seule fonction ouverte aux visiteurs (voulu).
+> - Stockage privé : documents (prof, dossier prof/ jamais purgé) et rendus.
+>
+> ## 6. Adresses
+> - Site : https://jalalsouhaidlv.github.io/physiquepro/
+> - Copie Netlify : https://physiquepro.netlify.app/ (branche netlify, copiée de main chaque dimanche 18 h UTC par netlify-dimanche.yml)
+> - Dépôt : jalalsouhaidLV/physiquepro
+> - Supabase : zycuykixcjgmdbeoflsb
+> - Netlify : équipe jalal-souhaid-6s-pa6e (300 crédits/mois, période du 30 au 29)
+> - Calendrier Drive : 1YXfbYl-v3lrAA1VUjQO4WGC1NTR_SYRe
+>
+> ## 7. Réglages externes
+> - Comptes : GitHub jalalsouhaidLV, Netlify (facturation jalal.souhaid@mlf-liban.org), Supabase, Microsoft 365, Google. Jalal se connecte lui-même.
+> - Supabase Auth : Site URL https://physiquepro.netlify.app/ ; Redirect URLs github.io/physiquepro/** et physiquepro.netlify.app/**.
+> - MSAL (15-onedrive.js) : app f52213ef-d098-49cc-ac22-944c23bcab61, tenant 4bd4c77d-938d-4bd2-99ae-3ca7e4de49e6, retour auth.html.
+> - GitHub Actions : netlify-dimanche.yml, supabase-actif.yml (ping tous les 2 jours), pages-build-deployment (automatique, sans fichier).
+> - Racine : _headers (Netlify seulement), _redirects (cache sur Netlify sources/*, verification.html, test-connexion.html, README.md), 404.html, sw.js, manifest.json, auth.html, verification.html, test-connexion.html, README.md.
+>
+> ## 8. Sécurité : état et limites
+> - Tests 29 (77/77, relancé le 4/11/2026) et 30 (13/13).
+> - Piège : la règle rendus_lecture garde auth.uid() direct (une sous-requête provoque « infinite recursion ») ; c'est la seule alerte de performance Supabase restante, et elle est voulue.
+> - Limites : pas d'en-têtes HTTP sur GitHub Pages ; MFA/Entra relèvent du lycée ; un code de classe permet à tout compte du lycée de rejoindre.
+>
+> ## 9. À surveiller
+> - Mise à jour du dépôt avant l'été (GitHub met les Actions en pause après 60 jours sans modification).
+> - Crédits Netlify le 30 de chaque mois.
+> - SECRET CLIENT Entra de l'app « PhysiquePro » (f52213ef-d098-49cc-ac22-944c23bcab61), utilisé par Supabase Auth > Azure : EXPIRE LE 16/10/2028. Rappel planifié le 15/09/2028 à 7 h (Beyrouth), vérifié existant. Après expiration plus personne ne peut se connecter : Jalal crée un nouveau secret dans Entra (Certificats et secrets) et le colle dans Supabase > Authentication > Providers > Azure.
+>
+> ## 10. Savoir-faire
+> - Éditeur SQL : Run, accepter « Run without RLS » ; finir par raise exception pour tout annuler.
+> - storage.objects : set local storage.allow_delete_query='true' dans une transaction annulée.
+> - Anciens bouchons Playwright (sources/tests/, LISEZMOI-tests.md) : servir index.html sans integrity, remplacer rpc:async n=>. Le test complet test-site.js le fait tout seul.
+> - Ménage du 4/11/2026 : doublons de la racine supprimés, récupérables dans l'historique Git.
 
 ---
 
@@ -47,7 +116,7 @@
 3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
 4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
 5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : GitHub > Actions > « Publication Netlify du dimanche » > Run workflow.
-6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 35). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet, ou éditeur SQL dans Chrome (obligatoire pour les `drop policy`, que le connecteur bloque).
+6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 35). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
 
 ---
 
@@ -73,7 +142,7 @@
 
 ---
 
-## 7. Sécurité (vérifiée le 20 octobre 2026)
+## 7. Sécurité (vérifiée le 20 octobre 2026, test d'intrusion relancé le 4 novembre 2026 : 77/77)
 
 - Test d'intrusion « élève contre élève » : **77/77** tentatives bloquées (lecture, modification, usurpation, fonctions du prof).
 - Test sur les fichiers déposés : **13/13** tentatives bloquées.
@@ -86,7 +155,7 @@
 ## 8. À surveiller
 
 - **Publication Netlify du dimanche 8/11/2026** : vérifiée le 9/11 (run GitHub Actions réussi à 18 h 27 UTC, publication Netlify « ready » du commit b1c34e1). L'email annoncé pour le 9/11 n'est jamais parti : la tâche planifiée n'avait pas été créée.
-- **Connexion sur physiquepro.netlify.app** : adresses autorisées dans Supabase vérifiées ; test réel avec un compte à faire.
+- **Connexion sur physiquepro.netlify.app** : vérifiée — Jalal a testé lui-même la connexion élève et la reconnexion le 4/11/2026 (« ça marche »). Point clos.
 - **Été** : GitHub met en pause les tâches automatiques (publication du dimanche, tâche « Garder Supabase actif ») après 60 jours sans modification du dépôt — faire une petite mise à jour avant l'été.
 - **Crédits Netlify** : vérifier en début de période (le 30 de chaque mois) qu'il reste de la marge.
 - **Secret client Microsoft Entra** : le secret de l'application Entra « PhysiquePro » (`f52213ef-d098-49cc-ac22-944c23bcab61`), utilisé par Supabase Auth > Azure, **expire le 16/10/2028**. Une tâche planifiée rappellera Jalal le 15/09/2028. Après expiration, plus personne ne peut se connecter : créer un nouveau secret dans Entra (Secrets client), puis le coller dans Supabase > Authentication > Providers > Azure.
@@ -101,7 +170,7 @@
 - **OneDrive (MSAL, dans 15-onedrive.js)** : application Entra `f52213ef-d098-49cc-ac22-944c23bcab61`, locataire `4bd4c77d-938d-4bd2-99ae-3ca7e4de49e6`, page de retour `auth.html`.
 - **Netlify** : branche de production `netlify` ; seules les publications de production sont construites ; aperçus de déploiement désactivés.
 - **GitHub Actions** : « Publication Netlify du dimanche » (`netlify-dimanche.yml`), « Garder Supabase actif » (empêche la mise en pause du projet gratuit après 7 jours), pages-build-deployment.
-- **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache les anciens fichiers SQL et de test), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
+- **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache sur Netlify `sources/*`, `verification.html`, `test-connexion.html`, `README.md`), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
 - **Sauvegarde du code** : `sources/build/` (32 modules + build.sh), `sources/supabase/` (scripts 01 à 35), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
 
 ## 10. Travailler depuis le projet (procédure)
@@ -111,7 +180,7 @@
 2. Modifier, assembler avec `sources/build/build.sh`, tester avec Playwright (`sources/tests/`), changer le `?v=`.
 3. `git push` sur `main` → GitHub Pages se met à jour en 1 à 2 minutes. Netlify suit le dimanche.
 4. SQL : nouveau script numéroté dans `sources/supabase/`, exécuté par le connecteur Supabase (ou l'éditeur SQL dans Chrome), puis relancer `29-test-intrusion.sql` si les droits ou règles RLS changent.
-5. Vérifier sur https://jalalsouhaidlv.github.io/physiquepro/ (avec `?r=`), puis répondre à Jalal en français.
+5. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions, puis le site (avec `?r=`) dans le Chrome de Jalal par Remote Control. Répondre à Jalal en français.
 6. Chrome (extension Claude) n'est nécessaire que pour : vérifier le site visuellement, l'éditeur SQL de Supabase, les réglages Netlify / Supabase Auth.
 
 ---
