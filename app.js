@@ -4534,7 +4534,7 @@ function compteurVisites(){
   return `<div class="compteur"><span class="cpt" title="Élèves qui se sont déjà connectés au site">${icon("people")}<b>${v.comptes}</b> élève${v.comptes > 1 ? "s" : ""} déjà connecté${v.comptes > 1 ? "s" : ""}</span>
     <span class="cpt" title="Visites des élèves (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} d'élèves</span>
     <span class="cpt" title="Élèves connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</span>
-    <button class="cpt enligne" data-act="enligne" title="Voir qui est en ligne et déconnecter une session"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} en ligne${v.inactifs ? `<span class="cptinact"><i></i>${v.inactifs} inactif${v.inactifs > 1 ? "s" : ""}</span>` : ""}</button></div>`;
+    <button class="cpt enligne" data-act="enligne" title="Voir qui est en ligne et déconnecter une session"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} en ligne${v.inactifs ? `<span class="cptinact" title="Élèves restés connectés sur un ordinateur sans activité (oubli de déconnexion probable). Les téléphones fermés ne sont pas comptés."><i></i>${v.inactifs} resté${v.inactifs > 1 ? "s" : ""} connecté${v.inactifs > 1 ? "s" : ""}</span>` : ""}</button></div>`;
 }
 
 /* ---------- Glisser-déposer des cours dans le menu de gauche ---------- */
@@ -5429,6 +5429,8 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && document.g
    ===================================================================== */
 const SES = { liste: null, err: "", q: "", t: null, arme: null };
 const heureCourte = d => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+/* téléphone ou tablette : l'élève ferme l'application sans se déconnecter, c'est normal */
+const estMobile = x => /^(iPhone|iPad|Android)\b/.test(x.appareil || "");
 const ilYa = d => { const m = Math.round((Date.now() - new Date(d)) / 60000); return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : `il y a ${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`; };
 async function chargerSessions(){
   const { data, error } = await sb.rpc("pp_sessions");
@@ -5443,7 +5445,7 @@ function ligneSession(x){
   if (!x.nom || x.nom.includes("@")) x.nom = nomDepuisEmail(x.email || x.nom || "?");
   const st = x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
   const etat = st === "attente" ? `<span class="sest attente">Déconnexion demandée…</span>` : st === "actif" ? (x.visible ? `<span class="sest on">En ligne</span>` : `<span class="sest fond">En ligne · onglet en arrière-plan</span>`)
-    : st === "expiree" ? `<span class="sest exp">Déconnecté automatiquement</span>` : `<span class="sest inact">Inactif · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>`;
+    : st === "expiree" ? `<span class="sest exp">Déconnecté automatiquement</span>` : estMobile(x) ? `<span class="sest off">Fermé · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>` : `<span class="sest inact">Resté connecté · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>`;
   const btn = x.moi ? `<span class="muted sesmoi">${x.id === idSession() ? "Toi (cette page)" : "Toi (autre appareil)"}</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
   return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted">${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
 }
@@ -5453,9 +5455,11 @@ function dessinerSessions(){
   if (SES.err) { z.innerHTML = `<p class="ores err">${esc(SES.err)}</p>`; return; }
   const q = sansAccent(SES.q), L = SES.liste.filter(x => !q || sansAccent([x.nom, x.email, x.classes, x.appareil].join(" ")).includes(q));
   const stx = x => x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
-  const on = L.filter(x => stx(x) === "actif"), off = L.filter(x => stx(x) === "inactif" || stx(x) === "attente"), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter && stx(x) !== "expiree").length;
+  const on = L.filter(x => stx(x) === "actif"), horsLigne = L.filter(x => stx(x) === "inactif" || stx(x) === "attente"),
+    off = horsLigne.filter(x => !estMobile(x)), tel = horsLigne.filter(estMobile), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter && stx(x) !== "expiree").length;
   z.innerHTML = `<section><h4><i class="pt vert"></i>En ligne maintenant · ${on.length}</h4>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
-    <section><h4><i class="pt orange"></i>Inactifs · ${off.length}</h4><p class="muted sesaide">Connectés mais sans activité depuis plus de 5 minutes (page laissée ouverte, ou navigateur fermé sans se déconnecter).</p>${off.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
+    <section><h4><i class="pt orange"></i>Ordinateurs restés connectés · ${off.length}</h4><p class="muted sesaide">Sans activité depuis plus de 5 minutes sur un ordinateur : l'élève a sans doute oublié de se déconnecter (ordinateur du lycée, par exemple). À déconnecter.</p>${off.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
+    <section><h4><i class="pt gris"></i>Téléphones et tablettes fermés · ${tel.length}</h4><p class="muted sesaide">L'élève a fermé l'application ou le navigateur de son téléphone. C'est normal : il n'a pas à se déconnecter, rien à faire.</p>${tel.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
 `;
   const tous = document.querySelector('#sesPanel [data-act="sesdecotous"]'); if (tous) { tous.disabled = !nbEl; tous.className = "btn sm " + (SES.arme === "tous" ? "danger" : "ghost"); tous.innerHTML = `${icon("logout")} ${SES.arme === "tous" ? `Confirmer : déconnecter ${nbEl} session${nbEl > 1 ? "s" : ""} d'élèves ?` : "Déconnecter tous les élèves"}`; }
 }
