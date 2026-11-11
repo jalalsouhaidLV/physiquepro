@@ -120,7 +120,7 @@ document.addEventListener("click", async e => {
     case "favori": { e.preventDefault(); e.stopPropagation(); basculerFavori(a.dataset.nom); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
-    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); sessionStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut(); location.replace(ICI); return;
+    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); sessionStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut({ scope: "local" }); location.replace(ICI); return;
     case "menu": e.preventDefault(); S.menu = S.menu === a.dataset.m ? null : a.dataset.m; S.dd = false; S.me = false; render(); return;
     case "reload": S.cache = {}; await chargerTout().catch(() => {}); render(); return;
     case "toggle": S.open = S.open === a.dataset.id ? null : a.dataset.id; render(); return;
@@ -518,7 +518,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   S.user = session.user;
   const { data: profil, error } = await sb.from("profiles").select("*").eq("id", S.user.id).maybeSingle();
   if ((error && estErreurReseau(error)) || (!profil && !enLigne())) { if (await demarrerHorsLigne(session)) return; }
-  if (error || !profil) { vLogin("Ton profil n'a pas pu être chargé. Déconnecte-toi puis reconnecte-toi."); await sb.auth.signOut(); return; }
+  if (error || !profil) { vLogin("Ton profil n'a pas pu être chargé. Déconnecte-toi puis reconnecte-toi."); await sb.auth.signOut({ scope: "local" }); return; }
   S.profil = profil; S.prof = profil.role === "prof";
   if (S.prof) S.nom = R().prof.nom;
   else {

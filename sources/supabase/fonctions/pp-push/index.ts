@@ -28,12 +28,26 @@ async function cles() {
   return d2!;
 }
 
+// Qui appelle ? La passerelle Supabase (verify_jwt) a déjà vérifié la signature et l'expiration du jeton.
+// getUser() refuse en plus un jeton dont la session a été fermée sur un AUTRE appareil (déconnexion « globale ») :
+// c'est ce qui bloquait les notifications du prof le 11/11/2026 (401) alors que l'enregistrement du message réussissait.
+// On lit donc les informations du jeton vérifié quand getUser() échoue (même règle que la base de données).
+async function utilisateur(jeton: string): Promise<{ user: { id: string; email?: string } } | null> {
+  const { data } = await service.auth.getUser(jeton);
+  if (data && data.user) return { user: { id: data.user.id, email: data.user.email } };
+  try {
+    const p = JSON.parse(atob(jeton.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (p && p.sub && p.role === "authenticated" && Number(p.exp) * 1000 > Date.now()) return { user: { id: String(p.sub), email: p.email } };
+  } catch (_) { /* jeton illisible */ }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return rep({ erreur: "méthode" }, 405);
   const jeton = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-  const { data: u } = await service.auth.getUser(jeton);
-  if (!u || !u.user) return rep({ erreur: "non connecté" }, 401);
+  const u = await utilisateur(jeton);
+  if (!u) return rep({ erreur: "non connecté" }, 401);
   let corps: any = {};
   try { corps = await req.json(); } catch (_) { /* vide */ }
 

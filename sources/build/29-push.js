@@ -64,8 +64,9 @@ async function envoyerAvis(d, emails){
   const lien = urlSite() + "#/devoir/" + d.id;
   const res = [];
   try {
-    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "envoyer", emails, titre: "Note disponible · " + titre, texte: (cours ? cours + " · " : "") + nomProfCourt() + " a rendu ton travail. Touche pour voir ta note.", url: "./#/devoir/" + d.id, tag: "note-" + d.id } });
-    if (!error && data) res.push(data.eleves ? "notification envoyée à " + data.eleves + " élève" + (data.eleves > 1 ? "s" : "") : "aucun élève n'a activé les notifications");
+    const { data, error } = await invoquerPush({ action: "envoyer", emails, titre: "Note disponible · " + titre, texte: (cours ? cours + " · " : "") + nomProfCourt() + " a rendu ton travail. Touche pour voir ta note.", url: "./#/devoir/" + d.id, tag: "note-" + d.id });
+    if (error || !data) res.push("notification non envoyée (" + ((error && error.message) || "erreur") + ")");
+    else res.push(data.eleves ? "notification envoyée à " + data.eleves + " élève" + (data.eleves > 1 ? "s" : "") : "aucun élève n'a activé les notifications");
   } catch (_) {}
   if (prefs().mail_notes !== false) {
     const corps = `<p>Bonjour,</p><p>${esc(R().prof.nom)} a rendu ton travail « <b>${esc(titre)}</b> »${cours ? " (" + esc(cours) + ")" : ""}.</p>
@@ -78,3 +79,10 @@ async function envoyerAvis(d, emails){
   if (res.length) toast("« " + titre + " » : " + res.join(" · "));
 }
 async function autoriserMail(){ try { await jetonGraph(true, ["Mail.Send"]); toast("Envoi d'e-mails autorisé ✓"); } catch (e) { toast("Autorisation refusée : " + (e.message || e)); } }
+
+/* appel de pp-push avec un 2e essai après renouvellement de la connexion (jeton refusé) */
+async function invoquerPush(body){
+  let r = await sb.functions.invoke("pp-push", { body });
+  if (r.error || !r.data) { try { await sb.auth.refreshSession(); } catch (_) {} r = await sb.functions.invoke("pp-push", { body }); }
+  return r;
+}

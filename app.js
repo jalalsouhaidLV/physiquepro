@@ -3135,7 +3135,7 @@ async function envoyerUrgProf(){
 /* notification push sur le téléphone de l'élève (fonction Supabase pp-push), même site fermé ; renvoie un complément pour le message de confirmation */
 async function pousserUrgent(emails, titre, texte, cid, tag){
   try {
-    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "envoyer", emails: emails.map(x => String(x).toLowerCase()), titre, texte: String(texte).slice(0, 180), url: "./#/classe/" + cid, tag } });
+    const { data, error } = await invoquerPush({ action: "envoyer", emails: emails.map(x => String(x).toLowerCase()), titre, texte: String(texte).slice(0, 180), url: "./#/classe/" + cid, tag });
     if (error || !data) return " (notification sur le téléphone non envoyée)";
     return data.eleves ? " · notification envoyée sur son téléphone" : " · l'élève n'a pas activé les notifications sur son téléphone : il verra l'alerte en ouvrant le site";
   } catch (_) { return " (notification sur le téléphone non envoyée)"; }
@@ -6258,8 +6258,9 @@ async function envoyerAvis(d, emails){
   const lien = urlSite() + "#/devoir/" + d.id;
   const res = [];
   try {
-    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "envoyer", emails, titre: "Note disponible · " + titre, texte: (cours ? cours + " · " : "") + nomProfCourt() + " a rendu ton travail. Touche pour voir ta note.", url: "./#/devoir/" + d.id, tag: "note-" + d.id } });
-    if (!error && data) res.push(data.eleves ? "notification envoyée à " + data.eleves + " élève" + (data.eleves > 1 ? "s" : "") : "aucun élève n'a activé les notifications");
+    const { data, error } = await invoquerPush({ action: "envoyer", emails, titre: "Note disponible · " + titre, texte: (cours ? cours + " · " : "") + nomProfCourt() + " a rendu ton travail. Touche pour voir ta note.", url: "./#/devoir/" + d.id, tag: "note-" + d.id });
+    if (error || !data) res.push("notification non envoyée (" + ((error && error.message) || "erreur") + ")");
+    else res.push(data.eleves ? "notification envoyée à " + data.eleves + " élève" + (data.eleves > 1 ? "s" : "") : "aucun élève n'a activé les notifications");
   } catch (_) {}
   if (prefs().mail_notes !== false) {
     const corps = `<p>Bonjour,</p><p>${esc(R().prof.nom)} a rendu ton travail « <b>${esc(titre)}</b> »${cours ? " (" + esc(cours) + ")" : ""}.</p>
@@ -6272,6 +6273,13 @@ async function envoyerAvis(d, emails){
   if (res.length) toast("« " + titre + " » : " + res.join(" · "));
 }
 async function autoriserMail(){ try { await jetonGraph(true, ["Mail.Send"]); toast("Envoi d'e-mails autorisé ✓"); } catch (e) { toast("Autorisation refusée : " + (e.message || e)); } }
+
+/* appel de pp-push avec un 2e essai après renouvellement de la connexion (jeton refusé) */
+async function invoquerPush(body){
+  let r = await sb.functions.invoke("pp-push", { body });
+  if (r.error || !r.data) { try { await sb.auth.refreshSession(); } catch (_) {} r = await sb.functions.invoke("pp-push", { body }); }
+  return r;
+}
 /* =====================================================================
    30 · Fonctions inspirées de Google Classroom (11/11/2026)
    1. Scanner un travail papier (photos → un seul PDF)
@@ -7536,7 +7544,7 @@ document.addEventListener("click", async e => {
     case "favori": { e.preventDefault(); e.stopPropagation(); basculerFavori(a.dataset.nom); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
-    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); sessionStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut(); location.replace(ICI); return;
+    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); sessionStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut({ scope: "local" }); location.replace(ICI); return;
     case "menu": e.preventDefault(); S.menu = S.menu === a.dataset.m ? null : a.dataset.m; S.dd = false; S.me = false; render(); return;
     case "reload": S.cache = {}; await chargerTout().catch(() => {}); render(); return;
     case "toggle": S.open = S.open === a.dataset.id ? null : a.dataset.id; render(); return;
@@ -7934,7 +7942,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   S.user = session.user;
   const { data: profil, error } = await sb.from("profiles").select("*").eq("id", S.user.id).maybeSingle();
   if ((error && estErreurReseau(error)) || (!profil && !enLigne())) { if (await demarrerHorsLigne(session)) return; }
-  if (error || !profil) { vLogin("Ton profil n'a pas pu être chargé. Déconnecte-toi puis reconnecte-toi."); await sb.auth.signOut(); return; }
+  if (error || !profil) { vLogin("Ton profil n'a pas pu être chargé. Déconnecte-toi puis reconnecte-toi."); await sb.auth.signOut({ scope: "local" }); return; }
   S.profil = profil; S.prof = profil.role === "prof";
   if (S.prof) S.nom = R().prof.nom;
   else {

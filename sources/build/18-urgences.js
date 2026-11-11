@@ -94,7 +94,7 @@ async function envoyerUrgProf(){
 /* notification push sur le téléphone de l'élève (fonction Supabase pp-push), même site fermé ; renvoie un complément pour le message de confirmation */
 async function pousserUrgent(emails, titre, texte, cid, tag){
   try {
-    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "envoyer", emails: emails.map(x => String(x).toLowerCase()), titre, texte: String(texte).slice(0, 180), url: "./#/classe/" + cid, tag } });
+    const { data, error } = await invoquerPush({ action: "envoyer", emails: emails.map(x => String(x).toLowerCase()), titre, texte: String(texte).slice(0, 180), url: "./#/classe/" + cid, tag });
     if (error || !data) return " (notification sur le téléphone non envoyée)";
     return data.eleves ? " · notification envoyée sur son téléphone" : " · l'élève n'a pas activé les notifications sur son téléphone : il verra l'alerte en ouvrant le site";
   } catch (_) { return " (notification sur le téléphone non envoyée)"; }
