@@ -7927,8 +7927,8 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
     if (rj.v === "rejoindre") { vLogin("Connecte-toi avec ton compte Microsoft 365 du lycée : tu rejoindras ensuite le cours automatiquement.", true); return; }
     renderPublic(); return;
   }
-  let pj = null, suite = null, fresh = false;
-  try { pj = localStorage.getItem("pp_join"); localStorage.removeItem("pp_join"); suite = localStorage.getItem("pp_next"); localStorage.removeItem("pp_next"); fresh = localStorage.getItem("pp_fresh") === "1"; localStorage.removeItem("pp_fresh"); } catch (_) {}
+  let pj = null, suite = null;
+  try { pj = localStorage.getItem("pp_join"); localStorage.removeItem("pp_join"); suite = localStorage.getItem("pp_next"); localStorage.removeItem("pp_next"); localStorage.removeItem("pp_fresh"); } catch (_) {}
   if (pj && route().v !== "rejoindre") history.replaceState(null, "", ICI + "#/rejoindre/" + encodeURIComponent(pj));
   else if (suite && /^#\/[\w%\-\/.]*$/.test(suite) && route().v === "accueil") history.replaceState(null, "", ICI + suite);
   S.user = session.user;
@@ -7944,8 +7944,8 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   try { await chargerTout(); } catch (e) { if ((estErreurReseau(e) || !enLigne()) && await demarrerHorsLigne(session)) return; app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger tes données : ${esc(e.message)}</div></div>`; return; }
   if (S.prof) S.nom = R().prof.nom;
   try { S.recent = localStorage.getItem("pp_recent") !== "0"; S.swTri = localStorage.getItem("pp_tri") || "statut"; } catch (_) {}
-  /* juste après la connexion : un élève inscrit dans un seul cours arrive directement dans ce cours */
-  if (fresh && !S.prof && !pj && route().v === "accueil" && actives().length === 1) history.replaceState(null, "", ICI + "#/classe/" + encodeURIComponent(actives()[0].id));
+  /* juste après la connexion, l'élève arrive toujours sur l'accueil (choix de Jalal, 11/11/2026) ;
+     seul un lien direct vers un cours (carte de cours, lien partagé, code d'invitation) ouvre ce cours */
   render();
   chargerNotifs().catch(() => {});
   demarrerPresence();
