@@ -2101,3 +2101,16 @@ body.labouvert{overflow:hidden}
 .att.rcards.mini .rglyph{transform:scale(.8)}
 .att.rcards.mini .rrm{width:30px;height:30px;margin-right:4px}
 .att.rcards.mini .dlbtn{right:78px;bottom:4px;width:28px;height:28px}
+/* ---- menu de gauche sur téléphone (11/11/2026) : défile jusqu'en bas ----
+   iPhone : 100vh dépasse la partie visible (barre Safari) et la barre du bas cachait la fin du menu,
+   qui n'avait alors presque plus rien à faire défiler. On cale le menu entre la barre du haut et la barre du bas. */
+.drawer{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+@supports (height:100dvh){
+  .drawer{height:calc(100dvh - 64px - env(safe-area-inset-top,0px))}
+  @media (max-width:1099px){.drawer{height:calc(100dvh - 64px - env(safe-area-inset-top,0px))}}
+}
+@media (max-width:1099px){.drawer{max-width:calc(100vw - 48px)}}
+@media (max-width:760px){
+  .drawer{height:auto!important;bottom:calc(62px + env(safe-area-inset-bottom,0px));padding-bottom:16px}
+  html:has(.drawer:not([hidden])){overflow:hidden}
+}
