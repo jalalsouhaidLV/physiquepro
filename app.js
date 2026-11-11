@@ -3808,14 +3808,16 @@ window.addEventListener("resize", () => { if (document.getElementById("coinPerso
 /* ---------- #2 Barre du haut : favoris + lanceur « Applications » ---------- */
 IC.apps = '<circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>';
 IC.star = '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>';
-const FAVORIS_DEFAUT = ["Pronote Verdun", "Lycée Verdun", "WhatsApp Web", "E-mail Outlook", "OneDrive", "NumWorks"];
+/* Lot H (4e évaluation, 11/11/2026, choix de Jalal) : logos montrés en haut tant que la personne n'a pas choisi ses favoris (étoile dans Applications) */
+const FAVORIS_DEFAUT_ELEVE = ["Pronote Verdun", "PIX", "WhatsApp Web", "E-mail Outlook", "OneDrive", "NumWorks"];
+const FAVORIS_DEFAUT_PROF = ["Pronote Verdun", "PIX Orga", "WhatsApp Web", "E-mail Outlook", "OneDrive", "Atena", "Calendrier"];
 const FAVORIS_MAX = 24;
 const cleFavoris = () => "pp_favoris3_" + (S.user && S.user.id);
 const liensVisibles = () => R().liensUtiles.filter(l => l.nom && (!l.prof || S.prof));
 function favorisNoms(){
   let f = null; try { f = JSON.parse(localStorage.getItem(cleFavoris()) || "null"); } catch (_) {}
   const noms = liensVisibles().map(l => l.nom);
-  if (!Array.isArray(f)) f = noms.slice(0, FAVORIS_MAX);
+  if (!Array.isArray(f)) f = S.prof ? FAVORIS_DEFAUT_PROF : FAVORIS_DEFAUT_ELEVE;
   return f.filter(n => noms.includes(n));
 }
 const liensFavoris = () => { const f = favorisNoms(); return liensVisibles().filter(l => f.includes(l.nom)); };
