@@ -46,7 +46,7 @@ function vignetteRes(r, fam){
   let img = "";
   if (r.od && r.od.id) { const v = MINI["od:" + r.od.id]; if (v) img = v; else vignetteOD(r.od.id); }
   else if (!r.path && !fam && /^https?:/.test(r.url || "")) img = "https://s.wordpress.com/mshots/v1/" + encodeURIComponent(r.url) + "?w=320&h=240";
-  else if (r.path && fam === "img") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
+  else if (r.path && fam === "img" && (r.bucket || "documents") === "documents") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
   return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('img');this.remove()">` : ""}</span>`;
 }
 function carteRes(r, ctx = {}){
@@ -66,10 +66,21 @@ function carteRes(r, ctx = {}){
   return `<div class="rcard"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${copie ? " · ma copie modifiable" : office ? " · lecture seule" : ""}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
 }
 const carteYoutube = r => carteRes(r);
-function ressources(list, ctx = {}){
+function ressources(list, ctx = {}, cls = ""){
   if (!list || !list.length) return "";
-  return `<div class="att rcards">${list.map(r => carteRes(r, ctx)).join("")}</div>`;
+  return `<div class="att rcards${cls ? " " + cls : ""}">${list.map(r => carteRes(r, ctx)).join("")}</div>`;
 }
+/* cartes pendant la rédaction (éditeur, annonce, dépôt élève) : aperçu + nom + type, bouton Retirer */
+function carteEdit(r, act, i, note = ""){
+  const id = !r.path && !r.pending && ytId(r.url);
+  const nom = id ? (!libelleGenerique(r.label) ? r.label : YT[id] || "Vidéo YouTube") : r.label || r.path || r.url || "";
+  if (id && libelleGenerique(r.label) && !YT[id] && !ytEnCours.has(id)) { ytEnCours.add(id); titreYoutube(r.url).then(t => { if (t) render(); }); }
+  const fam = id ? "" : familleRes(r.od || r.path || r.pending ? nom : (r.label && /\.\w{2,5}$/.test(r.label) ? r.label : ""));
+  const sous = id ? "Vidéo YouTube" : fam ? TYPE_RES[fam][0] : r.url ? domaineDe(r.url) || "Lien" : r.type && r.type !== "Fichier" ? r.type : "Fichier";
+  const vign = id ? `<span class="rthumb img yt"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" loading="lazy"><span class="ytplay">▶</span></span>` : vignetteRes(r, fam);
+  return `<div class="rcard redit"><span class="rtxt"><b title="${esc(nom)}">${esc(nom)}</b><small>${esc(sous)}${note}</small></span><button type="button" class="rrm" data-act="${act}" data-i="${i}" aria-label="Retirer ${esc(nom)}" title="Retirer">✕</button><span class="rthumb-l">${vign}</span></div>`;
+}
+const cartesEdit = (list, act, note) => list.length ? `<div class="att rcards">${list.map((x, i) => carteEdit(x, act, i, note ? note(x) : "")).join("")}</div>` : "";
 const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.couleur).b})">${bannerArt(c)}${S.prof ? `<a class="btn ghost sm custom" href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Personnaliser</a>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span>${c.description ? `<p class="bdesc">${esc(c.description)}</p>` : ""}</div>`;
 
 function asideClasse(c){
@@ -105,7 +116,7 @@ function vFlux(c, data){
       <div class="field"><label>${A.id ? "Modifier l'annonce" : "Pour : " + esc(c.nom) + " · tous les élèves"}</label>
       <div class="rte"><div id="anHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" data-ph="Annoncez quelque chose à la classe">${rich(A.html)}</div>
       <div class="rtebar">${fmtBar()}</div></div></div>
-      ${A.ressources.length ? `<ul class="files">${A.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}</span><button data-act="anrm" data-i="${i}" aria-label="Retirer">✕</button></li>`).join("")}</ul>` : ""}
+      ${cartesEdit(A.ressources, "anrm")}
       ${S.prof && !A.id && actives().length > 1 ? `<details class="aussi"><summary>Publier aussi dans d'autres cours${(A.aussi || []).length ? " (" + A.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== c.id).map(x => `<label class="check"><input type="checkbox" class="anAussi" value="${esc(x.id)}" ${(A.aussi || []).includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}</details>` : ""}
       ${A.linkMode ? `<div class="linkform"><div class="field"><label for="anLinkUrl">Lien</label><input id="anLinkUrl" type="url" placeholder="https://…"></div><div class="field"><label for="anLinkLabel">Nom affiché <span class="muted">(facultatif)</span></label><input id="anLinkLabel"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="anlinkcancel">Annuler</button><button class="btn sm" data-act="anlinkadd">Ajouter</button></div></div>` : ""}
       <div class="composerfoot"><div style="display:flex;gap:4px">

@@ -77,7 +77,7 @@ function vEditer(){
           <div class="field"><label for="edLinkLabel">Nom affiché <span class="muted">(facultatif${lm === "youtube" ? " : le titre de la vidéo s'affiche tout seul" : ""})</span></label><input id="edLinkLabel" placeholder="${lm === "youtube" ? "Laisse vide pour le titre de la vidéo" : "ex. Fiche de TP"}"></div>
           <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="edlinkcancel">Annuler</button><button class="btn sm" data-act="edlinkadd">Ajouter</button></div>
           ${lm === "onedrive" ? `<p class="muted" style="margin:0;font-size:.8rem">Dans OneDrive : clic droit sur le fichier, « Partager », « Copier le lien ». Vérifie que le lien est accessible aux personnes du lycée.</p>` : ""}</div>` : ""}
-        ${e.ressources.length ? `<ul class="files">${e.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}${x.pending ? ` <small class="muted">· ira dans OneDrive à l'enregistrement</small>` : x.od ? ` <small class="muted">· OneDrive</small>` : ""}</span><button data-act="rmres" data-i="${i}" aria-label="Retirer ${esc(x.label)}">✕</button></li>`).join("")}</ul>` : ""}
+        ${cartesEdit(e.ressources, "rmres", x => x.pending ? " · ira dans OneDrive à l'enregistrement" : x.od ? " · OneDrive" : "")}
       </section>`}
       ${e.type === "devoir" ? `<section class="edcard"><h3>Grille d'évaluation <span class="muted" style="font-weight:400">(facultatif)</span></h3>
         <p class="muted" style="margin:0;font-size:.85rem">Ajoute des critères notés : la note du devoir sera la somme des critères.</p>

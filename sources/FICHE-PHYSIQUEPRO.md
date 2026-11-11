@@ -44,7 +44,7 @@
 > - Site statique (HTML/CSS/JS sans framework) sur GitHub Pages, à la racine du dépôt.
 > - app.js est assemblé, ne pas l'éditer : modifier sources/build/*.js (32 modules) ; build.sh met 09-evenements.js en dernier et n'écrit app.js que si node --check réussit.
 > - config.js = liens et icônes du haut, nom/email du prof, URL Supabase et clé publishable.
-> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202610260700).
+> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611110700).
 > - supabase-js 2.117.2 et msal-browser 3.28.1 via jsDelivr avec SRI.
 > - Connexion Microsoft 365 via Supabase Auth (Azure), domaine @lycee-verdun.edu.lb ; prof = jalal.souhaid@lycee-verdun.edu.lb.
 > - 26 tables, toutes avec RLS, aucune lisible par anon ; est_prof() pour les fonctions prof ; pp_accueil_public est la seule fonction ouverte aux visiteurs (voulu).
@@ -101,7 +101,7 @@
 - **Site statique** (HTML + CSS + JavaScript sans framework) hébergé sur GitHub Pages, à la racine du dépôt : `index.html`, `app.js` (assemblé, ne pas modifier à la main), `app.css`, `config.js`, `logos.js`, logos `logo-*.png/svg`, icônes `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
 - **`config.js`** est le seul fichier à modifier pour changer un lien, une icône du haut, le nom ou l'email du prof : il contient aussi l'adresse Supabase et la clé *publishable* (publique par nature, sans danger).
 - **Code source découpé** dans `sources/build/` (32 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
-- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202610260700`).
+- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611110700`).
 - **Bibliothèques** chargées depuis jsDelivr avec vérification d'intégrité (SRI) : supabase-js 2.117.2 et msal-browser 3.28.1.
 - **Connexion** : Microsoft 365 du lycée via Supabase Auth (Azure). Seule restriction : adresse en `@lycee-verdun.edu.lb` (élèves `lv.prenom.nom@…`, profs `prenom.nom@…`). Le prof est `jalal.souhaid@lycee-verdun.edu.lb` (rôle « prof » donné automatiquement).
 - **Base de données** Supabase (PostgreSQL) : toutes les tables ont des règles RLS ; les visiteurs non connectés n'ont aucun accès direct ; les fonctions réservées au prof vérifient `est_prof()`.
@@ -126,6 +126,7 @@
 - Élèves : « Message urgent à M. SOUHAID » avec voyant **Disponible / Indisponible** à côté du nom, rendez-vous, Coin Perso, À faire.
 - Prof : compteur d'élèves (en ligne / inactifs) et panneau « Élèves connectés » avec déconnexion à distance ; corbeille 30 jours, sauvegardes, onglet Fichiers.
 - Outils Scientifiques Importants : formules physique/chimie, éditeur de formules, convertisseur d'unités, tableau périodique, bits et octets, raccourcis AZERTY.
+- Pièces jointes en **cartes** partout (choix de Jalal du 11/11/2026, modèle Google Classroom sans en copier les visuels) : aperçu ou icône de couleur par type (Word, Excel, PowerPoint, PDF, image, vidéo, lien) + nom + type. Dans les publications, l'éditeur (bloc « Joindre »), le rédacteur d'annonce, le dépôt de l'élève (« Votre travail », cartes compactes) et la correction côté prof. Code : carteRes / carteEdit / cartesEdit dans 03-classe.js, styles `.att.rcards` (et `.mini`) dans app.css.
 - Simulations PhysiquePro animées : dosage pH-métrique, tir parabolique, onde progressive, décroissance radioactive, atome et couches, binaire et octets (+ simulations PhET).
 - Icônes du haut : s'affichent dans un panneau à côté (NumWorks, Pronote, M@gistère, calendrier) ou dans un nouvel onglet Chrome (ChatGPT, Copilot, Gemini, Notebook, Claude, YouTube, WhatsApp, Atena, Orion).
 

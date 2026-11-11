@@ -409,7 +409,7 @@ function vignetteRes(r, fam){
   let img = "";
   if (r.od && r.od.id) { const v = MINI["od:" + r.od.id]; if (v) img = v; else vignetteOD(r.od.id); }
   else if (!r.path && !fam && /^https?:/.test(r.url || "")) img = "https://s.wordpress.com/mshots/v1/" + encodeURIComponent(r.url) + "?w=320&h=240";
-  else if (r.path && fam === "img") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
+  else if (r.path && fam === "img" && (r.bucket || "documents") === "documents") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
   return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('img');this.remove()">` : ""}</span>`;
 }
 function carteRes(r, ctx = {}){
@@ -429,10 +429,21 @@ function carteRes(r, ctx = {}){
   return `<div class="rcard"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${copie ? " · ma copie modifiable" : office ? " · lecture seule" : ""}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
 }
 const carteYoutube = r => carteRes(r);
-function ressources(list, ctx = {}){
+function ressources(list, ctx = {}, cls = ""){
   if (!list || !list.length) return "";
-  return `<div class="att rcards">${list.map(r => carteRes(r, ctx)).join("")}</div>`;
+  return `<div class="att rcards${cls ? " " + cls : ""}">${list.map(r => carteRes(r, ctx)).join("")}</div>`;
 }
+/* cartes pendant la rédaction (éditeur, annonce, dépôt élève) : aperçu + nom + type, bouton Retirer */
+function carteEdit(r, act, i, note = ""){
+  const id = !r.path && !r.pending && ytId(r.url);
+  const nom = id ? (!libelleGenerique(r.label) ? r.label : YT[id] || "Vidéo YouTube") : r.label || r.path || r.url || "";
+  if (id && libelleGenerique(r.label) && !YT[id] && !ytEnCours.has(id)) { ytEnCours.add(id); titreYoutube(r.url).then(t => { if (t) render(); }); }
+  const fam = id ? "" : familleRes(r.od || r.path || r.pending ? nom : (r.label && /\.\w{2,5}$/.test(r.label) ? r.label : ""));
+  const sous = id ? "Vidéo YouTube" : fam ? TYPE_RES[fam][0] : r.url ? domaineDe(r.url) || "Lien" : r.type && r.type !== "Fichier" ? r.type : "Fichier";
+  const vign = id ? `<span class="rthumb img yt"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" loading="lazy"><span class="ytplay">▶</span></span>` : vignetteRes(r, fam);
+  return `<div class="rcard redit"><span class="rtxt"><b title="${esc(nom)}">${esc(nom)}</b><small>${esc(sous)}${note}</small></span><button type="button" class="rrm" data-act="${act}" data-i="${i}" aria-label="Retirer ${esc(nom)}" title="Retirer">✕</button><span class="rthumb-l">${vign}</span></div>`;
+}
+const cartesEdit = (list, act, note) => list.length ? `<div class="att rcards">${list.map((x, i) => carteEdit(x, act, i, note ? note(x) : "")).join("")}</div>` : "";
 const banniere = (c) => `<div class="banner bigbanner" style="--bb:var(${C(c.couleur).b})">${bannerArt(c)}${S.prof ? `<a class="btn ghost sm custom" href="#/classe/${esc(c.id)}/parametres">${icon("edit")} Personnaliser</a>` : ""}<h1>${esc(c.nom)}</h1><span>${esc(c.section)}</span>${c.description ? `<p class="bdesc">${esc(c.description)}</p>` : ""}</div>`;
 
 function asideClasse(c){
@@ -468,7 +479,7 @@ function vFlux(c, data){
       <div class="field"><label>${A.id ? "Modifier l'annonce" : "Pour : " + esc(c.nom) + " · tous les élèves"}</label>
       <div class="rte"><div id="anHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" data-ph="Annoncez quelque chose à la classe">${rich(A.html)}</div>
       <div class="rtebar">${fmtBar()}</div></div></div>
-      ${A.ressources.length ? `<ul class="files">${A.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}</span><button data-act="anrm" data-i="${i}" aria-label="Retirer">✕</button></li>`).join("")}</ul>` : ""}
+      ${cartesEdit(A.ressources, "anrm")}
       ${S.prof && !A.id && actives().length > 1 ? `<details class="aussi"><summary>Publier aussi dans d'autres cours${(A.aussi || []).length ? " (" + A.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== c.id).map(x => `<label class="check"><input type="checkbox" class="anAussi" value="${esc(x.id)}" ${(A.aussi || []).includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}</details>` : ""}
       ${A.linkMode ? `<div class="linkform"><div class="field"><label for="anLinkUrl">Lien</label><input id="anLinkUrl" type="url" placeholder="https://…"></div><div class="field"><label for="anLinkLabel">Nom affiché <span class="muted">(facultatif)</span></label><input id="anLinkLabel"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="anlinkcancel">Annuler</button><button class="btn sm" data-act="anlinkadd">Ajouter</button></div></div>` : ""}
       <div class="composerfoot"><div style="display:flex;gap:4px">
@@ -688,7 +699,7 @@ function vDevoir(r){
   let work;
   if (isQ) work = travailQuestion(d, c, e, rd, open, Q);
   else if (rd) {
-    work = `<ul class="files">${(rd.fichiers || []).map(f => f.od ? `<li><a href="${esc(f.od.web)}" target="_blank" rel="noopener">${icon("file")} ${esc(f.nom)}</a></li>` : `<li><a href="#" data-act="openfile" data-bucket="rendus" data-path="${esc(f.chemin)}">${icon("file")} ${esc(f.nom)}</a>${btnDl("rendus", f.chemin, f.nom)}</li>`).join("")}${rd.lien ? `<li><a href="${esc(rd.lien)}" target="_blank" rel="noopener">${icon("links")} ${esc(rd.lien)}</a></li>` : ""}</ul>
+    work = `${ressources([...(rd.fichiers || []).map(f => f.od ? { label: f.nom, url: f.od.web } : { label: f.nom, path: f.chemin, bucket: "rendus" }), ...(rd.lien ? [{ label: rd.lien, url: rd.lien }] : [])], {}, "mini")}
       ${rd.binome_email ? `<p style="margin:0;font-size:.85rem">Rendu en binôme avec <b>${esc(nomDe(c.id, rd.auteur_email === moi() ? rd.binome_email : rd.auteur_email))}</b></p>` : ""}
       <p class="muted" style="margin:0;font-size:.8rem">Rendu le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
       ${e.t === "Noté" ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}
@@ -699,7 +710,7 @@ function vDevoir(r){
     const cam = (S.cache[c.id] ? S.cache[c.id].eleves : []).filter(x => x.email !== moi());
     work = `${d.mode === "binome" ? `<div class="field"><label for="partenaire">Mon binôme</label><select id="partenaire"><option value="">Choisir…</option>${cam.map(x => `<option value="${esc(x.email)}" ${S.partenaire === x.email ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>` : ""}
       ${copiesEleve("devoir", d.id, moi()).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie modifiable : <b>${esc(x.nom)}</b><small class="muted" style="display:block">Tes modifications sont enregistrées automatiquement et ton professeur les voit.</small></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a></div>`).join("")}
-      ${S.files.length ? `<ul class="files">${S.files.map((f, i) => `<li><span>${esc(f.name)}</span><span><span class="mono muted">${tailleTxt(f.size)}</span> <button data-act="rmfile" data-i="${i}" aria-label="Retirer ${esc(f.name)}">✕</button></span></li>`).join("")}</ul>` : ""}
+      ${S.files.length ? `<div class="att rcards mini">${S.files.map((f, i) => carteEdit({ label: f.name, pending: f }, "rmfile", i, " · " + tailleTxt(f.size))).join("")}</div>` : ""}
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
       <input type="file" id="fileIn" multiple hidden>
@@ -810,7 +821,7 @@ function vDevoirProf(d, c){
     const e = el.find(x => x.email === sel), rd = renduDe(d, sel), cr = correctionDe(rd);
     detail = `${barreCorrection()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:1.35rem">${esc(e.nom)}${rd && rd.binome_email ? ` <span class="muted" style="font-size:.95rem">avec ${esc(nomDe(c.id, rd.auteur_email === sel ? rd.binome_email : rd.auteur_email))}</span>` : ""}</h2><span class="pill ${etat(d, sel).k}">${etat(d, sel).t}</span></div>
       ${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
-        ${isQ ? `<div class="reponse">${linkify(rd.reponse || "")}</div>` : `<div class="att">${(rd.fichiers || []).map((f, fj) => `<a href="#" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="${fj}"><span class="k">${esc((f.nom.split(".").pop() || "").slice(0, 5))}</span>${esc(f.nom)}</a>`).join("")}${rd.lien ? `<a href="${esc(rd.lien)}" target="_blank" rel="noopener"><span class="k">lien</span>${esc(rd.lien.replace(/^https?:\/\//, "").slice(0, 40))}</a>` : ""}${!(rd.fichiers || []).length && !rd.lien ? `<span class="muted">Marqué comme terminé, sans fichier joint.</span>` : ""}</div>`}
+        ${isQ ? `<div class="reponse">${linkify(rd.reponse || "")}</div>` : `${(rd.fichiers || []).length || rd.lien ? `<div class="att rcards mini">${(rd.fichiers || []).map((f, fj) => { const fam = familleRes(f.nom), lien = `href="#" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="${fj}"`; return `<div class="rcard"><a class="rtxt" ${lien} title="${esc(f.nom)}"><b>${esc(f.nom)}</b><small>${esc(fam ? TYPE_RES[fam][0] : "Fichier")}</small></a><a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes({ label: f.nom, bucket: "rendus" }, fam)}</a></div>`; }).join("")}${rd.lien ? carteRes({ label: rd.lien, url: rd.lien }) : ""}</div>` : `<div class="att"><span class="muted">Marqué comme terminé, sans fichier joint.</span></div>`}`}
         ${(rd.fichiers || []).length ? `<div><button class="btn ghost sm" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="0">${icon("expand")} Ouvrir dans la visionneuse</button></div>` : ""}
         ${blocNotation(d, rd, cr)}`
       : `<p class="muted" style="margin:0">${ouvert(d) ? "Cet élève n'a pas encore rendu son travail." : "Cet élève n'a rien rendu avant la date limite."}</p>`}
@@ -969,7 +980,7 @@ function vEditer(){
           <div class="field"><label for="edLinkLabel">Nom affiché <span class="muted">(facultatif${lm === "youtube" ? " : le titre de la vidéo s'affiche tout seul" : ""})</span></label><input id="edLinkLabel" placeholder="${lm === "youtube" ? "Laisse vide pour le titre de la vidéo" : "ex. Fiche de TP"}"></div>
           <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="edlinkcancel">Annuler</button><button class="btn sm" data-act="edlinkadd">Ajouter</button></div>
           ${lm === "onedrive" ? `<p class="muted" style="margin:0;font-size:.8rem">Dans OneDrive : clic droit sur le fichier, « Partager », « Copier le lien ». Vérifie que le lien est accessible aux personnes du lycée.</p>` : ""}</div>` : ""}
-        ${e.ressources.length ? `<ul class="files">${e.ressources.map((x, i) => `<li><span><span class="k mono muted">${esc(x.type)}</span> ${esc(x.label)}${x.pending ? ` <small class="muted">· ira dans OneDrive à l'enregistrement</small>` : x.od ? ` <small class="muted">· OneDrive</small>` : ""}</span><button data-act="rmres" data-i="${i}" aria-label="Retirer ${esc(x.label)}">✕</button></li>`).join("")}</ul>` : ""}
+        ${cartesEdit(e.ressources, "rmres", x => x.pending ? " · ira dans OneDrive à l'enregistrement" : x.od ? " · OneDrive" : "")}
       </section>`}
       ${e.type === "devoir" ? `<section class="edcard"><h3>Grille d'évaluation <span class="muted" style="font-weight:400">(facultatif)</span></h3>
         <p class="muted" style="margin:0;font-size:.85rem">Ajoute des critères notés : la note du devoir sera la somme des critères.</p>

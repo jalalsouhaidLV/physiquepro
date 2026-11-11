@@ -2088,3 +2088,16 @@ body.labouvert{overflow:hidden}
 .inactrond .inactarc{stroke:#f29900;stroke-dasharray:145;stroke-dashoffset:0;animation:decompte 60s linear forwards}
 @keyframes decompte{to{stroke-dashoffset:145}}
 .inactrond b{font:800 1.6rem var(--display);color:#B06000;font-variant-numeric:tabular-nums}
+/* cartes de pièces jointes pendant la rédaction (11/11/2026) + version compacte */
+.att.rcards .rcard.redit .rtxt b{text-decoration:none;font-weight:500}
+.att.rcards .rrm{flex:none;align-self:center;display:grid;place-items:center;width:36px;height:36px;margin:0 8px 0 0;border:0;border-radius:50%;background:none;color:var(--muted);font-size:1.05rem;cursor:pointer}
+.att.rcards .rrm:hover,.att.rcards .rrm:focus-visible{background:var(--surface-2);color:var(--ink)}
+.att.rcards.mini{grid-template-columns:1fr;gap:8px}
+.att.rcards.mini .rcard{height:72px;border-radius:12px}
+.att.rcards.mini .rtxt{padding:8px 10px 8px 14px;gap:2px}
+.att.rcards.mini .rtxt b{font-size:.85rem;line-height:1.25;-webkit-line-clamp:2}
+.att.rcards.mini .rtxt small{font-size:.78rem}
+.att.rcards.mini .rthumb-l,.att.rcards.mini a.rthumb,.att.rcards.mini .rthumb{width:72px}
+.att.rcards.mini .rglyph{transform:scale(.8)}
+.att.rcards.mini .rrm{width:30px;height:30px;margin-right:4px}
+.att.rcards.mini .dlbtn{right:78px;bottom:4px;width:28px;height:28px}
