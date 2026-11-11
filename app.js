@@ -4034,7 +4034,14 @@ const A11Y_DEF = { taille: 100, contraste: false, police: "", calme: false };
 const a11y = () => { try { return { ...A11Y_DEF, ...JSON.parse(localStorage.getItem("pp_a11y") || "{}") }; } catch (_) { return { ...A11Y_DEF }; } };
 function appliquerA11y(){ const a = a11y(), de = document.documentElement;
   de.style.fontSize = a.taille === 100 ? "" : a.taille + "%"; de.classList.toggle("a11y-contraste", !!a.contraste); de.classList.toggle("a11y-calme", !!a.calme);
-  de.dataset.police = a.police || ""; }
+  de.dataset.police = a.police || ""; policeA11y(a.police); }
+/* Lot D (11/11/2026) : les polices « Très lisible » et « Adaptée dyslexie » ne sont chargées que si l'élève les choisit */
+function policeA11y(p){
+  if (!p || document.getElementById("ppPoliceA11y")) return;
+  const l = document.createElement("link"); l.id = "ppPoliceA11y"; l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;600&display=swap";
+  document.head.appendChild(l);
+}
 appliquerA11y();
 function panneauA11y(){
   if (document.getElementById("a11yBox")) return; const a = a11y();

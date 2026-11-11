@@ -4,7 +4,7 @@
   --accent:#116482; --accent-soft:#DDEDF2; --accent-ink:#FFFFFF;
   --pc:#2A63C2; --snt:#3D8B2C; --si:#C23535; --tech:#8A6A08; --pix:#116482;
   --b-pc:#2A5DB5; --b-snt:#3A7F2A; --b-si:#B83232; --b-tech:#806306; --b-pix:#0F5A75; --on-banner:#FFFFFF;
-  --ok:#1D7F4C; --warn:#A86200; --bad:#C0392B; --ok-bg:#E3F3EA; --warn-bg:#FBF0DC; --bad-bg:#FBE4E1;
+  --ok:#18703F; --warn:#955700; --bad:#B03224; --ok-bg:#E3F3EA; --warn-bg:#FBF0DC; --bad-bg:#FBE4E1;
   --shadow:0 1px 2px rgba(11,31,40,.08),0 2px 8px rgba(11,31,40,.06);
   --display:"Google Sans","Google Sans Text",Roboto,"Segoe UI",system-ui,sans-serif;
   --body:"Google Sans Text","Google Sans",Roboto,"Segoe UI",system-ui,sans-serif;
@@ -1176,7 +1176,7 @@ html.side-open .quick .qlogo{height:20px;width:34px}
    PALETTE PRO (#1) : un seul jeu de couleurs, réutilisé partout
    ===================================================================== */
 :root{
-  --brand:#116482; --brand-2:#0B4A61; --frame:#1E8C45; --urgent:#C5221F; --note:#FFF59D; --note-2:#FDE962;
+  --brand:#116482; --brand-2:#0B4A61; --frame:#1E8C45; --urgent:#B3261E; --note:#FFF59D; --note-2:#FDE962;
   --r-sm:8px; --r:12px; --r-lg:18px; --r-xl:24px;
   --shadow-2:0 4px 14px rgba(11,31,40,.10),0 1px 3px rgba(11,31,40,.08);
   --shadow-3:0 18px 50px rgba(11,31,40,.18),0 3px 10px rgba(11,31,40,.10);
@@ -1276,7 +1276,7 @@ kbd{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-bot
 .smjour h3 b{font:600 1.3rem var(--display);color:var(--ink)}
 .smjour.auj{outline:2px solid var(--accent);outline-offset:-2px}
 .smjour.auj h3 b{color:var(--accent)}
-.smjour.passe{opacity:.72}
+.smjour.passe{opacity:.86}
 .smvide{margin:auto 0;text-align:center;color:var(--line)}
 .smitem{display:grid;gap:3px;padding:8px 10px;border-radius:var(--r);background:var(--surface-2);border-left:4px solid var(--c);text-decoration:none;color:var(--ink);transition:transform .15s var(--ease),box-shadow .15s}
 .smitem:hover{transform:translateY(-1px);box-shadow:var(--shadow-2)}
@@ -2392,3 +2392,5 @@ details.autresrendus .autresliste{display:grid;gap:10px;padding-bottom:12px}
   .topbar .quick.deux .ql{display:none!important}
   .topbar .quick.deux{grid-template-columns:repeat(var(--qc,12),58px)!important;row-gap:4px}
 }
+/* Lot D de l'évaluation (11/11/2026) : contraste suffisant (4,5:1) du petit texte gris sur le bleu de l'élément choisi dans le menu */
+.drawer .it[aria-current="page"] small,.drawer a[aria-current="page"] small{color:#455A64}
