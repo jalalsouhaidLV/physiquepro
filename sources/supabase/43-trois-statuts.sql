@@ -6,34 +6,27 @@
 --                    partout, ou le professeur l'a déconnecté)
 --  1. Une connexion fermée sans « Se déconnecter » reste « Inactif » jusqu'à 7 jours
 --     (avant : elle disparaissait de la liste après 18 h, l'élève semblait déconnecté).
---  2. Quand un appareil se signale, les anciennes lignes du même élève sur ce même appareil
---     (application relancée, ancien onglet) silencieuses depuis plus de 2 minutes sont effacées :
---     il ne reste qu'une ligne par appareil.
+--  2. « Déconnecter » (prof) vise toutes les lignes de l'élève sur ce même appareil.
 --  3. pp_eleves_deconnectes : élèves inscrits dans les cours (non archivés) sans aucune
 --     connexion ouverte. Réservé au professeur.
 -- =====================================================================
-create or replace function public.pp_presence2(p_session uuid, p_appareil text, p_visible boolean, p_inactif integer)
-returns json language plpgsql security definer set search_path = public as $$
-declare act timestamptz := now() - make_interval(secs => greatest(0, least(coalesce(p_inactif, 0), 2592000)));
+-- 2bis. (le ménage dans pp_presence2 n'a pas pu être appliqué : le connecteur demande une confirmation
+--       qui n'arrive pas ; il n'est pas indispensable car le panneau ne garde qu'une ligne par appareil)
+--       « Déconnecter » (prof) marque toutes les lignes de l'élève sur ce même appareil, pas seulement
+--       celle affichée : l'élève ne réapparaît plus en « Inactif » par une ancienne ligne.
+create or replace function public.pp_deconnecter(p_session uuid) returns integer
+language plpgsql security definer set search_path = public as $$
+declare n int;
 begin
-  if auth.uid() is null then return json_build_object('kick', false); end if;
-  if exists (select 1 from public.sessions_ouvertes where user_id = auth.uid() and deconnecter
-             and (id = p_session or appareil = left(p_appareil, 80))) then
-    delete from public.sessions_ouvertes where user_id = auth.uid() and (id = p_session or (deconnecter and appareil = left(p_appareil, 80)));
-    return json_build_object('kick', true);
-  end if;
-  insert into public.sessions_ouvertes (id, user_id, appareil, visible, actif_le)
-    values (p_session, auth.uid(), left(p_appareil, 80), p_visible, act)
-    on conflict (id) do update set vu_le = now(), visible = excluded.visible, appareil = excluded.appareil, actif_le = excluded.actif_le
-    where public.sessions_ouvertes.user_id = auth.uid();
-  delete from public.sessions_ouvertes where user_id = auth.uid() and appareil = left(p_appareil, 80)
-     and id <> p_session and not deconnecter and vu_le < now() - interval '2 minutes';
-  if p_visible then perform public.pp_visite(); end if;
-  delete from public.sessions_ouvertes where vu_le < now() - interval '7 days';
-  return json_build_object('kick', false);
+  if not public.est_prof() then raise exception 'Réservé au professeur.'; end if;
+  update public.sessions_ouvertes s set deconnecter = true
+   where (p_session is null and exists (select 1 from public.profiles p where p.id = s.user_id and p.role <> 'prof'))
+      or (p_session is not null and s.user_id <> auth.uid() and exists (
+            select 1 from public.sessions_ouvertes c where c.id = p_session and c.user_id = s.user_id and (c.id = s.id or c.appareil = s.appareil)));
+  get diagnostics n = row_count; return n;
 end $$;
-revoke all on function public.pp_presence2(uuid, text, boolean, int) from public, anon;
-grant execute on function public.pp_presence2(uuid, text, boolean, int) to authenticated;
+revoke all on function public.pp_deconnecter(uuid) from public, anon;
+grant execute on function public.pp_deconnecter(uuid) to authenticated;
 
 create or replace function public.pp_sessions() returns json
 language plpgsql stable security definer set search_path = public as $$
