@@ -44,7 +44,7 @@
 > - Site statique (HTML/CSS/JS sans framework) sur GitHub Pages, à la racine du dépôt.
 > - app.js est assemblé, ne pas l'éditer : modifier sources/build/*.js (33 modules) ; build.sh met 09-evenements.js en dernier et n'écrit app.js que si node --check réussit.
 > - config.js = liens et icônes du haut, nom/email du prof, URL Supabase et clé publishable.
-> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611110900).
+> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611111100).
 > - supabase-js 2.117.2 et msal-browser 3.28.1 via jsDelivr avec SRI.
 > - Connexion Microsoft 365 via Supabase Auth (Azure), domaine @lycee-verdun.edu.lb ; prof = jalal.souhaid@lycee-verdun.edu.lb.
 > - 26 tables, toutes avec RLS, aucune lisible par anon ; est_prof() pour les fonctions prof ; pp_accueil_public est la seule fonction ouverte aux visiteurs (voulu).
@@ -101,7 +101,7 @@
 - **Site statique** (HTML + CSS + JavaScript sans framework) hébergé sur GitHub Pages, à la racine du dépôt : `index.html`, `app.js` (assemblé, ne pas modifier à la main), `app.css`, `config.js`, `logos.js`, logos `logo-*.png/svg`, icônes `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
 - **`config.js`** est le seul fichier à modifier pour changer un lien, une icône du haut, le nom ou l'email du prof : il contient aussi l'adresse Supabase et la clé *publishable* (publique par nature, sans danger).
 - **Code source découpé** dans `sources/build/` (33 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
-- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611110900`).
+- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611111100`).
 - **Bibliothèques** chargées depuis jsDelivr avec vérification d'intégrité (SRI) : supabase-js 2.117.2 et msal-browser 3.28.1.
 - **Connexion** : Microsoft 365 du lycée via Supabase Auth (Azure). Seule restriction : adresse en `@lycee-verdun.edu.lb` (élèves `lv.prenom.nom@…`, profs `prenom.nom@…`). Le prof est `jalal.souhaid@lycee-verdun.edu.lb` (rôle « prof » donné automatiquement).
 - **Base de données** Supabase (PostgreSQL) : toutes les tables ont des règles RLS ; les visiteurs non connectés n'ont aucun accès direct ; les fonctions réservées au prof vérifient `est_prof()`.
@@ -197,6 +197,8 @@
 **Stockage** : `documents` (prof ; dossier `prof/` = fichiers privés, jamais purgés) et `rendus` (un dossier par élève).
 
 **Scripts récents** : 31 compteur en ligne · 32 activité réelle · 33 sans déconnexion automatique · 34 corrections des alertes Supabase (search_path, index, RLS — appliqué le 4/11 par le connecteur) · 35 fusion des règles RLS en double (appliqué le 4/11 dans l'éditeur SQL, test 29 : 77/77) · 36 copies.fichier · 37 notifications push (tables pp_push_abonnements et pp_push_cles, fonctions pp_push_abonner / pp_push_desabonner).
+
+**Animations ajoutées (dossier `simulations/`)** : `simulations/ch12/` = labo Terminale du chapitre 12 « Mouvement dans un champ uniforme » (sommaire + 7 animations HTML autonomes, FR/EN/arabe), listé en tête de la page Simulations (constante `CH12` dans 21-pro.js). Chaque page a été vérifiée avant ajout : aucun script ni appel réseau externe, polices Google retirées, et une règle CSP en `<meta>` qui interdit tout chargement extérieur (`default-src 'none'`, `connect-src 'none'`). Pour un nouveau chapitre : même méthode, un dossier `simulations/chNN/`.
 
 **Autres fichiers à la racine** : `verification.html` et `test-connexion.html` (pages de diagnostic, cachées sur Netlify par `_redirects`), `README.md`, `.github/workflows/netlify-dimanche.yml`, `.github/workflows/supabase-actif.yml`.
 
