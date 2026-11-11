@@ -433,6 +433,11 @@ async function testsQuatrieme() {
   await ouvrir(page, "#/accueil");
   const hmin = await page.evaluate(() => Math.round(Math.min(...[...document.querySelectorAll(".ccard .body > a")].map(a => a.getBoundingClientRect().height))));
   verif("N Travaux des cartes de cours : 24 px de haut au moins", hmin >= 24, hmin + " px");
+  const q = await page.evaluate(() => [...document.querySelectorAll(".topbar .quick a")].filter(a => a.offsetWidth).length);
+  verif("H Téléphone : les logos favoris de l'élève sont visibles en haut (3 sur un iPhone 13)", q === 3, q + " logos");
+  await page.tap('button[data-act="me"]'); await page.waitForTimeout(500);
+  const m = await page.evaluate(() => { const r = document.querySelector(".ddme .dd-menu").getBoundingClientRect(); return { g: Math.round(r.left), d: Math.round(r.right), w: innerWidth }; });
+  verif("Menu du compte sur téléphone : entièrement dans l'écran", m.g >= 0 && m.d <= m.w, JSON.stringify(m));
   await ctx.close();
 }
 

@@ -2452,3 +2452,17 @@ main.content:focus{outline:none}
 @media (pointer:coarse) and (min-width:761px) and (max-width:1099px){
   .topbar .quick{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}
 }
+/* Correctif du 11/11/2026 (capture de Jalal, Android) : sur téléphone, le menu du compte s'ouvrait en partie hors de l'écran, à gauche.
+   Il se place maintenant sous la barre du haut, collé au bord droit de l'écran. La ligne « Connecté : … · Ce n'est pas moi » ne se coupe plus en colonnes. */
+@media (max-width:600px){
+  .topbar .ddme{position:static}
+  .topbar .ddme>.dd-menu{left:auto;right:8px;top:calc(100% + 4px);width:min(300px,calc(100vw - 16px));min-width:0;max-height:calc(100dvh - 160px);overflow-y:auto}
+  .telqui{display:block}
+  .telqui .i{vertical-align:-3px;margin-right:4px}
+}
+/* Lot H (11/11/2026) : sur téléphone, l'élève retrouve ses logos favoris en haut (icônes seules, autant qu'il en tient ; tous sont dans Applications) */
+@media (max-width:600px){
+  .topbar .quick.qeleve{display:flex!important;flex:1 1 auto;min-width:0;overflow:hidden;justify-content:flex-start;gap:4px}
+  .topbar .quick.qeleve .ql{display:none}
+}
+@media (min-width:380px) and (max-width:440px){.topbar .quick.qeleve a:nth-child(3){display:flex!important}}
