@@ -37,14 +37,14 @@
 > 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
 > 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
 > 4. git push sur main : GitHub Pages en 1-2 min. Netlify : le dimanche 18 h UTC, et en dehors du dimanche UNIQUEMENT si Jalal le demande (Actions > « Publication Netlify du dimanche » > Run workflow ; consigne du 11/11/2026).
-> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 37 existent ; le prochain est 38), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql (77/77) et 30-test-fichiers.sql (13/13).
+> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 38 existent ; le prochain est 39), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql (84/84) et 30-test-fichiers.sql (13/13).
 > 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment ou Netlify), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
 >
 > ## 5. Construction technique
 > - Site statique (HTML/CSS/JS sans framework) sur GitHub Pages, à la racine du dépôt.
-> - app.js est assemblé, ne pas l'éditer : modifier sources/build/*.js (33 modules) ; build.sh met 09-evenements.js en dernier et n'écrit app.js que si node --check réussit.
+> - app.js est assemblé, ne pas l'éditer : modifier sources/build/*.js (34 modules) ; build.sh ajoute les modules 3x avant 09-evenements.js, mis en dernier, et n'écrit app.js que si node --check réussit.
 > - config.js = liens et icônes du haut, nom/email du prof, URL Supabase et clé publishable.
-> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611111100).
+> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611111300).
 > - supabase-js 2.117.2 et msal-browser 3.28.1 via jsDelivr avec SRI.
 > - Connexion Microsoft 365 via Supabase Auth (Azure), domaine @lycee-verdun.edu.lb ; prof = jalal.souhaid@lycee-verdun.edu.lb.
 > - 26 tables, toutes avec RLS, aucune lisible par anon ; est_prof() pour les fonctions prof ; pp_accueil_public est la seule fonction ouverte aux visiteurs (voulu).
@@ -66,7 +66,7 @@
 > - Racine : _headers (Netlify seulement), _redirects (cache sur Netlify sources/*, verification.html, test-connexion.html, README.md), 404.html, sw.js, manifest.json, auth.html, verification.html, test-connexion.html, README.md.
 >
 > ## 8. Sécurité : état et limites
-> - Tests 29 (77/77, relancé le 4/11/2026) et 30 (13/13).
+> - Tests 29 (84/84, relancé le 11/11/2026) et 30 (13/13).
 > - Piège : la règle rendus_lecture garde auth.uid() direct (une sous-requête provoque « infinite recursion ») ; c'est la seule alerte de performance Supabase restante, et elle est voulue.
 > - Limites : pas d'en-têtes HTTP sur GitHub Pages ; MFA/Entra relèvent du lycée ; un code de classe permet à tout compte du lycée de rejoindre.
 >
@@ -100,8 +100,8 @@
 
 - **Site statique** (HTML + CSS + JavaScript sans framework) hébergé sur GitHub Pages, à la racine du dépôt : `index.html`, `app.js` (assemblé, ne pas modifier à la main), `app.css`, `config.js`, `logos.js`, logos `logo-*.png/svg`, icônes `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
 - **`config.js`** est le seul fichier à modifier pour changer un lien, une icône du haut, le nom ou l'email du prof : il contient aussi l'adresse Supabase et la clé *publishable* (publique par nature, sans danger).
-- **Code source découpé** dans `sources/build/` (33 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
-- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611111100`).
+- **Code source découpé** dans `sources/build/` (34 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
+- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611111300`).
 - **Bibliothèques** chargées depuis jsDelivr avec vérification d'intégrité (SRI) : supabase-js 2.117.2 et msal-browser 3.28.1.
 - **Connexion** : Microsoft 365 du lycée via Supabase Auth (Azure). Seule restriction : adresse en `@lycee-verdun.edu.lb` (élèves `lv.prenom.nom@…`, profs `prenom.nom@…`). Le prof est `jalal.souhaid@lycee-verdun.edu.lb` (rôle « prof » donné automatiquement).
 - **Base de données** Supabase (PostgreSQL) : toutes les tables ont des règles RLS ; les visiteurs non connectés n'ont aucun accès direct ; les fonctions réservées au prof vérifient `est_prof()`.
@@ -116,7 +116,7 @@
 3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
 4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
 5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : seulement sur demande de Jalal (GitHub > Actions > « Publication Netlify du dimanche » > Run workflow).
-6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 37). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
+6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 38). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
 
 ---
 
@@ -143,9 +143,9 @@
 
 ---
 
-## 7. Sécurité (vérifiée le 20 octobre 2026, test d'intrusion relancé le 4 novembre 2026 : 77/77)
+## 7. Sécurité (vérifiée le 20 octobre 2026, test d'intrusion relancé le 11 novembre 2026 : 84/84)
 
-- Test d'intrusion « élève contre élève » : **77/77** tentatives bloquées (lecture, modification, usurpation, fonctions du prof).
+- Test d'intrusion « élève contre élève » : **84/84** tentatives bloquées (lecture, modification, usurpation, fonctions du prof, commentaires de classe, annonces programmées ou épinglées).
 - Test sur les fichiers déposés : **13/13** tentatives bloquées.
 - Scripts de test réutilisables : `sources/supabase/29-test-intrusion.sql` et `30-test-fichiers.sql` (tout est annulé à la fin).
 - Limites connues : GitHub Pages n'applique pas d'en-têtes de sécurité HTTP ; MFA et réglages Entra relèvent du lycée ; un code de classe permet à tout compte du lycée de rejoindre la classe.
@@ -172,7 +172,7 @@
 - **Netlify** : branche de production `netlify` ; seules les publications de production sont construites ; aperçus de déploiement désactivés.
 - **GitHub Actions** : « Publication Netlify du dimanche » (`netlify-dimanche.yml`), « Garder Supabase actif » (empêche la mise en pause du projet gratuit après 7 jours), pages-build-deployment.
 - **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache sur Netlify `sources/*`, `verification.html`, `test-connexion.html`, `README.md`), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
-- **Sauvegarde du code** : `sources/build/` (33 modules + build.sh), `sources/supabase/` (scripts 01 à 37), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
+- **Sauvegarde du code** : `sources/build/` (34 modules + build.sh), `sources/supabase/` (scripts 01 à 38), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
 
 ## 10. Travailler depuis le projet (procédure)
 
@@ -188,19 +188,19 @@
 
 ## 11. Inventaire
 
-**Modules du site (`sources/build/`)** : 01-core · 02-coque (menu, en-tête) · 03-classe · 04-devoirs · 05-editeurs · 06-questionnaires · 07-parametres · 08-fenetres · 09-evenements (toujours en dernier) · 10-admin (fichiers, purge, sauvegardes) · 11-deplacer · 12-notifs · 13-notation · 14-outils · 15-onedrive (MSAL) · 16-import · 17-public (accueil visiteurs) · 18-urgences (messages urgents, nom du prof) · 19-nouveautes · 20-coinperso (icônes du haut, panneau latéral) · 21-pro (espace prof, calendrier, compteur) · 22-scientifiques · 23-outils-sciences · 24-decouvertes · 25-formulaires · 26-azerty · 27-sessions (élèves connectés, statuts) · 28-pratique · 29-animations · 29-labo (dosage, tir) · 29-labo2 (onde, radioactivité, atome, binaire) · 29-presence (activité réelle des élèves).
+**Modules du site (`sources/build/`)** : 01-core · 02-coque (menu, en-tête) · 03-classe · 04-devoirs · 05-editeurs · 06-questionnaires · 07-parametres · 08-fenetres · 09-evenements (toujours en dernier) · 10-admin (fichiers, purge, sauvegardes) · 11-deplacer · 12-notifs · 13-notation · 14-outils · 15-onedrive (MSAL) · 16-import · 17-public (accueil visiteurs) · 18-urgences (messages urgents, nom du prof) · 19-nouveautes · 20-coinperso (icônes du haut, panneau latéral) · 21-pro (espace prof, calendrier, compteur) · 22-scientifiques · 23-outils-sciences · 24-decouvertes · 25-formulaires · 26-azerty · 27-sessions (élèves connectés, statuts) · 28-pratique · 29-animations · 29-labo (dosage, tir) · 29-labo2 (onde, radioactivité, atome, binaire) · 29-presence (activité réelle des élèves) · 29-push (notifications) · 30-classroom (idées « Classroom » du 11/11 : scanner, commentaires de classe, QR code, fiche à annoter, aperçu élève, lecture à voix haute).
 
-**Tables (26, toutes avec RLS)** : classes, inscriptions, profiles, reglages, supports, themes, annonces, commentaires, commentaires_prives, devoirs, rendus, copies, corrections, quiz, quiz_solutions, resultats_quiz, flashcards, notes_perso, messages_urgents, rdv_series, rdv_creneaux, rdv_reservations, demandes_materiel, corbeille, sauvegardes, sessions_ouvertes. (`reseaux_lycee` supprimée à l'étape 33.)
+**Tables (27 + les 2 tables push du script 37, toutes avec RLS)** : classes, inscriptions, profiles, reglages, supports, themes, annonces, commentaires, commentaires_prives, devoirs, rendus, copies, corrections, quiz, quiz_solutions, resultats_quiz, flashcards, notes_perso, messages_urgents, rdv_series, rdv_creneaux, rdv_reservations, demandes_materiel, corbeille, sauvegardes, sessions_ouvertes, commentaires_devoirs (script 38). (`reseaux_lycee` supprimée à l'étape 33.)
 
 **Fonctions principales** : droits (`est_prof`, `dans_classe`, `domaine_autorise`, `mon_email`, `peut_rendre`, `devoir_ouvert`, `reponses_visibles`, `reponse_modifiable`), élèves (`rejoindre_classe`, `soumettre_quiz`, `pp_quitter_cours`, `pp_reserver`, `pp_annuler_rdv`, `pp_supprimer_compte`), présence (`pp_presence2`, `pp_presence`, `pp_statut_session`, `pp_sessions`, `pp_deconnecter`, `pp_fin_session`, `pp_stats_visites`, `pp_visite`, `pp_statut_prof`), prof (`pp_fichiers`, `pp_vers_corbeille`, `pp_restaurer`, `pp_menage_corbeille`, `pp_sauvegarde`, `pp_verrou_remise`), public (`pp_accueil_public`, seule ouverte aux visiteurs, sans données d'élèves), `pp_ping`. Définitions : `sources/supabase/`.
 
 **Stockage** : `documents` (prof ; dossier `prof/` = fichiers privés, jamais purgés) et `rendus` (un dossier par élève).
 
-**Scripts récents** : 31 compteur en ligne · 32 activité réelle · 33 sans déconnexion automatique · 34 corrections des alertes Supabase (search_path, index, RLS — appliqué le 4/11 par le connecteur) · 35 fusion des règles RLS en double (appliqué le 4/11 dans l'éditeur SQL, test 29 : 77/77) · 36 copies.fichier · 37 notifications push (tables pp_push_abonnements et pp_push_cles, fonctions pp_push_abonner / pp_push_desabonner).
+**Scripts récents** : 31 compteur en ligne · 32 activité réelle · 33 sans déconnexion automatique · 34 corrections des alertes Supabase (search_path, index, RLS — appliqué le 4/11 par le connecteur) · 35 fusion des règles RLS en double (appliqué le 4/11 dans l'éditeur SQL, test 29 : 77/77) · 36 copies.fichier · 37 notifications push (tables pp_push_abonnements et pp_push_cles, fonctions pp_push_abonner / pp_push_desabonner) · 38 annonces programmées et épinglées (annonces.publie_le, annonces.epingle, déclencheur annonces_regles) et table commentaires_devoirs.
 
 **Animations ajoutées (dossier `simulations/`)** : `simulations/ch12/` = labo Terminale du chapitre 12 « Mouvement dans un champ uniforme » (sommaire + 7 animations HTML autonomes, FR/EN/arabe), listé en tête de la page Simulations (constante `CH12` dans 21-pro.js). Chaque page a été vérifiée avant ajout : aucun script ni appel réseau externe, polices Google retirées, et une règle CSP en `<meta>` qui interdit tout chargement extérieur (`default-src 'none'`, `connect-src 'none'`). Pour un nouveau chapitre : même méthode, un dossier `simulations/chNN/`.
 
-**Autres fichiers à la racine** : `verification.html` et `test-connexion.html` (pages de diagnostic, cachées sur Netlify par `_redirects`), `README.md`, `.github/workflows/netlify-dimanche.yml`, `.github/workflows/supabase-actif.yml`.
+**Autres fichiers à la racine** : `qrcode.js` (bibliothèque qrcode-generator 1.4.4, licence MIT, pour le QR code du cours), `verification.html` et `test-connexion.html` (pages de diagnostic, cachées sur Netlify par `_redirects`), `README.md`, `.github/workflows/netlify-dimanche.yml`, `.github/workflows/supabase-actif.yml`.
 
 ---
 
@@ -214,3 +214,4 @@
 - **Cloche des notifications (11 novembre 2026)** : chaque notification non lue a une coche « Marquer comme lu », et l'ouvrir la marque aussi comme lue. Les notifications lues une à une sont gardées dans `profiles.prefs.lus` (enregistré par `pp_prefs`, donc pareil sur tous les appareils, pas de nouveau script SQL) ; « Tout marquer comme lu » garde `pp_vu` (date `vu_le`). Sur téléphone (≤ 600 px), le menu prend toute la largeur de l'écran : avant, il dépassait à gauche et le texte paraissait coupé.
 - **Notifications quand le prof rend une note (11 novembre 2026, script 37)** : (1) **push** : l'élève touche « Activer les notifications sur cet appareil » (Profil > Notifications, module 29-push.js) ; l'abonnement est rangé par `pp_push_abonner` dans `pp_push_abonnements` (aucun droit direct, chacun ne lit que ses appareils). À chaque note rendue (« Rendre » ou « Rendre toutes les notes saisies »), le navigateur du prof appelle la **fonction Supabase `pp-push`** (Edge Function, code dans `sources/supabase/fonctions/pp-push/`, verify_jwt, réservée au prof pour l'envoi), qui envoie la notification Web Push et efface les abonnements périmés ; `sw.js` l'affiche et ouvre le devoir au toucher. Les clés VAPID sont créées par la fonction elle-même la première fois et rangées dans `pp_push_cles` (rôle service seulement) : personne ne les copie. iPhone : iOS 16.4+, site ajouté à l'écran d'accueil et ouvert depuis l'icône ; Android : Chrome suffit. (2) **e-mail** : envoyé depuis l'Outlook du prof par Microsoft Graph (`/me/sendMail`, permission déléguée Mail.Send, élèves en copie cachée, un e-mail par devoir) ; interrupteur « Envoyer aussi un e-mail » dans Profil du prof (préférence `mail_notes`).
 - **Documents Word des élèves sur téléphone (11 novembre 2026, script 36)** : Microsoft ne permet que la lecture de Word / Excel / PowerPoint dans le navigateur d'un téléphone. Sur téléphone, la carte de la copie de l'élève ouvre une fenêtre « Écrire dans ta copie » : bouton « Ouvrir dans l'appli Word » (lien `ms-word:ofe|u|` + adresse directe du fichier, colonne `copies.fichier`), aide pour installer l'appli et se connecter avec le compte du lycée, « Juste la lire », rappel « photo + Joindre ». Sur ordinateur, la carte verte « ta copie : clique pour écrire dedans » ouvre Word en ligne ; la flèche télécharge la copie de l'élève. Les élèves ayant le droit d'écrire peuvent créer un lien « Tout le monde » (email SharePoint « anonymous access link » au prof) : toutes les 6 h, le navigateur du prof retire tout lien de partage des copies élèves (`entretienCopies`, 15-onedrive.js) et complète `copies.fichier`.
+- **Idées « Classroom » (11 novembre 2026, script 38, module 30-classroom.js)** : Jalal a demandé les idées 1, 2, 3, 4, 6, 7 et 9. (1) **Scanner mon travail papier** (élève, zone « Votre travail ») : photos ou galerie, rotation, filtre « Rendre plus lisible », un seul PDF A4 ajouté au travail (jsPDF) ; pas de recadrage automatique. (2) **Commentaires de la classe** sous chaque devoir (table `commentaires_devoirs`, mêmes règles que le flux : masqué = rien, « prof seul » = lecture seule). (3) **Annonces programmées** (« Programmer la publication », date et heure) et **épinglées** (menu ⋮ « Épingler en haut du flux ») : un élève ne voit l'annonce qu'à la date prévue, et ne peut ni épingler ni programmer (déclencheur `annonces_regles`). (4) **QR code du cours** : menu « Code du cours » > « QR code à projeter », il ouvre la page Rejoindre avec le code. (6) **Écrire sur la fiche** : l'élève annote au doigt une fiche PDF ou image déposée sur le site (pas les fichiers OneDrive / Word), le résultat est ajouté à son travail en PDF. (7) **Aperçu élève** : bouton œil dans les onglets du cours (prof), bandeau jaune « Quitter l'aperçu » ; brouillons, devoirs programmés ou ciblés et annonces futures sont cachés. (9) **Écouter** : bouton haut-parleur sur les consignes, questions de questionnaire et annonces (voix française du navigateur).
