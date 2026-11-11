@@ -8,7 +8,8 @@ const siteInstalle = () => (window.matchMedia && matchMedia("(display-mode: stan
 const urlSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
 function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
 async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
-async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(); if (on !== !!S.pushOn) { S.pushOn = on; if (location.hash.includes("/admin/profil")) render(); } }
+async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(), prem = !S.pushVerifie; S.pushVerifie = true;
+  if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
 
 async function activerPush(){
   if (!pushPossible()) return toast(estIOS() && !siteInstalle() ? "Sur iPhone : ajoute d'abord PhysiquePro à l'écran d'accueil, puis ouvre-le depuis l'icône." : "Ce navigateur ne gère pas les notifications push.");

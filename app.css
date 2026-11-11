@@ -1048,6 +1048,10 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .ucbody{padding:14px 18px;display:grid;gap:4px;align-content:start}
 .ucbody p{margin:0}.ucqui{font-weight:700;font-size:1.05rem}.uccours{color:var(--muted);font-size:.85rem}
 .uctxt{margin-top:6px!important;font-size:.95rem;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.pushcarte{display:flex;gap:10px 12px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.pushcarte>.i{flex:none;width:26px;height:26px}.pctxt{flex:1 1 220px;display:flex;flex-direction:column;gap:2px;font-size:.9rem}.pctxt b{font-size:1rem}
+.pcbtns{display:flex;gap:8px;flex-wrap:wrap}.pcbtns .btn{min-height:40px}
+.ucpush{margin:10px 0 0}.ucpush .btn{min-height:40px;white-space:normal;text-align:left}
 .ucplus{color:var(--bad);font-size:.82rem;font-weight:600}
 .ucfoot{display:flex;gap:8px;justify-content:flex-end;padding:0 14px 14px}
 @keyframes ucpop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}

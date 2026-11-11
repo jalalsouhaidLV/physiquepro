@@ -340,7 +340,7 @@ function vAccueil(){
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
   const replie = !S.prof && window.innerWidth <= 600;   /* téléphone élève : l'essentiel d'abord, la « Découverte du jour » repliée en bas */
   const decouverte = replie ? `<details class="decjour"${S.decOuvert ? " open" : ""}><summary>${icon("idea")} Découverte du jour <small>scientifique, simulation, défi, anecdote</small></summary>${blocScientifique()}${blocDecouvertes()}</details>` : "";
-  return `<div class="page wide home">${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
+  return `<div class="page wide home">${S.prof ? "" : carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
     ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h1>Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
     <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${replie ? decouverte : blocDecouvertes()}${pageFoot()}</div>`;
 }
@@ -3158,11 +3158,12 @@ function bip(){ try { ouvrirAudio(); const A = audioCtx; if (!A) return; const t
 function bandeauAlerte(titre, texte, ouvrir, qui, cours, entete){
   let ov = document.getElementById("urgCentre");
   if (!ov) { ov = document.createElement("div"); ov.id = "urgCentre"; ov.innerHTML = `<div class="ucbox" role="alertdialog" aria-modal="true" aria-labelledby="ucT"><div class="uchead">${icon("urgent")}<b id="ucT"></b></div><div class="ucbody"></div><div class="ucfoot"><button class="btn ghost" data-uc="fermer">Fermer</button><button class="btn danger" data-uc="ouvrir">Ouvrir</button></div></div>`; document.body.appendChild(ov);
-    ov.addEventListener("click", e => { const b = e.target.closest("[data-uc]"); if (!b && e.target !== ov) return; const L = ov._file || []; ov.remove(); if (b && b.dataset.uc === "ouvrir" && L.length) L[L.length - 1].ouvrir(); }); }
+    ov.addEventListener("click", e => { const b = e.target.closest("[data-uc]"); if (!b && e.target !== ov) return; const L = ov._file || []; ov.remove(); if (b && b.dataset.uc === "ouvrir" && L.length) L[L.length - 1].ouvrir();
+      if (b && b.dataset.uc === "push") { if (estIOS() && !siteInstalle()) { S.modal = { kind: "installtel" }; render(); } else activerPush().then(() => { if (L.length) L[L.length - 1].ouvrir(); }); } }); }
   ov._file = [...(ov._file || []), { ouvrir }];
   ov.querySelector("#ucT").textContent = entete || (S.prof ? "MESSAGE D'URGENCE REÇU" : "RÉPONSE AU MESSAGE D'URGENCE REÇUE");
   const n = ov._file.length;
-  ov.querySelector(".ucbody").innerHTML = `<p class="ucqui">${esc(qui)}</p>${cours ? `<p class="uccours">${esc(cours)}</p>` : ""}<p class="uctxt">${esc(texte.slice(0, 220))}</p>${n > 1 ? `<p class="ucplus">+ ${n - 1} autre${n > 2 ? "s" : ""} message${n > 2 ? "s" : ""}</p>` : ""}`;
+  ov.querySelector(".ucbody").innerHTML = `<p class="ucqui">${esc(qui)}</p>${cours ? `<p class="uccours">${esc(cours)}</p>` : ""}<p class="uctxt">${esc(texte.slice(0, 220))}</p>${n > 1 ? `<p class="ucplus">+ ${n - 1} autre${n > 2 ? "s" : ""} message${n > 2 ? "s" : ""}</p>` : ""}${pushProposable() ? `<p class="ucpush"><button class="btn tonal sm" data-uc="push">${icon("bell")} ${estIOS() && !siteInstalle() ? "Installer PhysiquePro pour être prévenu la prochaine fois" : "Être prévenu sur ce téléphone la prochaine fois"}</button></p>` : ""}`;
   setTimeout(() => { const b = ov.querySelector('[data-uc="ouvrir"]'); if (b) b.focus(); }, 50);
 }
 /* titre de l'onglet qui clignote tant qu'on n'est pas revenu sur le site */
@@ -3172,8 +3173,13 @@ function clignoter(msg){ clearInterval(clignoT); let on = false; const base = ()
 function notifier(titre, texte, ouvrir){
   bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); bandeauAlerte(titre, arguments[5] || texte, ouvrir, arguments[3] || titre, arguments[4] || "", arguments[6]);
   if (!notifOk()) return;
-  try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag: "pp-urgent-" + Date.now(), requireInteraction: true });
-    n.onclick = () => { window.focus(); ouvrir(); n.close(); }; } catch (_) {}
+  const tag = arguments[7] || "pp-urgent-" + Date.now(), url = arguments[8] || "./";
+  try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag, requireInteraction: true });
+    n.onclick = () => { window.focus(); ouvrir(); n.close(); }; }
+  catch (_) {
+    /* Android (Chrome) refuse « new Notification » : la notification visible doit passer par le service worker (sinon on n'entend que le bip) */
+    if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistration().then(reg => reg && reg.showNotification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", badge: "icon-192.png", tag, renotify: true, requireInteraction: true, vibrate: [200, 100, 200], data: { url } })).catch(() => {});
+  }
 }
 /* compare avec ce qui a déjà été signalé sur cet appareil ; la première fois, on mémorise sans sonner */
 function signalerNouveautes(){
@@ -3184,9 +3190,9 @@ function signalerNouveautes(){
     nouv.forEach(k => {
       const id = Number(k.slice(1).split("@")[0]), m = (S.urgents || []).find(x => x.id === id); if (!m) return;
       const c = cls(m.classe_id);
-      if (S.prof) notifier("⚠ Message urgent · " + (m.eleve_nom || m.eleve_email), (c ? c.nom + " · " : "") + m.texte, () => go("/urgences"), "De : " + (m.eleve_nom || m.eleve_email), c ? c.nom : "", m.texte);
-      else if (m.de_prof) notifier("Message d'urgence de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.texte, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); marquerMessagesProfLus(m.classe_id); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.texte, "MESSAGE D'URGENCE REÇU");
-      else notifier("Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.reponse, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.reponse);
+      if (S.prof) notifier("⚠ Message urgent · " + (m.eleve_nom || m.eleve_email), (c ? c.nom + " · " : "") + m.texte, () => go("/urgences"), "De : " + (m.eleve_nom || m.eleve_email), c ? c.nom : "", m.texte, undefined, "urgprof-" + m.id, "./#/urgences");
+      else if (m.de_prof) notifier("Message d'urgence de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.texte, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); marquerMessagesProfLus(m.classe_id); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.texte, "MESSAGE D'URGENCE REÇU", "urg-" + m.id, "./#/classe/" + m.classe_id);
+      else notifier("Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.reponse, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.reponse, undefined, "urgrep-" + m.id, "./#/classe/" + m.classe_id);
     });
     if (nouv.length && !S.modal && !S.ed && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
   }
@@ -6181,7 +6187,8 @@ const siteInstalle = () => (window.matchMedia && matchMedia("(display-mode: stan
 const urlSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
 function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
 async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
-async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(); if (on !== !!S.pushOn) { S.pushOn = on; if (location.hash.includes("/admin/profil")) render(); } }
+async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(), prem = !S.pushVerifie; S.pushVerifie = true;
+  if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
 
 async function activerPush(){
   if (!pushPossible()) return toast(estIOS() && !siteInstalle() ? "Sur iPhone : ajoute d'abord PhysiquePro à l'écran d'accueil, puis ouvre-le depuis l'icône." : "Ce navigateur ne gère pas les notifications push.");
@@ -7280,6 +7287,22 @@ document.addEventListener("toggle", e => {
   if (d.matches("details.decjour")) S.decOuvert = d.open;
   else if (d.matches("details.autresrendus")) S.autresRendus = d.open;
 }, true);
+
+/* ---------------------------------------------------------------- Invitation à activer les notifications (choix de Jalal du 11/11/2026)
+   Carte en haut de l'accueil de l'élève tant que les notifications ne sont pas activées sur cet appareil (« Plus tard » la cache 3 jours),
+   et bouton « Être prévenu la prochaine fois » dans la grande alerte d'urgence (18-urgences.js). */
+const clePushCarte = () => "pp_push_carte_" + (S.user && S.user.id);
+const pushCarteMasquee = () => { try { return Number(localStorage.getItem(clePushCarte()) || 0) > Date.now(); } catch (_) { return false; } };
+const pushProposable = () => !S.prof && !!S.user && !S.pushOn && !(typeof Notification !== "undefined" && Notification.permission === "denied") && (pushPossible() || (estIOS() && !siteInstalle()));
+function carteNotifsEleve(){
+  if (S.prof || !S.user || S.pushOn || pushCarteMasquee()) return "";
+  if (!S.pushVerifie) { setTimeout(majEtatPush, 0); return ""; }
+  if (!pushProposable()) return "";
+  const ios = estIOS() && !siteInstalle(), tel = matchMedia("(pointer:coarse)").matches;
+  return `<section class="pushcarte" aria-label="Notifications">${icon("bell")}<div class="pctxt"><b>Sois prévenu sur ${tel ? "ton téléphone" : "cet ordinateur"}</b><span>Quand ${esc(nomProfCourt())} t'envoie un message d'urgence ou rend ta note, même si PhysiquePro est fermé.${ios ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span></div>
+    <div class="pcbtns">${ios ? `<button class="btn sm" data-act="installguide">${icon("install")} Installer PhysiquePro</button>` : `<button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications</button>`}<button class="btn ghost sm" data-act="pushplustard">Plus tard</button></div></section>`;
+}
+ACTIONS_PLUS.pushplustard = (a, e) => { e.preventDefault(); try { localStorage.setItem(clePushCarte(), String(Date.now() + 3 * 864e5)); } catch (_) {} render(); };
 /* =====================================================================
    PhysiquePro · 32 · 3e évaluation (11/11/2026), lots I et K
    ---------------------------------------------------------------------

@@ -130,11 +130,12 @@ function bip(){ try { ouvrirAudio(); const A = audioCtx; if (!A) return; const t
 function bandeauAlerte(titre, texte, ouvrir, qui, cours, entete){
   let ov = document.getElementById("urgCentre");
   if (!ov) { ov = document.createElement("div"); ov.id = "urgCentre"; ov.innerHTML = `<div class="ucbox" role="alertdialog" aria-modal="true" aria-labelledby="ucT"><div class="uchead">${icon("urgent")}<b id="ucT"></b></div><div class="ucbody"></div><div class="ucfoot"><button class="btn ghost" data-uc="fermer">Fermer</button><button class="btn danger" data-uc="ouvrir">Ouvrir</button></div></div>`; document.body.appendChild(ov);
-    ov.addEventListener("click", e => { const b = e.target.closest("[data-uc]"); if (!b && e.target !== ov) return; const L = ov._file || []; ov.remove(); if (b && b.dataset.uc === "ouvrir" && L.length) L[L.length - 1].ouvrir(); }); }
+    ov.addEventListener("click", e => { const b = e.target.closest("[data-uc]"); if (!b && e.target !== ov) return; const L = ov._file || []; ov.remove(); if (b && b.dataset.uc === "ouvrir" && L.length) L[L.length - 1].ouvrir();
+      if (b && b.dataset.uc === "push") { if (estIOS() && !siteInstalle()) { S.modal = { kind: "installtel" }; render(); } else activerPush().then(() => { if (L.length) L[L.length - 1].ouvrir(); }); } }); }
   ov._file = [...(ov._file || []), { ouvrir }];
   ov.querySelector("#ucT").textContent = entete || (S.prof ? "MESSAGE D'URGENCE REÇU" : "RÉPONSE AU MESSAGE D'URGENCE REÇUE");
   const n = ov._file.length;
-  ov.querySelector(".ucbody").innerHTML = `<p class="ucqui">${esc(qui)}</p>${cours ? `<p class="uccours">${esc(cours)}</p>` : ""}<p class="uctxt">${esc(texte.slice(0, 220))}</p>${n > 1 ? `<p class="ucplus">+ ${n - 1} autre${n > 2 ? "s" : ""} message${n > 2 ? "s" : ""}</p>` : ""}`;
+  ov.querySelector(".ucbody").innerHTML = `<p class="ucqui">${esc(qui)}</p>${cours ? `<p class="uccours">${esc(cours)}</p>` : ""}<p class="uctxt">${esc(texte.slice(0, 220))}</p>${n > 1 ? `<p class="ucplus">+ ${n - 1} autre${n > 2 ? "s" : ""} message${n > 2 ? "s" : ""}</p>` : ""}${pushProposable() ? `<p class="ucpush"><button class="btn tonal sm" data-uc="push">${icon("bell")} ${estIOS() && !siteInstalle() ? "Installer PhysiquePro pour être prévenu la prochaine fois" : "Être prévenu sur ce téléphone la prochaine fois"}</button></p>` : ""}`;
   setTimeout(() => { const b = ov.querySelector('[data-uc="ouvrir"]'); if (b) b.focus(); }, 50);
 }
 /* titre de l'onglet qui clignote tant qu'on n'est pas revenu sur le site */
@@ -144,8 +145,13 @@ function clignoter(msg){ clearInterval(clignoT); let on = false; const base = ()
 function notifier(titre, texte, ouvrir){
   bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); bandeauAlerte(titre, arguments[5] || texte, ouvrir, arguments[3] || titre, arguments[4] || "", arguments[6]);
   if (!notifOk()) return;
-  try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag: "pp-urgent-" + Date.now(), requireInteraction: true });
-    n.onclick = () => { window.focus(); ouvrir(); n.close(); }; } catch (_) {}
+  const tag = arguments[7] || "pp-urgent-" + Date.now(), url = arguments[8] || "./";
+  try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag, requireInteraction: true });
+    n.onclick = () => { window.focus(); ouvrir(); n.close(); }; }
+  catch (_) {
+    /* Android (Chrome) refuse « new Notification » : la notification visible doit passer par le service worker (sinon on n'entend que le bip) */
+    if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistration().then(reg => reg && reg.showNotification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", badge: "icon-192.png", tag, renotify: true, requireInteraction: true, vibrate: [200, 100, 200], data: { url } })).catch(() => {});
+  }
 }
 /* compare avec ce qui a déjà été signalé sur cet appareil ; la première fois, on mémorise sans sonner */
 function signalerNouveautes(){
@@ -156,9 +162,9 @@ function signalerNouveautes(){
     nouv.forEach(k => {
       const id = Number(k.slice(1).split("@")[0]), m = (S.urgents || []).find(x => x.id === id); if (!m) return;
       const c = cls(m.classe_id);
-      if (S.prof) notifier("⚠ Message urgent · " + (m.eleve_nom || m.eleve_email), (c ? c.nom + " · " : "") + m.texte, () => go("/urgences"), "De : " + (m.eleve_nom || m.eleve_email), c ? c.nom : "", m.texte);
-      else if (m.de_prof) notifier("Message d'urgence de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.texte, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); marquerMessagesProfLus(m.classe_id); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.texte, "MESSAGE D'URGENCE REÇU");
-      else notifier("Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.reponse, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.reponse);
+      if (S.prof) notifier("⚠ Message urgent · " + (m.eleve_nom || m.eleve_email), (c ? c.nom + " · " : "") + m.texte, () => go("/urgences"), "De : " + (m.eleve_nom || m.eleve_email), c ? c.nom : "", m.texte, undefined, "urgprof-" + m.id, "./#/urgences");
+      else if (m.de_prof) notifier("Message d'urgence de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.texte, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); marquerMessagesProfLus(m.classe_id); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.texte, "MESSAGE D'URGENCE REÇU", "urg-" + m.id, "./#/classe/" + m.classe_id);
+      else notifier("Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + m.reponse, () => { go("/classe/" + m.classe_id); setTimeout(() => { S.modal = { kind: "urgent", classe: m.classe_id }; marquerReponsesVues(); render(); }, 400); }, "De : " + nomProfCourt(), c ? c.nom : "", m.reponse, undefined, "urgrep-" + m.id, "./#/classe/" + m.classe_id);
     });
     if (nouv.length && !S.modal && !S.ed && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
   }

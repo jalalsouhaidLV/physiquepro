@@ -764,3 +764,19 @@ document.addEventListener("toggle", e => {
   if (d.matches("details.decjour")) S.decOuvert = d.open;
   else if (d.matches("details.autresrendus")) S.autresRendus = d.open;
 }, true);
+
+/* ---------------------------------------------------------------- Invitation à activer les notifications (choix de Jalal du 11/11/2026)
+   Carte en haut de l'accueil de l'élève tant que les notifications ne sont pas activées sur cet appareil (« Plus tard » la cache 3 jours),
+   et bouton « Être prévenu la prochaine fois » dans la grande alerte d'urgence (18-urgences.js). */
+const clePushCarte = () => "pp_push_carte_" + (S.user && S.user.id);
+const pushCarteMasquee = () => { try { return Number(localStorage.getItem(clePushCarte()) || 0) > Date.now(); } catch (_) { return false; } };
+const pushProposable = () => !S.prof && !!S.user && !S.pushOn && !(typeof Notification !== "undefined" && Notification.permission === "denied") && (pushPossible() || (estIOS() && !siteInstalle()));
+function carteNotifsEleve(){
+  if (S.prof || !S.user || S.pushOn || pushCarteMasquee()) return "";
+  if (!S.pushVerifie) { setTimeout(majEtatPush, 0); return ""; }
+  if (!pushProposable()) return "";
+  const ios = estIOS() && !siteInstalle(), tel = matchMedia("(pointer:coarse)").matches;
+  return `<section class="pushcarte" aria-label="Notifications">${icon("bell")}<div class="pctxt"><b>Sois prévenu sur ${tel ? "ton téléphone" : "cet ordinateur"}</b><span>Quand ${esc(nomProfCourt())} t'envoie un message d'urgence ou rend ta note, même si PhysiquePro est fermé.${ios ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span></div>
+    <div class="pcbtns">${ios ? `<button class="btn sm" data-act="installguide">${icon("install")} Installer PhysiquePro</button>` : `<button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications</button>`}<button class="btn ghost sm" data-act="pushplustard">Plus tard</button></div></section>`;
+}
+ACTIONS_PLUS.pushplustard = (a, e) => { e.preventDefault(); try { localStorage.setItem(clePushCarte(), String(Date.now() + 3 * 864e5)); } catch (_) {} render(); };
