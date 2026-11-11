@@ -94,10 +94,11 @@ function admProfil(){
     </section>
     <section class="edcard crcard"><h2 class="crbig">Notifications</h2>
       <h3 class="crsub">Dans PhysiquePro</h3>
-      <p class="muted" style="margin:0">Ces paramètres s'appliquent aux notifications de la cloche ${icon("bell")} en haut de chaque page. PhysiquePro n'envoie pas d'e-mails automatiques : la cloche les remplace.</p>
+      <p class="muted" style="margin:0">Ces paramètres s'appliquent aux notifications de la cloche ${icon("bell")} en haut de chaque page. ${S.prof ? "Les élèves sont aussi prévenus par e-mail et sur leur téléphone quand tu rends une note (voir plus bas)." : "Pour être prévenu hors du site, active aussi les notifications de cet appareil plus bas."}</p>
       ${sw("bell", "Autoriser les notifications")}
       <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, l)).join("")}
       <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Cours dont vous êtes élève"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
+      ${blocPush()}
       <details class="crdet"><summary><span><b>Notifications de cours</b><small class="muted">Ces paramètres s'appliquent aux notifications pour chaque cours</small></span>${icon("down")}</summary>
         ${actives().map(c => `<label class="switch crsw"><span class="who2"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span>${esc(c.nom)}</span><input type="checkbox" data-prefc="${esc(c.id)}" ${off.includes(c.id) ? "" : "checked"}><i aria-hidden="true"></i></label>`).join("")}</details>
     </section>`;

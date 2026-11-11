@@ -109,6 +109,8 @@
     pp_prefs: a => { const p = DB.profiles.find(x => MOI && x.id === MOI.id); if (p) p.prefs = (a && a.p) || {}; return null; },
     pp_vu: () => { const t = new Date().toISOString(); const p = DB.profiles.find(x => MOI && x.id === MOI.id); if (p) p.vu_le = t; return t; },
     pp_urgent_lu: () => null,
+    pp_push_abonner: () => null,
+    pp_push_desabonner: () => null,
     pp_reserver: () => null,
     pp_annuler_rdv: () => null,
     pp_deconnecter: () => null,
@@ -275,6 +277,7 @@
         if (!f) { inconnu("rpc " + nom); return Promise.resolve(ko("function " + nom + " inconnue du bouchon de test")); }
         return new Promise(r => setTimeout(r, 5)).then(() => ok(f(args || {})));
       },
+      functions: { invoke: async (nom, o) => { APPELS.push({ fonction: nom }); const b = (o && o.body) || {}; return ok(b.action === "cle" ? { cle: "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U" } : { envoyes: 0, eleves: 0, appareils: 0 }); } },
       storage: { from: stockage },
       channel: () => { inconnu("channel"); const c = { on: () => c, subscribe: () => c, unsubscribe: () => Promise.resolve("ok") }; return c; },
       removeChannel: () => Promise.resolve("ok")

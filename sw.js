@@ -8,3 +8,18 @@ self.addEventListener("fetch", e => {
   e.respondWith(fetch(r).then(rep => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(r, copie)); } return rep; })
     .catch(() => caches.match(r).then(x => x || caches.match("./index.html"))));
 });
+
+/* notifications push (étape 37) : note rendue par le professeur, etc. */
+self.addEventListener("push", e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (_) { d = { texte: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.titre || "PhysiquePro", { body: d.texte || "", icon: "icon-192.png", badge: "icon-192.png", tag: d.tag || "pp", renotify: true, data: { url: d.url || "./" } }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const cible = new URL((e.notification.data && e.notification.data.url) || "./", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(L => {
+    const w = L.find(c => c.url.startsWith(self.registration.scope));
+    if (w) return w.focus().then(c => (c || w).navigate ? (c || w).navigate(cible) : null).catch(() => self.clients.openWindow(cible));
+    return self.clients.openWindow(cible);
+  }));
+});

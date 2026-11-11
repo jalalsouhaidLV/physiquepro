@@ -305,6 +305,9 @@ document.addEventListener("click", async e => {
       if (!S.viewer || S.viewer.did !== rd.devoir_id) { const fi = Math.max(0, (rd.fichiers || []).findIndex(peutAnnoter)); S.viewer = { did: rd.devoir_id, email: S.sel || rd.auteur_email, fi }; await render(); }
       await ouvrirAnnotation(); return; }
     case "notifon": e.preventDefault(); await demanderNotifs(); return;
+    case "pushon": e.preventDefault(); await activerPush(); return;
+    case "pushoff": e.preventDefault(); await desactiverPush(); return;
+    case "mailauth": e.preventDefault(); await autoriserMail(); return;
     case "urgecrire": e.preventDefault(); fermerMenus(); S.modal = { kind: "urgprof", classe: a.dataset.c || (route().v === "classe" ? route().a : null), eleve: a.dataset.e || null }; render(); return;
     case "urgrep": case "urglu": case "urgsend": case "urgsuppr": e.preventDefault(); await actionUrgence(act, a); return;
     case "odorphelins": { e.preventDefault(); toast("Recherche des dossiers de cours supprimés…");
@@ -343,6 +346,7 @@ document.addEventListener("click", async e => {
     case "rmqimg": { const q = S.ed.questions[Number(a.dataset.qi)]; if (q.img && S.ed.uploaded.includes(q.img)) { sb.storage.from("documents").remove([q.img]); S.ed.uploaded = S.ed.uploaded.filter(p => p !== q.img); } q.img = null; render(); return; }
     case "remarque": { const t = document.getElementById("noteCom"); if (t) { t.value = (t.value.trim() ? t.value.trim() + " " : "") + a.dataset.t; t.focus(); } return; }
     case "savenote": { const v = (document.getElementById("note") || {}).value, d = S.devoirs.find(x => x.id === (S.rendus.find(y => String(y.id) === a.dataset.id) || {}).devoir_id);
+      const dejaRendu = !!(correctionDe(S.rendus.find(y => String(y.id) === a.dataset.id)) || {}).publiee;
       const n = v === "" || v == null ? null : Number(String(v).replace(",", ".")), pub = a.dataset.pub === "1";
       if (n != null && (isNaN(n) || n < 0 || (d && d.points != null && n > d.points))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "La note doit être comprise entre 0 et " + d.points + "."; return; }
       const com = ((document.getElementById("noteCom") || {}).value || "").trim();
@@ -350,13 +354,13 @@ document.addEventListener("click", async e => {
       if (grille && grille.some((x, i) => x != null && (isNaN(x) || x < 0 || x > d.grille[i].p))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "Une note de critère dépasse son maximum."; return; }
       const { error } = await sb.from("corrections").upsert({ rendu_id: Number(a.dataset.id), note: n, commentaire: com, grille, competences: lireCompetences(), publiee: pub, modifie_le: now().toISOString() });
       if (error) { toast("Enregistrement impossible : " + error.message); return; }
-      const suiv = a.dataset.next === "1" ? eleveVoisin(1) : null; await rafraichir(); if (suiv) S.sel = suiv; render(); toast(pub ? "Travail rendu à l'élève" + (suiv ? " · élève suivant" : "") : "Brouillon enregistré"); return; }
+      const suiv = a.dataset.next === "1" ? eleveVoisin(1) : null; await rafraichir(); if (suiv) S.sel = suiv; render(); if (pub && !dejaRendu) prevenirEleves([Number(a.dataset.id)]); toast(pub ? "Travail rendu à l'élève" + (suiv ? " · élève suivant" : "") : "Brouillon enregistré"); return; }
     case "rendretout": { e.preventDefault(); S.menu = null; const d = S.devoirs.find(x => String(x.id) === a.dataset.d);
       const ids = rendusDe(d).filter(rd => { const c = correctionDe(rd); return c && c.note != null && !c.publiee; }).map(rd => rd.id);
       if (!ids.length) { toast("Aucune note en brouillon à rendre pour ce devoir."); render(); return; }
       const { error } = await sb.from("corrections").update({ publiee: true, modifie_le: now().toISOString() }).in("rendu_id", ids);
       if (error) { toast("Action impossible : " + error.message); return; }
-      await rafraichir(); render(); toast(ids.length + " note" + (ids.length > 1 ? "s rendues" : " rendue")); return; }
+      await rafraichir(); render(); prevenirEleves(ids); toast(ids.length + " note" + (ids.length > 1 ? "s rendues" : " rendue")); return; }
     case "mailmissing": { const d = S.devoirs.find(x => String(x.id) === a.dataset.d), el = elevesDuDevoir(d, (S.cache[d.classe_id] || {eleves:[]}).eleves);
       S.pick = new Set(el.filter(x => !renduDe(d, x.email)).map(x => x.email)); S.compose = true; S.cSub = "Rappel : " + d.titre;
       S.cBody = "Bonjour,\n\nJe n'ai pas encore reçu ton travail « " + d.titre + " ». " + (d.date_limite ? (ouvert(d) ? "La date limite est le " + fmtD(D(d.date_limite)) + " à " + fmtT(D(d.date_limite)) + "." : "La date limite est passée, viens me voir.") : "") + "\n\n" + R().prof.nom; render(); return; }

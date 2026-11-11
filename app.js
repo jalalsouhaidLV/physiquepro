@@ -2101,10 +2101,11 @@ function admProfil(){
     </section>
     <section class="edcard crcard"><h2 class="crbig">Notifications</h2>
       <h3 class="crsub">Dans PhysiquePro</h3>
-      <p class="muted" style="margin:0">Ces paramètres s'appliquent aux notifications de la cloche ${icon("bell")} en haut de chaque page. PhysiquePro n'envoie pas d'e-mails automatiques : la cloche les remplace.</p>
+      <p class="muted" style="margin:0">Ces paramètres s'appliquent aux notifications de la cloche ${icon("bell")} en haut de chaque page. ${S.prof ? "Les élèves sont aussi prévenus par e-mail et sur leur téléphone quand tu rends une note (voir plus bas)." : "Pour être prévenu hors du site, active aussi les notifications de cet appareil plus bas."}</p>
       ${sw("bell", "Autoriser les notifications")}
       <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, l)).join("")}
       <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Cours dont vous êtes élève"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
+      ${blocPush()}
       <details class="crdet"><summary><span><b>Notifications de cours</b><small class="muted">Ces paramètres s'appliquent aux notifications pour chaque cours</small></span>${icon("down")}</summary>
         ${actives().map(c => `<label class="switch crsw"><span class="who2"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span>${esc(c.nom)}</span><input type="checkbox" data-prefc="${esc(c.id)}" ${off.includes(c.id) ? "" : "checked"}><i aria-hidden="true"></i></label>`).join("")}</details>
     </section>`;
@@ -6091,6 +6092,83 @@ signalerPresence = async function(){
   if (r.kick) deconnexionForcee();          /* seulement si le professeur a demandé la déconnexion */
 };
 IC.lieu = IC.lieu || '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>';
+/* ---------- notifications push sur téléphone + e-mail quand le prof rend une note (étape 37, 11/11/2026) ----------
+   Élève : « Activer sur cet appareil » (Profil > Notifications) → abonnement Web Push rangé par pp_push_abonner.
+   Prof : à chaque note rendue, la fonction Supabase « pp-push » prévient les appareils abonnés,
+   et un e-mail part de la boîte Outlook du prof (Microsoft Graph, Mail.Send) aux élèves en copie cachée. */
+const pushPossible = () => "serviceWorker" in navigator && "PushManager" in window && typeof Notification !== "undefined";
+const estIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const siteInstalle = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const urlSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
+function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
+async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
+async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(); if (on !== !!S.pushOn) { S.pushOn = on; if (location.hash.includes("/admin/profil")) render(); } }
+
+async function activerPush(){
+  if (!pushPossible()) return toast(estIOS() && !siteInstalle() ? "Sur iPhone : ajoute d'abord PhysiquePro à l'écran d'accueil, puis ouvre-le depuis l'icône." : "Ce navigateur ne gère pas les notifications push.");
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") return toast("Notifications refusées. Autorise-les dans les réglages du téléphone ou du navigateur.");
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "cle" } });
+    if (error || !data || !data.cle) throw new Error((error && error.message) || "clé introuvable");
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64EnOctets(data.cle) });
+    const j = sub.toJSON();
+    const { error: e2 } = await sb.rpc("pp_push_abonner", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_appareil: (estIOS() ? "iPhone/iPad" : /Android/i.test(navigator.userAgent) ? "Android" : "Ordinateur") });
+    if (e2) throw e2;
+    S.pushOn = true; toast("Notifications activées sur cet appareil ✓"); render();
+  } catch (e) { toast("Activation impossible : " + (e.message || e)); }
+}
+async function desactiverPush(){
+  const sub = await abonnementPush();
+  if (sub) { try { await sb.rpc("pp_push_desabonner", { p_endpoint: sub.endpoint }); } catch (_) {} try { await sub.unsubscribe(); } catch (_) {} }
+  S.pushOn = false; toast("Notifications désactivées sur cet appareil"); render();
+}
+
+/* bloc de la page Profil */
+function blocPush(){
+  if (!S.prof) setTimeout(majEtatPush, 0);
+  const etat = S.pushOn ? `<p class="muted" style="margin:0">${icon("bell")} Activées sur cet appareil.</p><div><button class="btn ghost sm" data-act="pushoff">Désactiver sur cet appareil</button></div>`
+    : !pushPossible() && estIOS() && !siteInstalle() ? `<p class="muted" style="margin:0">Sur iPhone ou iPad (iOS 16.4 ou plus récent) : dans Safari, touche <b>Partager</b> puis <b>Sur l'écran d'accueil</b>. Ouvre ensuite PhysiquePro depuis cette nouvelle icône et reviens ici pour activer les notifications.</p>`
+    : !pushPossible() ? `<p class="muted" style="margin:0">Ce navigateur ne gère pas les notifications push. Sur Android, utilise Chrome.</p>`
+    : typeof Notification !== "undefined" && Notification.permission === "denied" ? `<p class="muted" style="margin:0">Les notifications sont bloquées pour ce site : autorise-les dans les réglages du téléphone ou du navigateur, puis reviens ici.</p>`
+    : `<div><button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications sur cet appareil</button></div>`;
+  return `${S.prof ? "" : `<h3 class="crsub">Sur ce téléphone ou cet ordinateur</h3>
+      <p class="muted" style="margin:0">Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès que ton professeur rend une note. À faire une fois sur chaque appareil.</p>
+      ${etat}`}
+      ${S.prof ? `<h3 class="crsub">Quand je rends une note</h3>
+      <label class="switch crsw"><span>Envoyer aussi un e-mail à l'élève (depuis mon Outlook)</span><input type="checkbox" data-pref="mail_notes" ${prefs().mail_notes !== false ? "checked" : ""}><i aria-hidden="true"></i></label>
+      <p class="muted" style="margin:0;font-size:.85rem">Les élèves qui ont activé les notifications sur leur téléphone (Profil &gt; Notifications) reçoivent aussi une notification push. La première fois, Microsoft demande d'autoriser l'envoi d'e-mails. <button class="linkbtn" data-act="mailauth">Autoriser maintenant</button></p>` : ""}`;
+}
+
+/* prof : prévenir les élèves dont la note vient d'être rendue (ne bloque pas l'écran) */
+function prevenirEleves(renduIds){
+  if (!S.prof || !renduIds || !renduIds.length) return;
+  const parDevoir = new Map();
+  renduIds.forEach(id => { const r = S.rendus.find(x => x.id === Number(id)); if (!r) return; const L = parDevoir.get(r.devoir_id) || new Set();
+    [r.auteur_email, r.binome_email].filter(Boolean).forEach(e => L.add(String(e).toLowerCase())); parDevoir.set(r.devoir_id, L); });
+  parDevoir.forEach((emails, did) => { const d = S.devoirs.find(x => x.id === did); if (d && emails.size) envoyerAvis(d, [...emails]); });
+}
+async function envoyerAvis(d, emails){
+  const c = cls(d.classe_id), titre = d.titre || "ton travail", cours = c ? c.nom : "";
+  const lien = urlSite() + "#/devoir/" + d.id;
+  const res = [];
+  try {
+    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "envoyer", emails, titre: "Note disponible · " + titre, texte: (cours ? cours + " · " : "") + nomProfCourt() + " a rendu ton travail. Touche pour voir ta note.", url: "./#/devoir/" + d.id, tag: "note-" + d.id } });
+    if (!error && data) res.push(data.eleves ? "notification envoyée à " + data.eleves + " élève" + (data.eleves > 1 ? "s" : "") : "aucun élève n'a activé les notifications");
+  } catch (_) {}
+  if (prefs().mail_notes !== false) {
+    const corps = `<p>Bonjour,</p><p>${esc(R().prof.nom)} a rendu ton travail « <b>${esc(titre)}</b> »${cours ? " (" + esc(cours) + ")" : ""}.</p>
+      <p>Ta note et les commentaires sont sur PhysiquePro : <a href="${esc(lien)}">ouvrir le travail</a>.</p><p style="color:#666;font-size:12px">E-mail envoyé automatiquement par PhysiquePro.</p>`;
+    try {
+      await graph("/me/sendMail", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: { subject: "PhysiquePro · Note disponible : " + titre, body: { contentType: "HTML", content: corps }, bccRecipients: emails.map(a => ({ emailAddress: { address: a } })) }, saveToSentItems: true }) }, true, ["Mail.Send"]);
+      res.push("e-mail envoyé");
+    } catch (e) { res.push("e-mail non envoyé (" + (e.message || e) + ")"); }
+  }
+  if (res.length) toast("« " + titre + " » : " + res.join(" · "));
+}
+async function autoriserMail(){ try { await jetonGraph(true, ["Mail.Send"]); toast("Envoi d'e-mails autorisé ✓"); } catch (e) { toast("Autorisation refusée : " + (e.message || e)); } }
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
@@ -6398,6 +6476,9 @@ document.addEventListener("click", async e => {
       if (!S.viewer || S.viewer.did !== rd.devoir_id) { const fi = Math.max(0, (rd.fichiers || []).findIndex(peutAnnoter)); S.viewer = { did: rd.devoir_id, email: S.sel || rd.auteur_email, fi }; await render(); }
       await ouvrirAnnotation(); return; }
     case "notifon": e.preventDefault(); await demanderNotifs(); return;
+    case "pushon": e.preventDefault(); await activerPush(); return;
+    case "pushoff": e.preventDefault(); await desactiverPush(); return;
+    case "mailauth": e.preventDefault(); await autoriserMail(); return;
     case "urgecrire": e.preventDefault(); fermerMenus(); S.modal = { kind: "urgprof", classe: a.dataset.c || (route().v === "classe" ? route().a : null), eleve: a.dataset.e || null }; render(); return;
     case "urgrep": case "urglu": case "urgsend": case "urgsuppr": e.preventDefault(); await actionUrgence(act, a); return;
     case "odorphelins": { e.preventDefault(); toast("Recherche des dossiers de cours supprimés…");
@@ -6436,6 +6517,7 @@ document.addEventListener("click", async e => {
     case "rmqimg": { const q = S.ed.questions[Number(a.dataset.qi)]; if (q.img && S.ed.uploaded.includes(q.img)) { sb.storage.from("documents").remove([q.img]); S.ed.uploaded = S.ed.uploaded.filter(p => p !== q.img); } q.img = null; render(); return; }
     case "remarque": { const t = document.getElementById("noteCom"); if (t) { t.value = (t.value.trim() ? t.value.trim() + " " : "") + a.dataset.t; t.focus(); } return; }
     case "savenote": { const v = (document.getElementById("note") || {}).value, d = S.devoirs.find(x => x.id === (S.rendus.find(y => String(y.id) === a.dataset.id) || {}).devoir_id);
+      const dejaRendu = !!(correctionDe(S.rendus.find(y => String(y.id) === a.dataset.id)) || {}).publiee;
       const n = v === "" || v == null ? null : Number(String(v).replace(",", ".")), pub = a.dataset.pub === "1";
       if (n != null && (isNaN(n) || n < 0 || (d && d.points != null && n > d.points))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "La note doit être comprise entre 0 et " + d.points + "."; return; }
       const com = ((document.getElementById("noteCom") || {}).value || "").trim();
@@ -6443,13 +6525,13 @@ document.addEventListener("click", async e => {
       if (grille && grille.some((x, i) => x != null && (isNaN(x) || x < 0 || x > d.grille[i].p))) { const x = document.getElementById("noteErr"); x.hidden = false; x.textContent = "Une note de critère dépasse son maximum."; return; }
       const { error } = await sb.from("corrections").upsert({ rendu_id: Number(a.dataset.id), note: n, commentaire: com, grille, competences: lireCompetences(), publiee: pub, modifie_le: now().toISOString() });
       if (error) { toast("Enregistrement impossible : " + error.message); return; }
-      const suiv = a.dataset.next === "1" ? eleveVoisin(1) : null; await rafraichir(); if (suiv) S.sel = suiv; render(); toast(pub ? "Travail rendu à l'élève" + (suiv ? " · élève suivant" : "") : "Brouillon enregistré"); return; }
+      const suiv = a.dataset.next === "1" ? eleveVoisin(1) : null; await rafraichir(); if (suiv) S.sel = suiv; render(); if (pub && !dejaRendu) prevenirEleves([Number(a.dataset.id)]); toast(pub ? "Travail rendu à l'élève" + (suiv ? " · élève suivant" : "") : "Brouillon enregistré"); return; }
     case "rendretout": { e.preventDefault(); S.menu = null; const d = S.devoirs.find(x => String(x.id) === a.dataset.d);
       const ids = rendusDe(d).filter(rd => { const c = correctionDe(rd); return c && c.note != null && !c.publiee; }).map(rd => rd.id);
       if (!ids.length) { toast("Aucune note en brouillon à rendre pour ce devoir."); render(); return; }
       const { error } = await sb.from("corrections").update({ publiee: true, modifie_le: now().toISOString() }).in("rendu_id", ids);
       if (error) { toast("Action impossible : " + error.message); return; }
-      await rafraichir(); render(); toast(ids.length + " note" + (ids.length > 1 ? "s rendues" : " rendue")); return; }
+      await rafraichir(); render(); prevenirEleves(ids); toast(ids.length + " note" + (ids.length > 1 ? "s rendues" : " rendue")); return; }
     case "mailmissing": { const d = S.devoirs.find(x => String(x.id) === a.dataset.d), el = elevesDuDevoir(d, (S.cache[d.classe_id] || {eleves:[]}).eleves);
       S.pick = new Set(el.filter(x => !renduDe(d, x.email)).map(x => x.email)); S.compose = true; S.cSub = "Rappel : " + d.titre;
       S.cBody = "Bonjour,\n\nJe n'ai pas encore reçu ton travail « " + d.titre + " ». " + (d.date_limite ? (ouvert(d) ? "La date limite est le " + fmtD(D(d.date_limite)) + " à " + fmtT(D(d.date_limite)) + "." : "La date limite est passée, viens me voir.") : "") + "\n\n" + R().prof.nom; render(); return; }
