@@ -37,14 +37,14 @@
 > 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
 > 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
 > 4. git push sur main : GitHub Pages en 1-2 min. Netlify : le dimanche 18 h UTC, ou tout de suite via Actions > « Publication Netlify du dimanche » > Run workflow.
-> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 35 existent ; le prochain est 36), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql (77/77) et 30-test-fichiers.sql (13/13).
+> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 36 existent ; le prochain est 37), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql (77/77) et 30-test-fichiers.sql (13/13).
 > 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment ou Netlify), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
 >
 > ## 5. Construction technique
 > - Site statique (HTML/CSS/JS sans framework) sur GitHub Pages, à la racine du dépôt.
 > - app.js est assemblé, ne pas l'éditer : modifier sources/build/*.js (32 modules) ; build.sh met 09-evenements.js en dernier et n'écrit app.js que si node --check réussit.
 > - config.js = liens et icônes du haut, nom/email du prof, URL Supabase et clé publishable.
-> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611110830).
+> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611110900).
 > - supabase-js 2.117.2 et msal-browser 3.28.1 via jsDelivr avec SRI.
 > - Connexion Microsoft 365 via Supabase Auth (Azure), domaine @lycee-verdun.edu.lb ; prof = jalal.souhaid@lycee-verdun.edu.lb.
 > - 26 tables, toutes avec RLS, aucune lisible par anon ; est_prof() pour les fonctions prof ; pp_accueil_public est la seule fonction ouverte aux visiteurs (voulu).
@@ -101,7 +101,7 @@
 - **Site statique** (HTML + CSS + JavaScript sans framework) hébergé sur GitHub Pages, à la racine du dépôt : `index.html`, `app.js` (assemblé, ne pas modifier à la main), `app.css`, `config.js`, `logos.js`, logos `logo-*.png/svg`, icônes `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
 - **`config.js`** est le seul fichier à modifier pour changer un lien, une icône du haut, le nom ou l'email du prof : il contient aussi l'adresse Supabase et la clé *publishable* (publique par nature, sans danger).
 - **Code source découpé** dans `sources/build/` (32 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
-- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611110830`).
+- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611110900`).
 - **Bibliothèques** chargées depuis jsDelivr avec vérification d'intégrité (SRI) : supabase-js 2.117.2 et msal-browser 3.28.1.
 - **Connexion** : Microsoft 365 du lycée via Supabase Auth (Azure). Seule restriction : adresse en `@lycee-verdun.edu.lb` (élèves `lv.prenom.nom@…`, profs `prenom.nom@…`). Le prof est `jalal.souhaid@lycee-verdun.edu.lb` (rôle « prof » donné automatiquement).
 - **Base de données** Supabase (PostgreSQL) : toutes les tables ont des règles RLS ; les visiteurs non connectés n'ont aucun accès direct ; les fonctions réservées au prof vérifient `est_prof()`.
@@ -116,7 +116,7 @@
 3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
 4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
 5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : GitHub > Actions > « Publication Netlify du dimanche » > Run workflow.
-6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 35). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
+6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 36). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
 
 ---
 
@@ -172,7 +172,7 @@
 - **Netlify** : branche de production `netlify` ; seules les publications de production sont construites ; aperçus de déploiement désactivés.
 - **GitHub Actions** : « Publication Netlify du dimanche » (`netlify-dimanche.yml`), « Garder Supabase actif » (empêche la mise en pause du projet gratuit après 7 jours), pages-build-deployment.
 - **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache sur Netlify `sources/*`, `verification.html`, `test-connexion.html`, `README.md`), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
-- **Sauvegarde du code** : `sources/build/` (32 modules + build.sh), `sources/supabase/` (scripts 01 à 35), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
+- **Sauvegarde du code** : `sources/build/` (32 modules + build.sh), `sources/supabase/` (scripts 01 à 36), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
 
 ## 10. Travailler depuis le projet (procédure)
 
@@ -210,3 +210,4 @@
 - **20 octobre 2026** : le fichier du calendrier a été effacé par le bouton « Supprimer les fichiers inutilisés ». Corrigé : les fichiers du dossier `prof/` ne sont plus jamais comptés comme inutilisés, et le calendrier est devenu un lien Google Drive.
 - **Ménage du 4 novembre 2026** : anciens doublons supprimés de la racine du dépôt (16 scripts SQL 06 à 22, dossiers `build/`, `site/`, `supabase/` du 18 octobre) — les bonnes versions sont dans `sources/`. Récupérables dans l'historique Git si besoin.
 - **Cloche des notifications (11 novembre 2026)** : chaque notification non lue a une coche « Marquer comme lu », et l'ouvrir la marque aussi comme lue. Les notifications lues une à une sont gardées dans `profiles.prefs.lus` (enregistré par `pp_prefs`, donc pareil sur tous les appareils, pas de nouveau script SQL) ; « Tout marquer comme lu » garde `pp_vu` (date `vu_le`). Sur téléphone (≤ 600 px), le menu prend toute la largeur de l'écran : avant, il dépassait à gauche et le texte paraissait coupé.
+- **Documents Word des élèves sur téléphone (11 novembre 2026, script 36)** : Microsoft ne permet que la lecture de Word / Excel / PowerPoint dans le navigateur d'un téléphone. Sur téléphone, la carte de la copie de l'élève ouvre une fenêtre « Écrire dans ta copie » : bouton « Ouvrir dans l'appli Word » (lien `ms-word:ofe|u|` + adresse directe du fichier, colonne `copies.fichier`), aide pour installer l'appli et se connecter avec le compte du lycée, « Juste la lire », rappel « photo + Joindre ». Sur ordinateur, la carte verte « ta copie : clique pour écrire dedans » ouvre Word en ligne ; la flèche télécharge la copie de l'élève. Les élèves ayant le droit d'écrire peuvent créer un lien « Tout le monde » (email SharePoint « anonymous access link » au prof) : toutes les 6 h, le navigateur du prof retire tout lien de partage des copies élèves (`entretienCopies`, 15-onedrive.js) et complète `copies.fichier`.

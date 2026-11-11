@@ -57,7 +57,7 @@
       { id: 2, classe_id: "snt", theme_id: 3, titre: "Fiche : adresses IP", description: "", ressources: [], publie_le: jour(-3), brouillon: false, eleves: null, position: 1 }
     ],
     devoirs: [
-      { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "Faire les exercices 3 et 4.", ressources: [], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
+      { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "Faire les exercices 3 et 4.", ressources: [{ type: "DOCX", label: "Fiche ondes.docx", url: "https://exemple.sharepoint.com/:w:/g/fiche", od: { id: "OD-FICHE", web: "https://exemple.sharepoint.com/fiche.docx" } }], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
       { id: 2, classe_id: "tle", theme_id: 2, titre: "Compte rendu de TP", consigne: "Rendre le compte rendu du dosage.", ressources: [], date_limite: jour(-1), mode: "binome", formats: "", points: 20, publie_le: jour(-8), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: false, position: 1, accepte: true },
       { id: 3, classe_id: "snt", theme_id: 3, titre: "Question : qu'est-ce qu'un routeur ?", consigne: "Réponds en deux phrases.", ressources: [], date_limite: jour(6), mode: "individuel", formats: "", points: null, publie_le: jour(-1), brouillon: false, eleves: null, type: "question", question: { type: "courte" }, categorie: "", grille: null, retard_ok: true, position: 1, accepte: true }
     ],
@@ -77,7 +77,7 @@
     commentaires: [{ id: 1, annonce_id: 1, auteur: ELEVE.id, auteur_nom: ELEVE.nom, texte: "Merci !", cree_le: jour(-1) }],
     commentaires_prives: [],
     reglages: [{ id: 1, data: {}, modifie_le: jour(-10) }],
-    copies: [],
+    copies: [{ id: 1, classe_id: "tle", objet: "devoir", objet_id: 1, source: "OD-FICHE", eleve_email: ELEVE.email, nom: "Fiche ondes.docx", od_id: "OD-COPIE", web: "https://exemple.sharepoint.com/_layouts/15/Doc.aspx?sourcedoc=x", fichier: "https://exemple.sharepoint.com/personal/prof/Documents/Copies/Eleve%20Test%20-%20Fiche%20ondes.docx", cree_le: jour(-2) }],
     messages_urgents: [{ id: 1, classe_id: "tle", eleve: ELEVE.id, eleve_email: ELEVE.email, eleve_nom: ELEVE.nom, texte: "Message urgent de test.", cree_le: jour(-0.1), lu: false, reponse: null, repondu_le: null, de_prof: false }],
     demandes_materiel: [],
     rdv_series: [{ id: 1, classe_id: "tle", titre: "Rendez-vous de test", lieu: "Salle B12", consigne: "", cree_le: jour(-3) }],

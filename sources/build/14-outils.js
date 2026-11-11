@@ -3,6 +3,10 @@
 const OFFICE = ["doc", "docx", "dot", "dotx", "rtf", "odt", "xls", "xlsx", "xlsm", "csv", "ods", "ppt", "pptx", "pps", "ppsx", "odp"];
 const estOffice = n => OFFICE.includes(String(n || "").split(".").pop().toLowerCase());
 const lienOffice = (nom, url) => estOffice(nom) && !/\.csv$/i.test(nom) ? "https://view.officeapps.live.com/op/view.aspx?src=" + encodeURIComponent(url) : url;
+/* téléphone (pas tablette ni ordinateur) : Word / Excel / PowerPoint en ligne n'y servent qu'à lire */
+const telephone = () => { const u = navigator.userAgent || ""; return /iPhone|iPod/.test(u) || (/Android/.test(u) && /Mobile/.test(u)); };
+const STORE_OFFICE = { Word: ["com.microsoft.office.word", "id586447913"], Excel: ["com.microsoft.office.excel", "id586683407"], PowerPoint: ["com.microsoft.office.powerpoint", "id586449534"] };
+const SCHEMA_OFFICE = { Word: "ms-word", Excel: "ms-excel", PowerPoint: "ms-powerpoint" };
 const appOffice = n => { const x = String(n || "").split(".").pop().toLowerCase(); return /^(doc|dot|rtf|odt)/.test(x) ? "Word" : /^(xls|ods)/.test(x) ? "Excel" : /^(ppt|pps|odp)/.test(x) ? "PowerPoint" : ""; };
 const btnDl = (bucket, path, nom) => `<button class="dlbtn" data-act="dlfile" data-bucket="${esc(bucket)}" data-path="${esc(path)}" data-nom="${esc(nom || "")}" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom || "")}">${icon("down")}</button>`;
 const extDe = n => (String(n || "").split(".").pop() || "").toLowerCase();

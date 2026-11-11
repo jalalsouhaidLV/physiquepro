@@ -58,12 +58,17 @@ function carteRes(r, ctx = {}){
   const nom = r.label || r.path || r.url || "", fam = familleRes(r.od || r.path ? nom : (r.label && /\.\w{2,5}$/.test(r.label) ? r.label : ""));
   const sous = fam ? TYPE_RES[fam][0] : r.url ? String(r.url).replace(/^https?:\/\//, "") : "Fichier";
   const tip = appOffice(nom) ? `title="Ouvrir dans ${appOffice(nom)} en ligne"` : `title="${esc(nom)}"`;
-  const office = !S.prof && appOffice(nom) && r.od, copie = office ? copieDe(r, ctx) : null;
+  const office = !S.prof && appOffice(nom) && r.od, copie = office ? copieDe(r, ctx) : null, tel = telephone();
   let lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
-  let tip2 = tip;
-  if (copie) { lien = `href="${esc(copie.web)}" target="_blank" rel="noopener"`; tip2 = `title="Ouvrir ma copie modifiable dans ${appOffice(nom)} en ligne"`; }
-  const dl = r.path ? btnDl(r.bucket || "documents", r.path, r.label) : r.url && /sharepoint\.com/i.test(r.url) && fam ? `<a class="dlbtn" href="${esc(r.url + (r.url.includes("?") ? "&" : "?") + "download=1")}" target="_blank" rel="noopener" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom)}">${icon("down")}</a>` : "";
-  return `<div class="rcard"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${copie ? " · ma copie modifiable" : office ? " · lecture seule" : ""}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
+  let tip2 = tip, etat = office ? " · à lire seulement" : "";
+  if (copie) {
+    /* téléphone : Word en ligne n'y permet que la lecture → fenêtre d'aide qui ouvre la copie dans l'appli Word */
+    lien = tel ? `href="#" data-act="wordtel" data-copie="${esc(copie.id)}" data-devoir="${esc(ctx.devoir || "")}"` : `href="${esc(copie.web)}" target="_blank" rel="noopener"`;
+    tip2 = `title="Ouvrir ta copie pour écrire dedans (${appOffice(nom)})"`; etat = " · ta copie : " + (tel ? "touche" : "clique") + " pour écrire dedans";
+  }
+  const dl = copie ? (copie.fichier && !tel ? `<a class="dlbtn" href="${esc(copie.fichier + "?download=1")}" target="_blank" rel="noopener" title="Télécharger ta copie" aria-label="Télécharger ta copie de ${esc(nom)}">${icon("down")}</a>` : "")
+    : r.path ? btnDl(r.bucket || "documents", r.path, r.label) : r.url && /sharepoint\.com/i.test(r.url) && fam ? `<a class="dlbtn" href="${esc(r.url + (r.url.includes("?") ? "&" : "?") + "download=1")}" target="_blank" rel="noopener" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom)}">${icon("down")}</a>` : "";
+  return `<div class="rcard${copie ? " macopie" : ""}"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${etat}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
 }
 const carteYoutube = r => carteRes(r);
 function ressources(list, ctx = {}, cls = ""){

@@ -216,6 +216,32 @@ function copieDe(r, ctx){
   if (!r.od || !r.od.id) return null;
   return (S.copies || []).find(x => x.source === r.od.id && x.eleve_email === moi() && (ctx.devoir ? x.objet === "devoir" && String(x.objet_id) === String(ctx.devoir) : ctx.support ? x.objet === "support" && String(x.objet_id) === String(ctx.support) : true)) || null;
 }
+/* adresse directe du fichier (…/Documents/…/x.docx) : sert à l'ouvrir dans l'appli Word du téléphone (ms-word:ofe|u|…) et à le télécharger */
+async function adresseFichier(id){
+  try {
+    const it = await graph("/me/drive/items/" + encodeURIComponent(id) + "?$select=name,webUrl,webDavUrl,parentReference", {}, false);
+    if (it.webDavUrl) return it.webDavUrl;
+    const base = String(it.webUrl || "").split("/_layouts/")[0], ch = String((it.parentReference || {}).path || "").replace(/^\/drive\/root:/, "");
+    let dec = ch; try { dec = decodeURIComponent(ch); } catch (_) {}
+    return base && it.name ? base + "/Documents" + encodeURI(dec + "/" + it.name).replace(/#/g, "%23") : null;
+  } catch (_) { return null; }
+}
+/* copies des élèves : un élève qui a le droit d'écrire peut créer un lien « Tout le monde » (email « anonymous access link »).
+   Toutes les 6 h, le navigateur du prof retire ces liens et complète l'adresse directe des copies. */
+async function entretienCopies(force){
+  let dernier = 0; try { dernier = Number(localStorage.getItem("pp_conf_copies") || 0); } catch (_) {}
+  if (!force && Date.now() - dernier < 6 * 3600e3) return 0;
+  let n = 0; const limite = Date.now() - 200 * 864e5;
+  for (const x of S.copies || []) {
+    if (!x.od_id || (x.cree_le && D(x.cree_le) < limite)) continue;
+    try {
+      for (const p of await permsOD(x.od_id)) if (p.link && !p.inheritedFrom) { await suppPermOD(x.od_id, p); n++; }
+      if (!x.fichier) { const f = await adresseFichier(x.od_id); if (f) { const { error } = await sb.from("copies").update({ fichier: f }).eq("id", x.id); if (!error) x.fichier = f; } }
+    } catch (e) { console.warn("entretien copie", e); }
+  }
+  try { localStorage.setItem("pp_conf_copies", String(Date.now())); } catch (_) {}
+  return n;
+}
 let copiesEnCours = false;
 async function genererCopies(silencieux){
   if (!S.prof || !odActif() || copiesEnCours) return;
@@ -242,7 +268,7 @@ async function genererCopies(silencieux){
         const nom = nomOD(t.r.label || "document"), nomE = nomOD(t.e.nom || nomDepuisEmail(t.e.email));
         const item = await odPut(cheminOD([OD_RACINE, ...dossierTravail(t.o.classe_id, t.o.theme_id, t.o.titre), "Copies élèves", nomE + " - " + nom]), cache[t.r.od.id]);
         await graph("/me/drive/items/" + item.id + "/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipients: [{ email: t.e.email }], roles: ["write"], requireSignIn: true, sendInvitation: false }) }, false);
-        const row = { classe_id: t.o.classe_id, objet: t.objet, objet_id: t.o.id, source: t.r.od.id, eleve_email: t.e.email, nom, od_id: item.id, web: item.webUrl };
+        const row = { classe_id: t.o.classe_id, objet: t.objet, objet_id: t.o.id, source: t.r.od.id, eleve_email: t.e.email, nom, od_id: item.id, web: item.webUrl, fichier: await adresseFichier(item.id) };
         const { data, error } = await sb.from("copies").insert(row).select().single(); if (error) throw error;
         S.copies.push(data); n++;
         if (n === 1 || n % 5 === 0) toast("Copies modifiables pour les élèves : " + n + " / " + taches.length);
@@ -350,8 +376,9 @@ async function synchroPartages(silencieux, dossiers){
       nd = await dossiersPrives(el);
       try { localStorage.setItem("pp_conf_dossiers", String(Date.now())); } catch (_) {}
     }
+    const nl = await entretienCopies(dossiers);
     if (f.fermes || f.ouverts) S.cache = {};
-    if (!silencieux || nd || f.fermes || f.ouverts) toast([nd ? nd + " partage" + (nd > 1 ? "s" : "") + " de dossier retiré" + (nd > 1 ? "s" : "") : "", f.fermes ? f.fermes + " fichier" + (f.fermes > 1 ? "s" : "") + " de brouillon rendu" + (f.fermes > 1 ? "s" : "") + " privé" + (f.fermes > 1 ? "s" : "") : "", f.ouverts ? f.ouverts + " fichier" + (f.ouverts > 1 ? "s" : "") + " publié" + (f.ouverts > 1 ? "s" : "") + " pour les élèves" : ""].filter(Boolean).join(" · ") || "OneDrive : dossiers et brouillons déjà privés ✓");
+    if (!silencieux || nd || nl || f.fermes || f.ouverts) toast([nl ? nl + " lien" + (nl > 1 ? "s" : "") + " de partage retiré" + (nl > 1 ? "s" : "") + " des copies élèves" : "", nd ? nd + " partage" + (nd > 1 ? "s" : "") + " de dossier retiré" + (nd > 1 ? "s" : "") : "", f.fermes ? f.fermes + " fichier" + (f.fermes > 1 ? "s" : "") + " de brouillon rendu" + (f.fermes > 1 ? "s" : "") + " privé" + (f.fermes > 1 ? "s" : "") : "", f.ouverts ? f.ouverts + " fichier" + (f.ouverts > 1 ? "s" : "") + " publié" + (f.ouverts > 1 ? "s" : "") + " pour les élèves" : ""].filter(Boolean).join(" · ") || "OneDrive : dossiers et brouillons déjà privés ✓");
   } catch (e) { if (!silencieux) toast("Confidentialité OneDrive : " + (e.message || e)); }
   finally { confEnCours = false; }
 }
@@ -417,7 +444,7 @@ async function rangerDossiersClasses(anciens = {}){
       let ch = false; for (const r of o.ressources || []) if (r.od && r.od.id) { const w = await webDe(r.od.id); if (w && w !== r.od.web) { if (r.prive || r.url === r.od.web) r.url = w; r.od.web = w; ch = true; } }
       if (ch) await sb.from(table).update({ ressources: o.ressources }).eq("id", o.id);
     }
-    for (const x of S.copies || []) { const w = await webDe(x.od_id); if (w && w !== x.web) { await sb.from("copies").update({ web: w }).eq("id", x.id); x.web = w; } }
+    for (const x of S.copies || []) { const w = await webDe(x.od_id); if (w && w !== x.web) { const f = await adresseFichier(x.od_id); await sb.from("copies").update({ web: w, fichier: f }).eq("id", x.id); x.web = w; x.fichier = f; } }
     for (const r of S.rendus) { let ch = false; const fs = (r.fichiers || []).map(f => ({ ...f })); for (const f of fs) if (f.od && f.od.id) { const w = await webDe(f.od.id); if (w && w !== f.od.web) { f.od = { ...f.od, web: w }; ch = true; } }
       if (ch) { const { error } = await sb.from("rendus").update({ fichiers: fs }).eq("id", r.id); if (!error) r.fichiers = fs; } }
     /* 4. confidentialité : aucun dossier partagé */

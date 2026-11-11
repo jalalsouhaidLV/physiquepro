@@ -2,6 +2,18 @@
 function vModal(){
   const m = S.modal; let body = "", ok = "Enregistrer", foot = true;
   if (m.kind === "theme") { body = `<h2>${m.id ? "Renommer le thème" : "Ajouter un thème"}</h2><div class="field"><label for="mTitre">Nom du thème</label><input id="mTitre" value="${esc(m.titre || "")}" placeholder="ex. Chapitre 1 · Mouvements"></div>`; ok = m.id ? "Renommer" : "Ajouter"; }
+  else if (m.kind === "wordtel") { const x = (S.copies || []).find(c => String(c.id) === String(m.id)) || {}, app = appOffice(x.nom) || "Word", ios = /iPhone|iPod|iPad/.test(navigator.userAgent), st = STORE_OFFICE[app];
+    const store = ios ? `https://apps.apple.com/app/${st[1]}` : `https://play.google.com/store/apps/details?id=${st[0]}`;
+    const ouvrir = x.fichier ? `${SCHEMA_OFFICE[app]}:ofe|u|${x.fichier}` : x.web;
+    body = `<h2>Écrire dans ta copie</h2><p style="margin:0"><b>${esc(x.nom || "")}</b></p>
+      <p style="margin:0">Sur téléphone, on écrit dans un document ${app} avec <b>l'application ${app}</b> (gratuite).</p>
+      <a class="btn wordbtn" href="${esc(ouvrir)}">${icon("edit")} Ouvrir dans l'appli ${app}</a>
+      <details class="wordaide"><summary>Je n'ai pas l'appli ${app}, ou elle me dit « lecture seule »</summary><ol>
+        <li><a href="${esc(store)}" target="_blank" rel="noopener">Installe l'appli ${app}</a> (gratuite).</li>
+        <li>Ouvre-la et connecte-toi avec ton adresse du lycée : <b>${esc(moi())}</b> (pas un compte personnel).</li>
+        <li>Reviens ici et touche « Ouvrir dans l'appli ${app} ».</li></ol></details>
+      <p class="muted" style="margin:0;font-size:.85rem">Ce que tu écris est enregistré tout seul dans ta copie : ton professeur la voit.${m.devoir ? " Tu n'y arrives pas ? Écris sur une feuille, prends-la en photo et ajoute-la à ton travail avec « Joindre »." : ""}</p>
+      <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap"><a class="btn ghost" href="${esc(x.web || "#")}" target="_blank" rel="noopener">Juste la lire</a><button class="btn ghost" data-act="mclose">Fermer</button></div>`; foot = false; }
   else if (m.kind === "copieauth") { body = `<h2>Ouvrir ta copie modifiable</h2><p style="margin:0">Pour modifier ce document en ligne, PhysiquePro en crée <b>une copie dans ton OneDrive</b> (dossier « PhysiquePro »). Le document de ton professeur n'est pas modifié.</p><p class="muted" style="margin:0;font-size:.85rem">La première fois seulement, Microsoft te demande d'autoriser PhysiquePro à accéder à ton OneDrive.</p>`; ok = "Autoriser et ouvrir"; }
   else if (m.kind === "placercours") { const l = actives(), i = l.findIndex(c => c.id === m.id), autres = l.filter(c => c.id !== m.id);
     body = `<h2>Déplacer « ${esc(m.nom)} »</h2><div class="field"><label for="mPos">Nouvelle place du cours</label><select id="mPos" style="width:100%;max-width:100%">

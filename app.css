@@ -2121,3 +2121,11 @@ body.labouvert{overflow:hidden}
   .drawer{height:auto!important;bottom:calc(62px + env(safe-area-inset-bottom,0px));padding-bottom:16px}
   html:has(.drawer:not([hidden])){overflow:hidden}
 }
+/* copie modifiable de l'élève : bordure verte, aide « appli Word » sur téléphone */
+.att.rcards .rcard.macopie{border-color:#188038;border-width:2px}
+.att.rcards .rcard.macopie .rtxt small{color:#137333;font-weight:600;white-space:normal}
+.modal .wordbtn{width:100%;padding:14px 20px;font-size:1.05rem;text-decoration:none;box-sizing:border-box}
+.modal .wordaide{border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.modal .wordaide summary{cursor:pointer;font-weight:600}
+.modal .wordaide ol{margin:8px 0 0;padding-left:20px;display:grid;gap:6px}
+@supports (height:100dvh){.modal{max-height:calc(100dvh - 48px)}}

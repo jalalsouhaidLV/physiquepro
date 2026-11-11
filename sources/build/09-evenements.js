@@ -208,6 +208,7 @@ document.addEventListener("click", async e => {
       await rafraichir(r.a); await synchroPartages(true); await rafraichir(r.a); render(); toast("Publié"); return; }
     case "reutiliser": e.preventDefault(); S.menu = null; S.modal = {kind:"reutiliser", k:a.dataset.k, id:a.dataset.id, classe:r.a}; render(); return;
     case "reutiliserdepuis": e.preventDefault(); S.menu = null; S.modal = {kind:"reutiliser", k:"depuis", classe:a.dataset.c}; render(); return;
+    case "wordtel": e.preventDefault(); S.modal = { kind: "wordtel", id: a.dataset.copie, devoir: a.dataset.devoir }; render(); return;
     case "mclose": if (S.modal && S.modal.busy) return; S.modal = null; render(); return;
     case "mok": modalOk(); return;
     case "openfile": { e.preventDefault(); const w = window.open("about:blank", "_blank");

@@ -421,12 +421,17 @@ function carteRes(r, ctx = {}){
   const nom = r.label || r.path || r.url || "", fam = familleRes(r.od || r.path ? nom : (r.label && /\.\w{2,5}$/.test(r.label) ? r.label : ""));
   const sous = fam ? TYPE_RES[fam][0] : r.url ? String(r.url).replace(/^https?:\/\//, "") : "Fichier";
   const tip = appOffice(nom) ? `title="Ouvrir dans ${appOffice(nom)} en ligne"` : `title="${esc(nom)}"`;
-  const office = !S.prof && appOffice(nom) && r.od, copie = office ? copieDe(r, ctx) : null;
+  const office = !S.prof && appOffice(nom) && r.od, copie = office ? copieDe(r, ctx) : null, tel = telephone();
   let lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
-  let tip2 = tip;
-  if (copie) { lien = `href="${esc(copie.web)}" target="_blank" rel="noopener"`; tip2 = `title="Ouvrir ma copie modifiable dans ${appOffice(nom)} en ligne"`; }
-  const dl = r.path ? btnDl(r.bucket || "documents", r.path, r.label) : r.url && /sharepoint\.com/i.test(r.url) && fam ? `<a class="dlbtn" href="${esc(r.url + (r.url.includes("?") ? "&" : "?") + "download=1")}" target="_blank" rel="noopener" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom)}">${icon("down")}</a>` : "";
-  return `<div class="rcard"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${copie ? " · ma copie modifiable" : office ? " · lecture seule" : ""}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
+  let tip2 = tip, etat = office ? " · à lire seulement" : "";
+  if (copie) {
+    /* téléphone : Word en ligne n'y permet que la lecture → fenêtre d'aide qui ouvre la copie dans l'appli Word */
+    lien = tel ? `href="#" data-act="wordtel" data-copie="${esc(copie.id)}" data-devoir="${esc(ctx.devoir || "")}"` : `href="${esc(copie.web)}" target="_blank" rel="noopener"`;
+    tip2 = `title="Ouvrir ta copie pour écrire dedans (${appOffice(nom)})"`; etat = " · ta copie : " + (tel ? "touche" : "clique") + " pour écrire dedans";
+  }
+  const dl = copie ? (copie.fichier && !tel ? `<a class="dlbtn" href="${esc(copie.fichier + "?download=1")}" target="_blank" rel="noopener" title="Télécharger ta copie" aria-label="Télécharger ta copie de ${esc(nom)}">${icon("down")}</a>` : "")
+    : r.path ? btnDl(r.bucket || "documents", r.path, r.label) : r.url && /sharepoint\.com/i.test(r.url) && fam ? `<a class="dlbtn" href="${esc(r.url + (r.url.includes("?") ? "&" : "?") + "download=1")}" target="_blank" rel="noopener" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom)}">${icon("down")}</a>` : "";
+  return `<div class="rcard${copie ? " macopie" : ""}"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${etat}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
 }
 const carteYoutube = r => carteRes(r);
 function ressources(list, ctx = {}, cls = ""){
@@ -709,7 +714,7 @@ function vDevoir(r){
   } else {
     const cam = (S.cache[c.id] ? S.cache[c.id].eleves : []).filter(x => x.email !== moi());
     work = `${d.mode === "binome" ? `<div class="field"><label for="partenaire">Mon binôme</label><select id="partenaire"><option value="">Choisir…</option>${cam.map(x => `<option value="${esc(x.email)}" ${S.partenaire === x.email ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div>` : ""}
-      ${copiesEleve("devoir", d.id, moi()).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie modifiable : <b>${esc(x.nom)}</b><small class="muted" style="display:block">Tes modifications sont enregistrées automatiquement et ton professeur les voit.</small></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a></div>`).join("")}
+      ${copiesEleve("devoir", d.id, moi()).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie modifiable : <b>${esc(x.nom)}</b><small class="muted" style="display:block">Tes modifications sont enregistrées automatiquement et ton professeur les voit.</small></span>${telephone() ? `<a href="#" data-act="wordtel" data-copie="${esc(x.id)}" data-devoir="${esc(d.id)}" class="btn sm">Ouvrir</a>` : `<a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a>`}</div>`).join("")}
       ${S.files.length ? `<div class="att rcards mini">${S.files.map((f, i) => carteEdit({ label: f.name, pending: f }, "rmfile", i, " · " + tailleTxt(f.size))).join("")}</div>` : ""}
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
@@ -825,7 +830,7 @@ function vDevoirProf(d, c){
         ${(rd.fichiers || []).length ? `<div><button class="btn ghost sm" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="0">${icon("expand")} Ouvrir dans la visionneuse</button></div>` : ""}
         ${blocNotation(d, rd, cr)}`
       : `<p class="muted" style="margin:0">${ouvert(d) ? "Cet élève n'a pas encore rendu son travail." : "Cet élève n'a rien rendu avant la date limite."}</p>`}
-      ${copiesEleve("devoir", d.id, sel).length ? `<div class="copierow" style="flex-direction:column;align-items:stretch">${copiesEleve("devoir", d.id, sel).map(x => `<div style="display:flex;gap:8px;align-items:center">${icon("edit")}<span style="flex:1">Copie de l'élève : <b>${esc(x.nom)}</b></span><a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a></div>`).join("")}</div>` : ""}
+      ${copiesEleve("devoir", d.id, sel).length ? `<div class="copierow" style="flex-direction:column;align-items:stretch">${copiesEleve("devoir", d.id, sel).map(x => `<div style="display:flex;gap:8px;align-items:center">${icon("edit")}<span style="flex:1">Copie de l'élève : <b>${esc(x.nom)}</b></span>${telephone() ? `<a href="#" data-act="wordtel" data-copie="${esc(x.id)}" data-devoir="${esc(d.id)}" class="btn sm">Ouvrir</a>` : `<a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a>`}</div>`).join("")}</div>` : ""}
       ${vCP(d.id, sel)}`;
   }
   /* filtre (Tous / Remis / Attribués / Notés / À noter) et tri (statut, nom de famille, prénom), comme Classroom */
@@ -1296,6 +1301,18 @@ function moyenneEleve(c){
 function vModal(){
   const m = S.modal; let body = "", ok = "Enregistrer", foot = true;
   if (m.kind === "theme") { body = `<h2>${m.id ? "Renommer le thème" : "Ajouter un thème"}</h2><div class="field"><label for="mTitre">Nom du thème</label><input id="mTitre" value="${esc(m.titre || "")}" placeholder="ex. Chapitre 1 · Mouvements"></div>`; ok = m.id ? "Renommer" : "Ajouter"; }
+  else if (m.kind === "wordtel") { const x = (S.copies || []).find(c => String(c.id) === String(m.id)) || {}, app = appOffice(x.nom) || "Word", ios = /iPhone|iPod|iPad/.test(navigator.userAgent), st = STORE_OFFICE[app];
+    const store = ios ? `https://apps.apple.com/app/${st[1]}` : `https://play.google.com/store/apps/details?id=${st[0]}`;
+    const ouvrir = x.fichier ? `${SCHEMA_OFFICE[app]}:ofe|u|${x.fichier}` : x.web;
+    body = `<h2>Écrire dans ta copie</h2><p style="margin:0"><b>${esc(x.nom || "")}</b></p>
+      <p style="margin:0">Sur téléphone, on écrit dans un document ${app} avec <b>l'application ${app}</b> (gratuite).</p>
+      <a class="btn wordbtn" href="${esc(ouvrir)}">${icon("edit")} Ouvrir dans l'appli ${app}</a>
+      <details class="wordaide"><summary>Je n'ai pas l'appli ${app}, ou elle me dit « lecture seule »</summary><ol>
+        <li><a href="${esc(store)}" target="_blank" rel="noopener">Installe l'appli ${app}</a> (gratuite).</li>
+        <li>Ouvre-la et connecte-toi avec ton adresse du lycée : <b>${esc(moi())}</b> (pas un compte personnel).</li>
+        <li>Reviens ici et touche « Ouvrir dans l'appli ${app} ».</li></ol></details>
+      <p class="muted" style="margin:0;font-size:.85rem">Ce que tu écris est enregistré tout seul dans ta copie : ton professeur la voit.${m.devoir ? " Tu n'y arrives pas ? Écris sur une feuille, prends-la en photo et ajoute-la à ton travail avec « Joindre »." : ""}</p>
+      <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap"><a class="btn ghost" href="${esc(x.web || "#")}" target="_blank" rel="noopener">Juste la lire</a><button class="btn ghost" data-act="mclose">Fermer</button></div>`; foot = false; }
   else if (m.kind === "copieauth") { body = `<h2>Ouvrir ta copie modifiable</h2><p style="margin:0">Pour modifier ce document en ligne, PhysiquePro en crée <b>une copie dans ton OneDrive</b> (dossier « PhysiquePro »). Le document de ton professeur n'est pas modifié.</p><p class="muted" style="margin:0;font-size:.85rem">La première fois seulement, Microsoft te demande d'autoriser PhysiquePro à accéder à ton OneDrive.</p>`; ok = "Autoriser et ouvrir"; }
   else if (m.kind === "placercours") { const l = actives(), i = l.findIndex(c => c.id === m.id), autres = l.filter(c => c.id !== m.id);
     body = `<h2>Déplacer « ${esc(m.nom)} »</h2><div class="field"><label for="mPos">Nouvelle place du cours</label><select id="mPos" style="width:100%;max-width:100%">
@@ -2163,6 +2180,10 @@ function melangeStable(n, graine){
 const OFFICE = ["doc", "docx", "dot", "dotx", "rtf", "odt", "xls", "xlsx", "xlsm", "csv", "ods", "ppt", "pptx", "pps", "ppsx", "odp"];
 const estOffice = n => OFFICE.includes(String(n || "").split(".").pop().toLowerCase());
 const lienOffice = (nom, url) => estOffice(nom) && !/\.csv$/i.test(nom) ? "https://view.officeapps.live.com/op/view.aspx?src=" + encodeURIComponent(url) : url;
+/* téléphone (pas tablette ni ordinateur) : Word / Excel / PowerPoint en ligne n'y servent qu'à lire */
+const telephone = () => { const u = navigator.userAgent || ""; return /iPhone|iPod/.test(u) || (/Android/.test(u) && /Mobile/.test(u)); };
+const STORE_OFFICE = { Word: ["com.microsoft.office.word", "id586447913"], Excel: ["com.microsoft.office.excel", "id586683407"], PowerPoint: ["com.microsoft.office.powerpoint", "id586449534"] };
+const SCHEMA_OFFICE = { Word: "ms-word", Excel: "ms-excel", PowerPoint: "ms-powerpoint" };
 const appOffice = n => { const x = String(n || "").split(".").pop().toLowerCase(); return /^(doc|dot|rtf|odt)/.test(x) ? "Word" : /^(xls|ods)/.test(x) ? "Excel" : /^(ppt|pps|odp)/.test(x) ? "PowerPoint" : ""; };
 const btnDl = (bucket, path, nom) => `<button class="dlbtn" data-act="dlfile" data-bucket="${esc(bucket)}" data-path="${esc(path)}" data-nom="${esc(nom || "")}" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom || "")}">${icon("down")}</button>`;
 const extDe = n => (String(n || "").split(".").pop() || "").toLowerCase();
@@ -2494,6 +2515,32 @@ function copieDe(r, ctx){
   if (!r.od || !r.od.id) return null;
   return (S.copies || []).find(x => x.source === r.od.id && x.eleve_email === moi() && (ctx.devoir ? x.objet === "devoir" && String(x.objet_id) === String(ctx.devoir) : ctx.support ? x.objet === "support" && String(x.objet_id) === String(ctx.support) : true)) || null;
 }
+/* adresse directe du fichier (…/Documents/…/x.docx) : sert à l'ouvrir dans l'appli Word du téléphone (ms-word:ofe|u|…) et à le télécharger */
+async function adresseFichier(id){
+  try {
+    const it = await graph("/me/drive/items/" + encodeURIComponent(id) + "?$select=name,webUrl,webDavUrl,parentReference", {}, false);
+    if (it.webDavUrl) return it.webDavUrl;
+    const base = String(it.webUrl || "").split("/_layouts/")[0], ch = String((it.parentReference || {}).path || "").replace(/^\/drive\/root:/, "");
+    let dec = ch; try { dec = decodeURIComponent(ch); } catch (_) {}
+    return base && it.name ? base + "/Documents" + encodeURI(dec + "/" + it.name).replace(/#/g, "%23") : null;
+  } catch (_) { return null; }
+}
+/* copies des élèves : un élève qui a le droit d'écrire peut créer un lien « Tout le monde » (email « anonymous access link »).
+   Toutes les 6 h, le navigateur du prof retire ces liens et complète l'adresse directe des copies. */
+async function entretienCopies(force){
+  let dernier = 0; try { dernier = Number(localStorage.getItem("pp_conf_copies") || 0); } catch (_) {}
+  if (!force && Date.now() - dernier < 6 * 3600e3) return 0;
+  let n = 0; const limite = Date.now() - 200 * 864e5;
+  for (const x of S.copies || []) {
+    if (!x.od_id || (x.cree_le && D(x.cree_le) < limite)) continue;
+    try {
+      for (const p of await permsOD(x.od_id)) if (p.link && !p.inheritedFrom) { await suppPermOD(x.od_id, p); n++; }
+      if (!x.fichier) { const f = await adresseFichier(x.od_id); if (f) { const { error } = await sb.from("copies").update({ fichier: f }).eq("id", x.id); if (!error) x.fichier = f; } }
+    } catch (e) { console.warn("entretien copie", e); }
+  }
+  try { localStorage.setItem("pp_conf_copies", String(Date.now())); } catch (_) {}
+  return n;
+}
 let copiesEnCours = false;
 async function genererCopies(silencieux){
   if (!S.prof || !odActif() || copiesEnCours) return;
@@ -2520,7 +2567,7 @@ async function genererCopies(silencieux){
         const nom = nomOD(t.r.label || "document"), nomE = nomOD(t.e.nom || nomDepuisEmail(t.e.email));
         const item = await odPut(cheminOD([OD_RACINE, ...dossierTravail(t.o.classe_id, t.o.theme_id, t.o.titre), "Copies élèves", nomE + " - " + nom]), cache[t.r.od.id]);
         await graph("/me/drive/items/" + item.id + "/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipients: [{ email: t.e.email }], roles: ["write"], requireSignIn: true, sendInvitation: false }) }, false);
-        const row = { classe_id: t.o.classe_id, objet: t.objet, objet_id: t.o.id, source: t.r.od.id, eleve_email: t.e.email, nom, od_id: item.id, web: item.webUrl };
+        const row = { classe_id: t.o.classe_id, objet: t.objet, objet_id: t.o.id, source: t.r.od.id, eleve_email: t.e.email, nom, od_id: item.id, web: item.webUrl, fichier: await adresseFichier(item.id) };
         const { data, error } = await sb.from("copies").insert(row).select().single(); if (error) throw error;
         S.copies.push(data); n++;
         if (n === 1 || n % 5 === 0) toast("Copies modifiables pour les élèves : " + n + " / " + taches.length);
@@ -2628,8 +2675,9 @@ async function synchroPartages(silencieux, dossiers){
       nd = await dossiersPrives(el);
       try { localStorage.setItem("pp_conf_dossiers", String(Date.now())); } catch (_) {}
     }
+    const nl = await entretienCopies(dossiers);
     if (f.fermes || f.ouverts) S.cache = {};
-    if (!silencieux || nd || f.fermes || f.ouverts) toast([nd ? nd + " partage" + (nd > 1 ? "s" : "") + " de dossier retiré" + (nd > 1 ? "s" : "") : "", f.fermes ? f.fermes + " fichier" + (f.fermes > 1 ? "s" : "") + " de brouillon rendu" + (f.fermes > 1 ? "s" : "") + " privé" + (f.fermes > 1 ? "s" : "") : "", f.ouverts ? f.ouverts + " fichier" + (f.ouverts > 1 ? "s" : "") + " publié" + (f.ouverts > 1 ? "s" : "") + " pour les élèves" : ""].filter(Boolean).join(" · ") || "OneDrive : dossiers et brouillons déjà privés ✓");
+    if (!silencieux || nd || nl || f.fermes || f.ouverts) toast([nl ? nl + " lien" + (nl > 1 ? "s" : "") + " de partage retiré" + (nl > 1 ? "s" : "") + " des copies élèves" : "", nd ? nd + " partage" + (nd > 1 ? "s" : "") + " de dossier retiré" + (nd > 1 ? "s" : "") : "", f.fermes ? f.fermes + " fichier" + (f.fermes > 1 ? "s" : "") + " de brouillon rendu" + (f.fermes > 1 ? "s" : "") + " privé" + (f.fermes > 1 ? "s" : "") : "", f.ouverts ? f.ouverts + " fichier" + (f.ouverts > 1 ? "s" : "") + " publié" + (f.ouverts > 1 ? "s" : "") + " pour les élèves" : ""].filter(Boolean).join(" · ") || "OneDrive : dossiers et brouillons déjà privés ✓");
   } catch (e) { if (!silencieux) toast("Confidentialité OneDrive : " + (e.message || e)); }
   finally { confEnCours = false; }
 }
@@ -2695,7 +2743,7 @@ async function rangerDossiersClasses(anciens = {}){
       let ch = false; for (const r of o.ressources || []) if (r.od && r.od.id) { const w = await webDe(r.od.id); if (w && w !== r.od.web) { if (r.prive || r.url === r.od.web) r.url = w; r.od.web = w; ch = true; } }
       if (ch) await sb.from(table).update({ ressources: o.ressources }).eq("id", o.id);
     }
-    for (const x of S.copies || []) { const w = await webDe(x.od_id); if (w && w !== x.web) { await sb.from("copies").update({ web: w }).eq("id", x.id); x.web = w; } }
+    for (const x of S.copies || []) { const w = await webDe(x.od_id); if (w && w !== x.web) { const f = await adresseFichier(x.od_id); await sb.from("copies").update({ web: w, fichier: f }).eq("id", x.id); x.web = w; x.fichier = f; } }
     for (const r of S.rendus) { let ch = false; const fs = (r.fichiers || []).map(f => ({ ...f })); for (const f of fs) if (f.od && f.od.id) { const w = await webDe(f.od.id); if (w && w !== f.od.web) { f.od = { ...f.od, web: w }; ch = true; } }
       if (ch) { const { error } = await sb.from("rendus").update({ fichiers: fs }).eq("id", r.id); if (!error) r.fichiers = fs; } }
     /* 4. confidentialité : aucun dossier partagé */
@@ -6253,6 +6301,7 @@ document.addEventListener("click", async e => {
       await rafraichir(r.a); await synchroPartages(true); await rafraichir(r.a); render(); toast("Publié"); return; }
     case "reutiliser": e.preventDefault(); S.menu = null; S.modal = {kind:"reutiliser", k:a.dataset.k, id:a.dataset.id, classe:r.a}; render(); return;
     case "reutiliserdepuis": e.preventDefault(); S.menu = null; S.modal = {kind:"reutiliser", k:"depuis", classe:a.dataset.c}; render(); return;
+    case "wordtel": e.preventDefault(); S.modal = { kind: "wordtel", id: a.dataset.copie, devoir: a.dataset.devoir }; render(); return;
     case "mclose": if (S.modal && S.modal.busy) return; S.modal = null; render(); return;
     case "mok": modalOk(); return;
     case "openfile": { e.preventDefault(); const w = window.open("about:blank", "_blank");
