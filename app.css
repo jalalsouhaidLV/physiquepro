@@ -2175,3 +2175,13 @@ body.labouvert{overflow:hidden}
 @media (max-width:600px){.tabicons .ib.vueel{display:grid}}
 .stream{grid-template-columns:minmax(0,1fr)}.classgrid>*{min-width:0}.comform input{min-width:0}
 section.post{grid-template-columns:minmax(0,1fr)}.coms{grid-template-columns:minmax(0,1fr)}
+
+/* Audit du 11/11/2026 · téléphone : titres des travaux lisibles en entier, bouton « Écouter » à sa taille */
+.q > .ecoute{justify-self:start;float:none;margin-left:0}
+@media (max-width:600px){
+  .work .workrow .tt{white-space:normal;overflow:visible;overflow-wrap:anywhere}
+  .work .workrow .dt{white-space:normal;text-align:right;max-width:42%;flex-shrink:0}
+  .recentrow{flex-wrap:wrap;row-gap:4px}
+  .recentrow .tt{flex:1 1 calc(100% - 50px)}
+  .recentrow .rel{margin-left:50px}
+}
