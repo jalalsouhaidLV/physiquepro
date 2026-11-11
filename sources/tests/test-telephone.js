@@ -165,7 +165,7 @@ async function testsIPhone() {
 
   /* C17 + C18 + A6 + A7 + A1 (questionnaire) */
   await aller(page, "#/quiz/2", 900);
-  const q1 = await page.evaluate(() => ({ vis: [...document.querySelectorAll("section.uneq > .q")].filter(x => !x.hidden).length, txt: document.querySelector(".qnavtop")?.innerText || "", conc: document.documentElement.classList.contains("concentre"), top: getComputedStyle(document.querySelector(".topbar")).display }));
+  const q1 = await page.evaluate(() => ({ vis: [...document.querySelectorAll("section.uneq > .q")].filter(x => getComputedStyle(x).display !== "none").length, txt: document.querySelector(".qnavtop")?.innerText || "", conc: document.documentElement.classList.contains("concentre"), top: getComputedStyle(document.querySelector(".topbar")).display }));
   verif("C17 Questionnaire : une seule question par écran, « Question 1 sur 3 »", q1.vis === 1 && /Question 1 sur 3/.test(q1.txt), q1.vis + " visible(s)");
   verif("C18 Mode concentration : barres du haut et du bas cachées", q1.conc && q1.top === "none");
   await capture(page, "C17-question-1");

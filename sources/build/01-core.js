@@ -9,6 +9,8 @@ const CFG = window.PHYSIQUEPRO;
 const app = document.getElementById("app");
 
 /* ---------- utilitaires ---------- */
+/* titre : espace insécable avant : ; ! ? » et après « (pas de « : ondes » seul à la ligne) */
+const escTitre = s => esc(s).replace(/ ([:;!?»])/g, "\u00a0$1").replace(/« /g, "«\u00a0");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const now = () => new Date();
 const D = s => new Date(s);

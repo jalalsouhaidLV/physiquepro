@@ -225,7 +225,7 @@ function blocProchain(){
     <span class="tpcours">${esc(c ? c.nom : "")}${x.k === "quiz" ? " · Questionnaire" : ""}</span>
     <span class="tpdate">${icon("clock")} ${esc(u.txt)}</span>
     <a class="btn tpgo" href="${href}">Commencer</a>
-    ${L.length > 1 ? `<a class="tpautres" href="#/todo">+ ${L.length - 1} autre${L.length > 2 ? "s" : ""} travail${L.length > 2 ? "x" : ""} à faire</a>` : ""}${qui}</section>`;
+    ${L.length > 1 ? `<a class="tpautres" href="#/todo">+ ${L.length - 1} autre${L.length > 2 ? "s" : ""} ${L.length > 2 ? "travaux" : "travail"} à faire</a>` : ""}${qui}</section>`;
 }
 const _vAccueilTel = vAccueil;
 vAccueil = function(){

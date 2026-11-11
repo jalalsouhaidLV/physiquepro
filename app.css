@@ -2343,3 +2343,6 @@ body.simtelouvert{overflow:hidden}
 /* D25. économie de données */
 .ecoimg{display:flex;gap:8px;align-items:center;justify-content:center;width:100%;min-height:64px;border:2px dashed var(--line);border-radius:12px;background:var(--surface-2);color:var(--muted);font-weight:600;cursor:pointer;margin:6px 0}
 .ecoframe{width:100%;aspect-ratio:16/9;border:0;border-radius:12px}
+/* Lot A de l'évaluation (11/11/2026) : une question à la fois sur téléphone (.q est en grid, ce qui annulait hidden) ; « Commencer » sans soulignement */
+section.card > .q[hidden]{display:none!important}
+.btn.tpgo,.btn.tpgo:hover{text-decoration:none!important}

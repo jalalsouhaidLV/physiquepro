@@ -47,7 +47,7 @@ function vDevoir(r){
   }
   return `<div class="page wide" style="--c:var(${k.c})"><div class="dv">
     <div style="display:grid;gap:16px;min-width:0">
-      <div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
+      <div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${escTitre(d.titre)}</h1>
         <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}</div>
         <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
       <div class="dvbody">${texteUtile(d.consigne) ? `<div class="consignehead">${btnEcouter("consigne-" + d.id)}</div><div class="richtext" id="consigne-${d.id}">${rich(d.consigne)}</div>` : ""}
@@ -56,7 +56,7 @@ function vDevoir(r){
       ${blocComsDevoir(d, c)}
     </div>
     <aside style="display:grid;gap:16px;align-content:start">
-      <div class="yourwork"><header><h2>${isQ ? "Votre réponse" : "Votre travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
+      <div class="yourwork"><header><h2>${isQ ? "Ta réponse" : "Ton travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
       ${vCP(d.id, moi())}${actionsTelDevoir(d, "devoir")}
     </aside></div>${pageFoot()}</div>`;
 }
@@ -131,7 +131,7 @@ function vDevoirProf(d, c){
   const tabs = `<div class="tabsbar" style="--c:var(${k.c})"><div class="tabs" role="tablist"><button role="tab" aria-selected="${ptab === "instructions"}" data-act="ptab" data-t="instructions">Instructions</button><button role="tab" aria-selected="${ptab === "travaux"}" data-act="ptab" data-t="travaux">Travaux des élèves</button></div>
     <div class="tabicons">${isQ ? "" : `<button class="ib" data-act="dmnew" data-d="${d.id}" title="Demande au préparateur" aria-label="Demande de matériel au préparateur">${icon("flask")}</button>`}<a class="ib" href="#/editer/${isQ ? "question" : "devoir"}/${d.id}" title="Modifier" aria-label="Modifier">${icon("edit")}</a></div></div>`;
   if (ptab === "instructions") {
-    return tabs + `<div class="page wide" style="--c:var(${k.c})"><div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
+    return tabs + `<div class="page wide" style="--c:var(${k.c})"><div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${escTitre(d.titre)}</h1>
       <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}${d.brouillon ? " · <i>Brouillon</i>" : ""}${d.eleves ? " · attribué à " + d.eleves.length + " élève" + (d.eleves.length > 1 ? "s" : "") : ""}</div>
       <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
       <div class="dvbody">${texteUtile(d.consigne) ? `<div class="consignehead">${btnEcouter("consigne-" + d.id)}</div><div class="richtext" id="consigne-${d.id}">${rich(d.consigne)}</div>` : ""}${isQ ? `<p class="muted" style="margin:0;font-size:.85rem">${(d.question || {}).format === "choix" ? "Choix multiple : " + (d.question.options || []).map(esc).join(" · ") : "Réponse courte."}${(d.question || {}).voir ? " Les élèves voient les réponses de la classe." : ""}${(d.question || {}).modifier === false ? " Réponse non modifiable." : ""}</p>` : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un rendu par binôme." : "Individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>${blocComsDevoir(d, c)}${pageFoot()}</div>`;
