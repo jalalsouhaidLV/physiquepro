@@ -38,7 +38,7 @@
   const classe = (id, nom, couleur, ordre, matiere) => ({
     id, nom, section: "Test", couleur, symbole: "", ordre, dossier_onedrive: null, code: "test" + ordre, code_actif: true,
     liens: [], description: "Cours fictif pour les tests.", niveau: "", matiere, salle: "B12", archive: false,
-    flux_mode: "tous", flux_devoirs: true, teams_url: null, teams_visible: false, moyenne_visible: true, illustration: null, categories: []
+    flux_mode: "prof", flux_devoirs: true, teams_url: null, teams_visible: false, moyenne_visible: true, illustration: null, categories: []
   });
   const DB = {
     profiles: [profil(PROF), profil(ELEVE), profil(ELEVE2)],
@@ -57,7 +57,7 @@
       { id: 2, classe_id: "snt", theme_id: 3, titre: "Fiche : adresses IP", description: "", ressources: [], publie_le: jour(-3), brouillon: false, eleves: null, position: 1 }
     ],
     devoirs: [
-      { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "Faire les exercices 3 et 4.", ressources: [{ type: "DOCX", label: "Fiche ondes.docx", url: "https://exemple.sharepoint.com/:w:/g/fiche", od: { id: "OD-FICHE", web: "https://exemple.sharepoint.com/fiche.docx" } }], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
+      { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "Faire les exercices 3 et 4.", ressources: [{ type: "DOCX", label: "Fiche ondes.docx", url: "https://exemple.sharepoint.com/:w:/g/fiche", od: { id: "OD-FICHE", web: "https://exemple.sharepoint.com/fiche.docx" } }, { type: "Fichier", label: "Schéma à compléter.png", path: "tle/schema.png" }], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
       { id: 2, classe_id: "tle", theme_id: 2, titre: "Compte rendu de TP", consigne: "Rendre le compte rendu du dosage.", ressources: [], date_limite: jour(-1), mode: "binome", formats: "", points: 20, publie_le: jour(-8), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: false, position: 1, accepte: true },
       { id: 3, classe_id: "snt", theme_id: 3, titre: "Question : qu'est-ce qu'un routeur ?", consigne: "Réponds en deux phrases.", ressources: [], date_limite: jour(6), mode: "individuel", formats: "", points: null, publie_le: jour(-1), brouillon: false, eleves: null, type: "question", question: { type: "courte" }, categorie: "", grille: null, retard_ok: true, position: 1, accepte: true }
     ],
@@ -73,9 +73,11 @@
     ],
     quiz_solutions: [{ quiz_id: 1, bonnes: [1, 0] }],
     resultats_quiz: [],
-    annonces: [{ id: 1, classe_id: "tle", auteur: PROF.id, auteur_nom: PROF.nom, texte: "Bienvenue dans le cours (annonce de test).", ressources: [], cree_le: jour(-4) }],
+    annonces: [{ id: 1, classe_id: "tle", auteur: PROF.id, auteur_nom: PROF.nom, texte: "Bienvenue dans le cours (annonce de test).", ressources: [], cree_le: jour(-4), publie_le: jour(-4), epingle: true },
+      { id: 2, classe_id: "tle", auteur: PROF.id, auteur_nom: PROF.nom, texte: "Annonce programmée (test).", ressources: [], cree_le: jour(-1), publie_le: jour(2), epingle: false }],
     commentaires: [{ id: 1, annonce_id: 1, auteur: ELEVE.id, auteur_nom: ELEVE.nom, texte: "Merci !", cree_le: jour(-1) }],
     commentaires_prives: [],
+    commentaires_devoirs: [{ id: 1, devoir_id: 1, auteur: ELEVE.id, auteur_nom: ELEVE.nom, texte: "Faut-il rendre les deux exercices ? (commentaire de test)", cree_le: jour(-0.5) }],
     reglages: [{ id: 1, data: {}, modifie_le: jour(-10) }],
     copies: [{ id: 1, classe_id: "tle", objet: "devoir", objet_id: 1, source: "OD-FICHE", eleve_email: ELEVE.email, nom: "Fiche ondes.docx", od_id: "OD-COPIE", web: "https://exemple.sharepoint.com/_layouts/15/Doc.aspx?sourcedoc=x", fichier: "https://exemple.sharepoint.com/personal/prof/Documents/Copies/Eleve%20Test%20-%20Fiche%20ondes.docx", cree_le: jour(-2) }],
     messages_urgents: [{ id: 1, classe_id: "tle", eleve: ELEVE.id, eleve_email: ELEVE.email, eleve_nom: ELEVE.nom, texte: "Message urgent de test.", cree_le: jour(-0.1), lu: false, reponse: null, repondu_le: null, de_prof: false }],
@@ -92,6 +94,7 @@
   if (role === "eleve") {
     DB.profiles = DB.profiles.filter(p => p.id === ELEVE.id);
     DB.messages_urgents = DB.messages_urgents.filter(m => m.eleve === ELEVE.id);
+    DB.annonces = DB.annonces.filter(a => new Date(a.publie_le) <= new Date());
     DB.quiz_solutions = []; DB.corbeille = []; DB.sauvegardes = []; DB.demandes_materiel = [];
   }
 
@@ -248,7 +251,8 @@
       copy: (de, vers) => a("copy", { path: vers }),
       move: (de, vers) => a("move", { path: vers }),
       download: () => a("download", new Blob(["Fichier fictif"], { type: "text/plain" })),
-      createSignedUrl: () => a("createSignedUrl", { signedUrl: FICHIER_TEST }),
+      /* une image fictive (vraie image du site) pour les fichiers .png/.jpg : sert à l'annotation par l'élève */
+      createSignedUrl: (p) => a("createSignedUrl", { signedUrl: /\.(png|jpe?g)$/i.test(p || "") ? location.origin + "/icon-512.png" : FICHIER_TEST }),
       createSignedUrls: (L) => a("createSignedUrls", (L || []).map(path => ({ path, signedUrl: FICHIER_TEST, error: null }))),
       getPublicUrl: () => ({ data: { publicUrl: FICHIER_TEST } })
     };

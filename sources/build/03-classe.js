@@ -13,6 +13,7 @@ function classTabs(c, tab){
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
       <a class="ib" href="#/agenda/${esc(c.id)}" title="Agenda du cours" aria-label="Agenda du cours">${icon("cal")}</a>
       ${S.prof && c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive du cours">${icon("folder")}</a>` : ""}
+      ${S.prof ? `<button class="ib vueel" data-act="vueeleve" data-c="${esc(c.id)}" title="Afficher en tant qu'élève" aria-label="Afficher en tant qu'élève">${icon("eye")}</button>` : ""}
       ${S.prof ? `<a class="ib" href="#/classe/${esc(c.id)}/parametres" title="Paramètres du cours" aria-label="Paramètres du cours">${icon("gear")}</a>` : ""}
     </div></div>`;
 }
@@ -99,6 +100,7 @@ function asideClasse(c){
     ${teamsVisible(c) ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="btn ghost" href="${esc(c.teams_url)}" target="_blank" rel="noopener" style="text-decoration:none">Rejoindre</a>${S.prof ? `<span class="muted" style="font-size:.78rem">${icon("eye")} ${c.teams_visible ? "Visible par les élèves" : "Masqué aux élèves"}</span>` : ""}</div>`
       : S.prof ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="linkbtn" href="#/classe/${esc(c.id)}/parametres">Ajouter le lien de la visio</a></div>` : ""}
     ${S.prof ? `<div class="box"><div class="boxhead"><h3>Code du cours</h3><div class="dd kebab"><button class="ib sm" data-act="menu" data-m="code" aria-label="Options du code">${icon("more")}</button>${S.menu === "code" ? `<div class="dd-menu">
+        <a href="#" data-act="showcode" data-code="${esc(c.code || "")}">${icon("qr")} QR code à projeter</a>
         <a href="#" data-act="copylien" data-code="${esc(c.code || "")}">${icon("links")} Copier le lien d'invitation</a>
         <a href="#" data-act="copycode" data-code="${esc(c.code || "")}">${icon("copy")} Copier le code</a>
         <a href="#" data-act="resetcode" data-c="${esc(c.id)}">${icon("key")} Réinitialiser</a>
@@ -109,13 +111,13 @@ function asideClasse(c){
 
 /* ---------- Flux ---------- */
 function vFlux(c, data){
-  const items = data.annonces.map(a => ({k:"annonce", date:D(a.cree_le), a}));
+  const items = data.annonces.filter(a => S.prof || D(a.publie_le || a.cree_le) <= now()).map(a => ({k:"annonce", date:D(a.publie_le || a.cree_le), a, pin:!!a.epingle}));
   if (c.flux_devoirs) {
     S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon && D(d.publie_le) <= now()).forEach(d => items.push({k:"devoir", date:D(d.publie_le), o:d}));
     data.supports.filter(s => !s.brouillon && D(s.publie_le) <= now()).forEach(s => items.push({k:"support", date:D(s.publie_le), o:s}));
     S.quiz.filter(q => q.classe_id === c.id && !q.brouillon && D(q.publie_le) <= now()).forEach(q => items.push({k:"quiz", date:D(q.publie_le), o:q}));
   }
-  items.sort((x, y) => y.date - x.date);
+  items.sort((x, y) => (y.pin ? 1 : 0) - (x.pin ? 1 : 0) || y.date - x.date);
   const A = S.annonce && S.annonce.classe === c.id ? S.annonce : null;
   const composer = !peutPublier(c) ? "" : A ? `<section class="post composer">
       <div class="field"><label>${A.id ? "Modifier l'annonce" : "Pour : " + esc(c.nom) + " · tous les élèves"}</label>
@@ -123,11 +125,14 @@ function vFlux(c, data){
       <div class="rtebar">${fmtBar()}</div></div></div>
       ${cartesEdit(A.ressources, "anrm")}
       ${S.prof && !A.id && actives().length > 1 ? `<details class="aussi"><summary>Publier aussi dans d'autres cours${(A.aussi || []).length ? " (" + A.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== c.id).map(x => `<label class="check"><input type="checkbox" class="anAussi" value="${esc(x.id)}" ${(A.aussi || []).includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}</details>` : ""}
+      ${S.prof ? `<details class="aussi" ${A.quandD ? "open" : ""}><summary>${icon("clock")} Programmer la publication${A.quandD ? " (" + esc(new Date(A.quandD + "T" + (A.quandH || "08:00")).toLocaleString("fr-FR", {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"})) + ")" : ""}</summary>
+        <div class="dt2"><input id="anDate" type="date" class="anQuand" value="${esc(A.quandD || "")}" aria-label="Date de publication"><input id="anHeure" type="time" class="anQuand" value="${esc(A.quandH || "08:00")}" aria-label="Heure de publication"></div>
+        <span class="muted" style="font-size:.8rem">Laisse la date vide pour publier tout de suite.${A.quandD ? ` <a href="#" data-act="anquandx">Retirer la date</a>` : ""}</span></details>` : ""}
       ${A.linkMode ? `<div class="linkform"><div class="field"><label for="anLinkUrl">Lien</label><input id="anLinkUrl" type="url" placeholder="https://…"></div><div class="field"><label for="anLinkLabel">Nom affiché <span class="muted">(facultatif)</span></label><input id="anLinkLabel"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="anlinkcancel">Annuler</button><button class="btn sm" data-act="anlinkadd">Ajouter</button></div></div>` : ""}
       <div class="composerfoot"><div style="display:flex;gap:4px">
         <button class="ib" data-act="anlink" title="Ajouter un lien OneDrive, YouTube ou site" aria-label="Ajouter un lien">${icon("links")}</button>
         ${S.prof ? `<button class="ib" data-act="anupload" title="Importer un fichier" aria-label="Importer un fichier">${icon("upload")}</button><input type="file" id="anFile" multiple hidden>` : ""}</div>
-        <span class="spacer"></span><button class="btn ghost" data-act="ancancel">Annuler</button><button class="btn" data-act="anpost" ${A.busy ? "disabled" : ""}>${A.busy ? "Enregistrement…" : A.id ? "Enregistrer" : "Publier"}</button></div>
+        <span class="spacer"></span><button class="btn ghost" data-act="ancancel">Annuler</button><button class="btn" data-act="anpost" ${A.busy ? "disabled" : ""}>${A.busy ? "Enregistrement…" : A.id ? "Enregistrer" : quandAnnonce(A) ? "Programmer" : "Publier"}</button></div>
     </section>` : `<button class="post annoncer" data-act="annoncer" data-c="${esc(c.id)}">${avatarP(S.nom)}<span>Annoncez quelque chose à la classe</span></button>`;
   const fluxMasque = S.prof && c.flux_mode === "masque" ? `<div class="notice">${icon("eye")} Le flux est actuellement <b>masqué aux élèves</b>. Tu peux changer ce réglage dans les <a href="#/classe/${esc(c.id)}/parametres">paramètres du cours</a>.</div>` : "";
   return `<div class="page" style="--c:var(${C(c.couleur).c})">${banniere(c)}
@@ -145,10 +150,10 @@ function vAnnonce(c, a, data){
   const coms = data.coms.filter(x => x.annonce_id === a.id), mien = S.prof || a.auteur === S.user.id;
   const open = S.open === "an" + a.id || coms.length <= 2;
   const shown = open ? coms : coms.slice(-1);
-  return `<section class="post">
-    <div class="posthead">${avatarP(a.auteur_nom)}<div style="flex:1;min-width:0"><b>${esc(a.auteur_nom)}</b><small class="muted">${fmtQuand(D(a.cree_le))}</small></div>
-      ${mien ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="a${a.id}" aria-label="Options de l'annonce">${icon("more")}</button>${S.menu === "a" + a.id ? `<div class="dd-menu"><a href="#" data-act="editannonce" data-id="${a.id}" data-c="${esc(c.id)}">${icon("edit")} Modifier</a><a href="#" data-act="copiertexte" data-id="${a.id}" data-c="${esc(c.id)}">${icon("copy")} Copier le texte</a><a href="#" data-act="supprannonce" data-id="${a.id}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : ""}</div>
-    <div class="richtext">${rich(a.texte)}</div>${ressources(a.ressources, { classe: a.classe_id })}
+  return `<section class="post${a.epingle ? " epingle" : ""}">
+    <div class="posthead">${avatarP(a.auteur_nom)}<div style="flex:1;min-width:0"><b>${esc(a.auteur_nom)}</b><small class="muted">${fmtQuand(D(a.publie_le || a.cree_le))}</small>${a.epingle ? `<span class="tagpost pin">${icon("pin")} Épinglée</span>` : ""}${S.prof && a.publie_le && D(a.publie_le) > now() ? `<span class="tagpost prog">${icon("clock")} Programmée · ${esc(D(a.publie_le).toLocaleString("fr-FR", {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}))}</span>` : ""}</div>
+      ${mien ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="a${a.id}" aria-label="Options de l'annonce">${icon("more")}</button>${S.menu === "a" + a.id ? `<div class="dd-menu"><a href="#" data-act="editannonce" data-id="${a.id}" data-c="${esc(c.id)}">${icon("edit")} Modifier</a>${S.prof ? `<a href="#" data-act="epingler" data-id="${a.id}" data-c="${esc(c.id)}" data-on="${a.epingle ? "0" : "1"}">${icon("pin")} ${a.epingle ? "Désépingler" : "Épingler en haut du flux"}</a>` : ""}<a href="#" data-act="copiertexte" data-id="${a.id}" data-c="${esc(c.id)}">${icon("copy")} Copier le texte</a><a href="#" data-act="supprannonce" data-id="${a.id}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : ""}</div>
+    <div class="richtext" id="an-${a.id}">${rich(a.texte)}</div>${texteUtile(a.texte) ? `<div class="consignehead">${btnEcouter("an-" + a.id, "", true)}</div>` : ""}${ressources(a.ressources, { classe: a.classe_id })}
     <div class="coms">${coms.length ? `${!open ? `<button class="linkbtn" data-act="opencoms" data-id="${a.id}">${icon("people")} ${coms.length} commentaires sur le cours</button>` : `<span class="muted" style="font-size:.85rem">${icon("people")} ${coms.length} commentaire${coms.length > 1 ? "s" : ""} sur le cours</span>`}` : ""}
       ${shown.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div>${S.prof || x.auteur === S.user.id ? `<button class="ib sm" data-act="supprcom" data-id="${x.id}" data-c="${esc(c.id)}" aria-label="Supprimer le commentaire" title="Supprimer">${icon("x")}</button>` : ""}</div>`).join("")}
       ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="cm-${a.id}" placeholder="Ajouter un commentaire pour le cours…" aria-label="Commentaire pour le cours"><button class="ib" data-act="comment" data-id="${a.id}" data-c="${esc(c.id)}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}

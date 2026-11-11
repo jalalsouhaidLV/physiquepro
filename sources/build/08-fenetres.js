@@ -46,6 +46,7 @@ function vModal(){
     <div class="linkedit">${m.liens.map((l, i) => `<div class="lrow"><input data-li="${i}" data-k="nom" value="${esc(l.nom)}" placeholder="Nom" aria-label="Nom du lien ${i + 1}"><input data-li="${i}" data-k="url" value="${esc(l.url)}" placeholder="https://…" aria-label="Adresse du lien ${i + 1}"><button class="ib sm" data-act="rmlien" data-i="${i}" aria-label="Supprimer ce lien">${icon("x")}</button></div>`).join("")}</div>
     <div><button class="btn ghost sm" data-act="addlien">${icon("plus")} Ajouter un lien</button></div>`; }
   else if (m.kind === "code") { body = `<h2>Code du cours</h2><div class="codehuge">${esc(m.code)}</div><p class="muted" style="margin:0">Les élèves cliquent sur <b>+</b> en haut de PhysiquePro, puis sur « Rejoindre un cours », et saisissent ce code.</p>
+      <div class="qrwrap"><div class="qrbox" id="qrCours" data-lien="${esc(lienInvitation(m.code))}"><span class="muted">Chargement du QR code…</span></div><p style="margin:0"><b>Ou plus simple :</b> les élèves visent ce QR code avec l'appareil photo de leur téléphone, se connectent et rejoignent le cours tout seuls.</p></div>
     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="copycode" data-code="${esc(m.code)}">${icon("copy")} Copier</button><button class="btn" data-act="mclose">Fermer</button></div>`; foot = false; }
   else if (m.kind === "cible") {
     const el = (S.cache[S.ed.classe_id] || {eleves:[]}).eleves, sel = new Set(m.sel || el.map(e => e.email));
@@ -70,6 +71,7 @@ function vModal(){
   else if (m.kind === "urgent") { body = modalUrgent(m); ok = "Envoyer"; }
   else if (m.kind === "urgprof") { body = modalUrgProf(m); ok = "Envoyer"; }
   else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = m.ok || "Supprimer"; }
+  else if (VUES_MODAL[m.kind]) { const x = VUES_MODAL[m.kind](m); body = x.body; ok = x.ok || ok; foot = x.foot !== false; }
   const danger = (m.kind === "confirm" && m.action !== "rien") || m.kind === "supprclasse";
   return `<div class="modalbg" data-act="mclose"></div><div class="modal" role="dialog" aria-modal="true">${body}${m.err ? `<div class="err">${esc(m.err)}</div>` : ""}
     ${foot ? `<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="mclose">Annuler</button><button class="btn${danger ? " danger" : ""}" data-act="mok" ${m.busy ? "disabled" : ""}>${ok}</button></div>` : ""}</div>`;

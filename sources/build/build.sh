@@ -7,7 +7,7 @@ RACINE="$(cd "$B/../.." && pwd)"
 TMP="$RACINE/app.tmp.js"
 cat "$B"/01-core.js "$B"/02-coque.js "$B"/03-classe.js "$B"/04-devoirs.js "$B"/05-editeurs.js \
     "$B"/06-questionnaires.js "$B"/07-parametres.js "$B"/08-fenetres.js \
-    "$B"/1[0-9]*.js "$B"/2[0-9]*.js "$B"/09-evenements.js > "$TMP"
+    "$B"/1[0-9]*.js "$B"/2[0-9]*.js "$B"/3[0-9]*.js "$B"/09-evenements.js > "$TMP"
 if node --check "$TMP"; then
   mv "$TMP" "$RACINE/app.js"
   echo "app.js OK ($(wc -c < "$RACINE/app.js") octets)"

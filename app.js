@@ -376,6 +376,7 @@ function classTabs(c, tab){
       ${teamsVisible(c) ? `<a class="ib" href="${esc(c.teams_url)}" target="_blank" rel="noopener" title="Visio Teams de la classe" aria-label="Visio Teams de la classe">${icon("video")}</a>` : ""}
       <a class="ib" href="#/agenda/${esc(c.id)}" title="Agenda du cours" aria-label="Agenda du cours">${icon("cal")}</a>
       ${S.prof && c.dossier_onedrive ? `<a class="ib" href="${esc(c.dossier_onedrive)}" target="_blank" rel="noopener" title="Dossier OneDrive du cours" aria-label="Dossier OneDrive du cours">${icon("folder")}</a>` : ""}
+      ${S.prof ? `<button class="ib vueel" data-act="vueeleve" data-c="${esc(c.id)}" title="Afficher en tant qu'élève" aria-label="Afficher en tant qu'élève">${icon("eye")}</button>` : ""}
       ${S.prof ? `<a class="ib" href="#/classe/${esc(c.id)}/parametres" title="Paramètres du cours" aria-label="Paramètres du cours">${icon("gear")}</a>` : ""}
     </div></div>`;
 }
@@ -462,6 +463,7 @@ function asideClasse(c){
     ${teamsVisible(c) ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="btn ghost" href="${esc(c.teams_url)}" target="_blank" rel="noopener" style="text-decoration:none">Rejoindre</a>${S.prof ? `<span class="muted" style="font-size:.78rem">${icon("eye")} ${c.teams_visible ? "Visible par les élèves" : "Masqué aux élèves"}</span>` : ""}</div>`
       : S.prof ? `<div class="box"><div class="boxhead"><h3>${icon("video")} Visio Teams</h3></div><a class="linkbtn" href="#/classe/${esc(c.id)}/parametres">Ajouter le lien de la visio</a></div>` : ""}
     ${S.prof ? `<div class="box"><div class="boxhead"><h3>Code du cours</h3><div class="dd kebab"><button class="ib sm" data-act="menu" data-m="code" aria-label="Options du code">${icon("more")}</button>${S.menu === "code" ? `<div class="dd-menu">
+        <a href="#" data-act="showcode" data-code="${esc(c.code || "")}">${icon("qr")} QR code à projeter</a>
         <a href="#" data-act="copylien" data-code="${esc(c.code || "")}">${icon("links")} Copier le lien d'invitation</a>
         <a href="#" data-act="copycode" data-code="${esc(c.code || "")}">${icon("copy")} Copier le code</a>
         <a href="#" data-act="resetcode" data-c="${esc(c.id)}">${icon("key")} Réinitialiser</a>
@@ -472,13 +474,13 @@ function asideClasse(c){
 
 /* ---------- Flux ---------- */
 function vFlux(c, data){
-  const items = data.annonces.map(a => ({k:"annonce", date:D(a.cree_le), a}));
+  const items = data.annonces.filter(a => S.prof || D(a.publie_le || a.cree_le) <= now()).map(a => ({k:"annonce", date:D(a.publie_le || a.cree_le), a, pin:!!a.epingle}));
   if (c.flux_devoirs) {
     S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon && D(d.publie_le) <= now()).forEach(d => items.push({k:"devoir", date:D(d.publie_le), o:d}));
     data.supports.filter(s => !s.brouillon && D(s.publie_le) <= now()).forEach(s => items.push({k:"support", date:D(s.publie_le), o:s}));
     S.quiz.filter(q => q.classe_id === c.id && !q.brouillon && D(q.publie_le) <= now()).forEach(q => items.push({k:"quiz", date:D(q.publie_le), o:q}));
   }
-  items.sort((x, y) => y.date - x.date);
+  items.sort((x, y) => (y.pin ? 1 : 0) - (x.pin ? 1 : 0) || y.date - x.date);
   const A = S.annonce && S.annonce.classe === c.id ? S.annonce : null;
   const composer = !peutPublier(c) ? "" : A ? `<section class="post composer">
       <div class="field"><label>${A.id ? "Modifier l'annonce" : "Pour : " + esc(c.nom) + " · tous les élèves"}</label>
@@ -486,11 +488,14 @@ function vFlux(c, data){
       <div class="rtebar">${fmtBar()}</div></div></div>
       ${cartesEdit(A.ressources, "anrm")}
       ${S.prof && !A.id && actives().length > 1 ? `<details class="aussi"><summary>Publier aussi dans d'autres cours${(A.aussi || []).length ? " (" + A.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== c.id).map(x => `<label class="check"><input type="checkbox" class="anAussi" value="${esc(x.id)}" ${(A.aussi || []).includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}</details>` : ""}
+      ${S.prof ? `<details class="aussi" ${A.quandD ? "open" : ""}><summary>${icon("clock")} Programmer la publication${A.quandD ? " (" + esc(new Date(A.quandD + "T" + (A.quandH || "08:00")).toLocaleString("fr-FR", {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"})) + ")" : ""}</summary>
+        <div class="dt2"><input id="anDate" type="date" class="anQuand" value="${esc(A.quandD || "")}" aria-label="Date de publication"><input id="anHeure" type="time" class="anQuand" value="${esc(A.quandH || "08:00")}" aria-label="Heure de publication"></div>
+        <span class="muted" style="font-size:.8rem">Laisse la date vide pour publier tout de suite.${A.quandD ? ` <a href="#" data-act="anquandx">Retirer la date</a>` : ""}</span></details>` : ""}
       ${A.linkMode ? `<div class="linkform"><div class="field"><label for="anLinkUrl">Lien</label><input id="anLinkUrl" type="url" placeholder="https://…"></div><div class="field"><label for="anLinkLabel">Nom affiché <span class="muted">(facultatif)</span></label><input id="anLinkLabel"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" data-act="anlinkcancel">Annuler</button><button class="btn sm" data-act="anlinkadd">Ajouter</button></div></div>` : ""}
       <div class="composerfoot"><div style="display:flex;gap:4px">
         <button class="ib" data-act="anlink" title="Ajouter un lien OneDrive, YouTube ou site" aria-label="Ajouter un lien">${icon("links")}</button>
         ${S.prof ? `<button class="ib" data-act="anupload" title="Importer un fichier" aria-label="Importer un fichier">${icon("upload")}</button><input type="file" id="anFile" multiple hidden>` : ""}</div>
-        <span class="spacer"></span><button class="btn ghost" data-act="ancancel">Annuler</button><button class="btn" data-act="anpost" ${A.busy ? "disabled" : ""}>${A.busy ? "Enregistrement…" : A.id ? "Enregistrer" : "Publier"}</button></div>
+        <span class="spacer"></span><button class="btn ghost" data-act="ancancel">Annuler</button><button class="btn" data-act="anpost" ${A.busy ? "disabled" : ""}>${A.busy ? "Enregistrement…" : A.id ? "Enregistrer" : quandAnnonce(A) ? "Programmer" : "Publier"}</button></div>
     </section>` : `<button class="post annoncer" data-act="annoncer" data-c="${esc(c.id)}">${avatarP(S.nom)}<span>Annoncez quelque chose à la classe</span></button>`;
   const fluxMasque = S.prof && c.flux_mode === "masque" ? `<div class="notice">${icon("eye")} Le flux est actuellement <b>masqué aux élèves</b>. Tu peux changer ce réglage dans les <a href="#/classe/${esc(c.id)}/parametres">paramètres du cours</a>.</div>` : "";
   return `<div class="page" style="--c:var(${C(c.couleur).c})">${banniere(c)}
@@ -508,10 +513,10 @@ function vAnnonce(c, a, data){
   const coms = data.coms.filter(x => x.annonce_id === a.id), mien = S.prof || a.auteur === S.user.id;
   const open = S.open === "an" + a.id || coms.length <= 2;
   const shown = open ? coms : coms.slice(-1);
-  return `<section class="post">
-    <div class="posthead">${avatarP(a.auteur_nom)}<div style="flex:1;min-width:0"><b>${esc(a.auteur_nom)}</b><small class="muted">${fmtQuand(D(a.cree_le))}</small></div>
-      ${mien ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="a${a.id}" aria-label="Options de l'annonce">${icon("more")}</button>${S.menu === "a" + a.id ? `<div class="dd-menu"><a href="#" data-act="editannonce" data-id="${a.id}" data-c="${esc(c.id)}">${icon("edit")} Modifier</a><a href="#" data-act="copiertexte" data-id="${a.id}" data-c="${esc(c.id)}">${icon("copy")} Copier le texte</a><a href="#" data-act="supprannonce" data-id="${a.id}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : ""}</div>
-    <div class="richtext">${rich(a.texte)}</div>${ressources(a.ressources, { classe: a.classe_id })}
+  return `<section class="post${a.epingle ? " epingle" : ""}">
+    <div class="posthead">${avatarP(a.auteur_nom)}<div style="flex:1;min-width:0"><b>${esc(a.auteur_nom)}</b><small class="muted">${fmtQuand(D(a.publie_le || a.cree_le))}</small>${a.epingle ? `<span class="tagpost pin">${icon("pin")} Épinglée</span>` : ""}${S.prof && a.publie_le && D(a.publie_le) > now() ? `<span class="tagpost prog">${icon("clock")} Programmée · ${esc(D(a.publie_le).toLocaleString("fr-FR", {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}))}</span>` : ""}</div>
+      ${mien ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="a${a.id}" aria-label="Options de l'annonce">${icon("more")}</button>${S.menu === "a" + a.id ? `<div class="dd-menu"><a href="#" data-act="editannonce" data-id="${a.id}" data-c="${esc(c.id)}">${icon("edit")} Modifier</a>${S.prof ? `<a href="#" data-act="epingler" data-id="${a.id}" data-c="${esc(c.id)}" data-on="${a.epingle ? "0" : "1"}">${icon("pin")} ${a.epingle ? "Désépingler" : "Épingler en haut du flux"}</a>` : ""}<a href="#" data-act="copiertexte" data-id="${a.id}" data-c="${esc(c.id)}">${icon("copy")} Copier le texte</a><a href="#" data-act="supprannonce" data-id="${a.id}" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("trash")} Supprimer</a></div>` : ""}</div>` : ""}</div>
+    <div class="richtext" id="an-${a.id}">${rich(a.texte)}</div>${texteUtile(a.texte) ? `<div class="consignehead">${btnEcouter("an-" + a.id, "", true)}</div>` : ""}${ressources(a.ressources, { classe: a.classe_id })}
     <div class="coms">${coms.length ? `${!open ? `<button class="linkbtn" data-act="opencoms" data-id="${a.id}">${icon("people")} ${coms.length} commentaires sur le cours</button>` : `<span class="muted" style="font-size:.85rem">${icon("people")} ${coms.length} commentaire${coms.length > 1 ? "s" : ""} sur le cours</span>`}` : ""}
       ${shown.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div>${S.prof || x.auteur === S.user.id ? `<button class="ib sm" data-act="supprcom" data-id="${x.id}" data-c="${esc(c.id)}" aria-label="Supprimer le commentaire" title="Supprimer">${icon("x")}</button>` : ""}</div>`).join("")}
       ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="cm-${a.id}" placeholder="Ajouter un commentaire pour le cours…" aria-label="Commentaire pour le cours"><button class="ib" data-act="comment" data-id="${a.id}" data-c="${esc(c.id)}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
@@ -717,6 +722,8 @@ function vDevoir(r){
       ${copiesEleve("devoir", d.id, moi()).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie modifiable : <b>${esc(x.nom)}</b><small class="muted" style="display:block">Tes modifications sont enregistrées automatiquement et ton professeur les voit.</small></span>${telephone() ? `<a href="#" data-act="wordtel" data-copie="${esc(x.id)}" data-devoir="${esc(d.id)}" class="btn sm">Ouvrir</a>` : `<a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a>`}</div>`).join("")}
       ${S.files.length ? `<div class="att rcards mini">${S.files.map((f, i) => carteEdit({ label: f.name, pending: f }, "rmfile", i, " · " + tailleTxt(f.size))).join("")}</div>` : ""}
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
+      ${(d.ressources || []).map((x, i) => ficheAnnotable(x) ? `<button class="btn tonal ecrirefiche" data-act="ecrirefiche" data-id="${d.id}" data-i="${i}">${icon("pen")} Écrire sur « ${esc(x.label || "la fiche")} »</button>` : "").join("")}
+      <button class="btn tonal" data-act="scanner" data-id="${d.id}">${icon("camera")} Scanner mon travail papier</button>
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
       <input type="file" id="fileIn" multiple hidden>
       ${!ouvert(d) ? `<p class="notice" style="margin:0;font-size:.85rem">La date limite est passée : ton travail sera marqué <b>en retard</b>.</p>` : ""}
@@ -729,9 +736,10 @@ function vDevoir(r){
       <div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
         <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}</div>
         <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
-      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}
+      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="consignehead">${btnEcouter("consigne-" + d.id)}</div><div class="richtext" id="consigne-${d.id}">${rich(d.consigne)}</div>` : ""}
         ${isQ ? "" : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un seul rendu par binôme : la note s'applique aux deux élèves." : "Travail individuel."}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>
       ${isQ ? reponsesClasse(d, c, rd, Q) : ""}
+      ${blocComsDevoir(d, c)}
     </div>
     <aside style="display:grid;gap:16px;align-content:start">
       <div class="yourwork"><header><h2>${isQ ? "Votre réponse" : "Votre travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
@@ -804,7 +812,7 @@ function vDevoirProf(d, c){
     return tabs + `<div class="page wide" style="--c:var(${k.c})"><div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
       <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}${d.brouillon ? " · <i>Brouillon</i>" : ""}${d.eleves ? " · attribué à " + d.eleves.length + " élève" + (d.eleves.length > 1 ? "s" : "") : ""}</div>
       <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
-      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}${isQ ? `<p class="muted" style="margin:0;font-size:.85rem">${(d.question || {}).format === "choix" ? "Choix multiple : " + (d.question.options || []).map(esc).join(" · ") : "Réponse courte."}${(d.question || {}).voir ? " Les élèves voient les réponses de la classe." : ""}${(d.question || {}).modifier === false ? " Réponse non modifiable." : ""}</p>` : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un rendu par binôme." : "Individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>${pageFoot()}</div>`;
+      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="consignehead">${btnEcouter("consigne-" + d.id)}</div><div class="richtext" id="consigne-${d.id}">${rich(d.consigne)}</div>` : ""}${isQ ? `<p class="muted" style="margin:0;font-size:.85rem">${(d.question || {}).format === "choix" ? "Choix multiple : " + (d.question.options || []).map(esc).join(" · ") : "Réponse courte."}${(d.question || {}).voir ? " Les élèves voient les réponses de la classe." : ""}${(d.question || {}).modifier === false ? " Réponse non modifiable." : ""}</p>` : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un rendu par binôme." : "Individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>${blocComsDevoir(d, c)}${pageFoot()}</div>`;
   }
   const rendusE = el.filter(e => renduDe(d, e.email)), autres = el.filter(e => !renduDe(d, e.email));
   const noteDe = e => { const cr = correctionDe(renduDe(d, e.email)); return cr && cr.note != null ? fmtNote(cr.note) : "__"; };
@@ -1126,17 +1134,27 @@ async function enregistrer(mode, programme){
 }
 
 /* ---------- annonces du flux ---------- */
+/* date de publication choisie (annonce programmée), ou null pour tout de suite */
+function quandAnnonce(A){
+  if (!A || !A.quandD) return null;
+  const d = new Date(A.quandD + "T" + (A.quandH || "08:00"));
+  return isNaN(d) || d <= now() ? null : d;
+}
 async function publierAnnonce(){
   const A = S.annonce, el = document.getElementById("anHtml"); if (el) A.html = el.innerHTML;
+  if (A.quandD && !quandAnnonce(A)) { toast("Choisis une date de publication dans le futur, ou retire la date."); return; }
+  const quand = quandAnnonce(A), pub = S.prof ? { publie_le: (quand || (A.id && A.publieAvant && D(A.publieAvant) > now() ? now() : null)) } : {};
+  if (pub.publie_le) pub.publie_le = pub.publie_le.toISOString(); else delete pub.publie_le;
   const txt = (A.html || "").replace(/<[^>]*>/g, "").trim();
   if (!txt && !A.ressources.length) { toast("Écris un message avant de publier."); return; }
   A.busy = true; render();
-  const { error } = A.id ? await sb.from("annonces").update({ texte: A.html, ressources: A.ressources }).eq("id", A.id)
-    : await sb.from("annonces").insert({ classe_id: A.classe, auteur_nom: S.nom, texte: A.html, ressources: A.ressources });
+  const { error } = A.id ? await sb.from("annonces").update({ texte: A.html, ressources: A.ressources, ...pub }).eq("id", A.id)
+    : await sb.from("annonces").insert({ classe_id: A.classe, auteur_nom: S.nom, texte: A.html, ressources: A.ressources, ...pub });
   if (error) { A.busy = false; render(); toast("Enregistrement impossible : " + error.message); return; }
   if (A.toDelete && A.toDelete.length) await sb.storage.from("documents").remove(A.toDelete);
-  for (const cid of (!A.id && A.aussi) || []) { await sb.from("annonces").insert({ classe_id: cid, auteur_nom: S.nom, texte: A.html, ressources: await copierRessources(A.ressources, cid) }); delete S.cache[cid]; }
-  const c = A.classe, modif = !!A.id; S.annonce = null; delete S.cache[c]; render(); toast(modif ? "Annonce modifiée" : "Annonce publiée");
+  for (const cid of (!A.id && A.aussi) || []) { await sb.from("annonces").insert({ classe_id: cid, auteur_nom: S.nom, texte: A.html, ressources: await copierRessources(A.ressources, cid), ...pub }); delete S.cache[cid]; }
+  const c = A.classe, modif = !!A.id; S.annonce = null; delete S.cache[c]; render();
+  toast(quand ? "Annonce programmée : " + quand.toLocaleString("fr-FR", {weekday:"long", day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}) : modif ? "Annonce modifiée" : "Annonce publiée");
 }
 /* ---------- questionnaire (QCM) ---------- */
 async function chargerResultatsQuiz(q, force){
@@ -1168,7 +1186,7 @@ function vQuiz(r){
     <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(q.publie_le))}${S.prof && q.brouillon ? " · <i>Brouillon</i>" : ""}</div>
     <div class="dvmeta"><b>${q.mode === "note" ? "Noté sur " + q.points + " · une seule tentative" : "Entraînement · recommençable"}</b><span>${q.date_limite ? dueTxt(D(q.date_limite)) : "Aucune date limite"}</span></div></div>
     ${S.prof ? `<a class="ib" href="#/editer/questionnaire/${q.id}" title="Modifier" aria-label="Modifier le questionnaire">${icon("edit")}</a>` : ""}</div>
-    ${q.consigne ? `<div class="dvbody"><div class="richtext">${rich(q.consigne)}</div></div>` : ""}`;
+    ${q.consigne ? `<div class="dvbody"><div class="consignehead">${btnEcouter("qconsigne-" + q.id)}</div><div class="richtext" id="qconsigne-${q.id}">${rich(q.consigne)}</div></div>` : ""}`;
   if (S.prof) {
     const data = S.qr && S.qr[q.id], el = elevesDuDevoir(q, (S.cache[q.classe_id] || {eleves:[]}).eleves);
     if (!data) return `<div class="page" style="--c:var(${k.c})">${head}<div class="loading"><div><div class="spin"></div>Chargement des résultats…</div></div></div>`;
@@ -1193,10 +1211,10 @@ function vQuiz(r){
   return `<div class="page" style="--c:var(${k.c})">${head}
     <section class="card">${(q.melanger ? melangeStable(qs.length, S.user.id + ":" + q.id) : qs.map((_, i) => i)).map((i, rang) => { const x = qs[i], t = typeQ(x), num = rang + 1;
       if (t === "courte" || t === "num") { const ok = res && b ? juste(t, rep[i], b[i]) : null;
-        return `<div class="q"><b>${num}. ${sci(x.q)}</b>${imgQ(x)}<input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="${t === "num" ? "Ta réponse (ex. 2,4×10^-3)" : "Ta réponse"}" ${t === "num" ? 'inputmode="decimal"' : ""} aria-label="Réponse à la question ${num}" ${res ? "disabled" : ""}>${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${attendue(t, b[i])}</span>` : ""}</div>`; }
+        return `<div class="q"><b>${num}. ${sci(x.q)}</b>${btnEcouter("", x.q + (x.o && x.o.length ? ". Réponses possibles : " + x.o.map(String).join(" ; ") : ""), true)}${imgQ(x)}<input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="${t === "num" ? "Ta réponse (ex. 2,4×10^-3)" : "Ta réponse"}" ${t === "num" ? 'inputmode="decimal"' : ""} aria-label="Réponse à la question ${num}" ${res ? "disabled" : ""}>${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${attendue(t, b[i])}</span>` : ""}</div>`; }
       const coche = j => t === "cases" ? (rep[i] || []).includes(j) : rep[i] === j, bonne = j => t === "cases" ? ((b && b[i]) || []).includes(j) : b && j === b[i];
       const ordreO = q.melanger ? melangeStable(x.o.length, S.user.id + ":" + q.id + ":" + i) : x.o.map((_, j) => j);
-      return `<div class="q"><b>${num}. ${sci(x.q)}</b>${imgQ(x)}${t === "cases" ? `<span class="muted" style="font-size:.8rem">Plusieurs réponses possibles</span>` : ""}${ordreO.map(j => { const o = x.o[j]; let cl = ""; if (res && b) { if (bonne(j)) cl = "good"; else if (coche(j)) cl = "wrong"; }
+      return `<div class="q"><b>${num}. ${sci(x.q)}</b>${btnEcouter("", x.q + (x.o && x.o.length ? ". Réponses possibles : " + x.o.map(String).join(" ; ") : ""), true)}${imgQ(x)}${t === "cases" ? `<span class="muted" style="font-size:.8rem">Plusieurs réponses possibles</span>` : ""}${ordreO.map(j => { const o = x.o[j]; let cl = ""; if (res && b) { if (bonne(j)) cl = "good"; else if (coche(j)) cl = "wrong"; }
         return `<label class="opt ${cl}"><input type="${t === "cases" ? "checkbox" : "radio"}" name="q${i}" data-act="${t === "cases" ? "anscase" : "ans"}" data-q="${q.id}" data-i="${i}" data-j="${j}" ${coche(j) ? "checked" : ""} ${res ? "disabled" : ""}> ${sci(o)}</label>`; }).join("")}</div>`; }).join("")}
       <div class="q">${res ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="grade">${res.score}<small>/${res.sur}</small></span>${q.mode === "note" ? `<span>Note : <b>${fmtNote(Math.round(res.score / Math.max(1, res.sur) * q.points * 100) / 100)}/${q.points}</b></span>` : `<button class="btn ghost" data-act="retry" data-q="${q.id}">Recommencer</button>`}${!b ? `<span class="muted">La correction n'est pas affichée pour ce questionnaire.</span>` : ""}</div>`
         : `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-act="valider" data-q="${q.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi…" : "Envoyer"}</button>${q.mode === "note" ? `<span class="muted" style="font-size:.85rem">Une seule tentative : vérifie tes réponses avant d'envoyer.</span>` : ""}</div>`}</div>
@@ -1345,6 +1363,7 @@ function vModal(){
     <div class="linkedit">${m.liens.map((l, i) => `<div class="lrow"><input data-li="${i}" data-k="nom" value="${esc(l.nom)}" placeholder="Nom" aria-label="Nom du lien ${i + 1}"><input data-li="${i}" data-k="url" value="${esc(l.url)}" placeholder="https://…" aria-label="Adresse du lien ${i + 1}"><button class="ib sm" data-act="rmlien" data-i="${i}" aria-label="Supprimer ce lien">${icon("x")}</button></div>`).join("")}</div>
     <div><button class="btn ghost sm" data-act="addlien">${icon("plus")} Ajouter un lien</button></div>`; }
   else if (m.kind === "code") { body = `<h2>Code du cours</h2><div class="codehuge">${esc(m.code)}</div><p class="muted" style="margin:0">Les élèves cliquent sur <b>+</b> en haut de PhysiquePro, puis sur « Rejoindre un cours », et saisissent ce code.</p>
+      <div class="qrwrap"><div class="qrbox" id="qrCours" data-lien="${esc(lienInvitation(m.code))}"><span class="muted">Chargement du QR code…</span></div><p style="margin:0"><b>Ou plus simple :</b> les élèves visent ce QR code avec l'appareil photo de leur téléphone, se connectent et rejoignent le cours tout seuls.</p></div>
     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="copycode" data-code="${esc(m.code)}">${icon("copy")} Copier</button><button class="btn" data-act="mclose">Fermer</button></div>`; foot = false; }
   else if (m.kind === "cible") {
     const el = (S.cache[S.ed.classe_id] || {eleves:[]}).eleves, sel = new Set(m.sel || el.map(e => e.email));
@@ -1369,6 +1388,7 @@ function vModal(){
   else if (m.kind === "urgent") { body = modalUrgent(m); ok = "Envoyer"; }
   else if (m.kind === "urgprof") { body = modalUrgProf(m); ok = "Envoyer"; }
   else if (m.kind === "confirm") { body = `<h2>${esc(m.titre)}</h2><p style="margin:0">${esc(m.texte)}</p>`; ok = m.ok || "Supprimer"; }
+  else if (VUES_MODAL[m.kind]) { const x = VUES_MODAL[m.kind](m); body = x.body; ok = x.ok || ok; foot = x.foot !== false; }
   const danger = (m.kind === "confirm" && m.action !== "rien") || m.kind === "supprclasse";
   return `<div class="modalbg" data-act="mclose"></div><div class="modal" role="dialog" aria-modal="true">${body}${m.err ? `<div class="err">${esc(m.err)}</div>` : ""}
     ${foot ? `<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-act="mclose">Annuler</button><button class="btn${danger ? " danger" : ""}" data-act="mok" ${m.busy ? "disabled" : ""}>${ok}</button></div>` : ""}</div>`;
@@ -2039,7 +2059,8 @@ async function chargerNotifs(){
     sb.from("commentaires_prives").select("id, devoir_id, eleve_email, auteur, auteur_nom, texte, cree_le").gt("cree_le", depuis).order("cree_le", { ascending: false }).limit(60)
   ];
   if (S.prof) reqs.push(sb.from("rendus").select("id, devoir_id, auteur_email, rendu_le").gt("rendu_le", depuis).order("rendu_le", { ascending: false }).limit(80));
-  else reqs.push(sb.from("annonces").select("id, classe_id, auteur, auteur_nom, cree_le").gt("cree_le", depuis).limit(40), sb.from("supports").select("id, classe_id, titre, publie_le").gt("publie_le", depuis).limit(40));
+  else reqs.push(sb.from("annonces").select("id, classe_id, auteur, auteur_nom, cree_le, publie_le").gt("publie_le", depuis).limit(40), sb.from("supports").select("id, classe_id, titre, publie_le").gt("publie_le", depuis).limit(40));
+  reqs.push(sb.from("commentaires_devoirs").select("id, devoir_id, auteur, auteur_nom, texte, cree_le").gt("cree_le", depuis).order("cree_le", { ascending: false }).limit(60));
   const res = await Promise.all(reqs.map(p => Promise.resolve(p).catch(() => ({ data: [] }))));
   const [co, cp] = res.map(r => (r && !r.error && r.data) || []);
   const L = [], add = (k, date, titre, href, cid) => { if (notifOn(k) && coursOn(cid)) L.push({ k, date, titre, href, cid }); };
@@ -2047,6 +2068,9 @@ async function chargerNotifs(){
   co.filter(x => x.auteur !== moiId).forEach(x => { const a = x.annonces || {}, cid = a.classe_id, mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
     if (mention) add("mention", D(x.cree_le), esc(x.auteur_nom) + " vous a mentionné dans un commentaire", "#/classe/" + cid + "/flux", cid);
     else if (S.prof || a.auteur === moiId) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté " + (S.prof ? "une annonce" : "votre post"), "#/classe/" + cid + "/flux", cid); });
+  { const cd = (res[res.length - 1] && !res[res.length - 1].error && res[res.length - 1].data) || [];
+    cd.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id), mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
+      if (S.prof || mention || x.auteur_nom === R().prof.nom) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); }); }
   cp.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id); add("prives", D(x.cree_le), esc(x.auteur_nom) + " : commentaire privé sur « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
   if (S.prof) {
     ((res[2] && res[2].data) || []).forEach(x => { const d = dv(x.devoir_id); add("rendus", D(x.rendu_le), esc(nomDe(d.classe_id, x.auteur_email)) + (d.type === "question" ? " a répondu à « " : " a rendu « ") + esc(d.titre || "") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
@@ -2063,7 +2087,7 @@ async function chargerNotifs(){
     nouveaux.filter(x => D(x.o.publie_le) > vu && D(x.o.publie_le) <= now()).forEach(x => add("travaux", D(x.o.publie_le), x.l + " : « " + esc(x.o.titre) + " »", x.h, x.o.classe_id));
     S.corrections.filter(c => c.publiee && c.modifie_le && D(c.modifie_le) > vu).forEach(c => { const r = S.rendus.find(x => x.id === c.rendu_id), d = r && dv(r.devoir_id);
       if (d && d.id) add("notes", D(c.modifie_le), "Travail rendu : « " + esc(d.titre) + " »" + (c.note != null ? " · " + fmtNote(c.note) + "/" + d.points : ""), "#/devoir/" + d.id, d.classe_id); });
-    ((res[2] && res[2].data) || []).filter(a => a.auteur !== moiId).forEach(a => add("annonces", D(a.cree_le), esc(a.auteur_nom) + " a publié une annonce", "#/classe/" + a.classe_id + "/flux", a.classe_id));
+    ((res[2] && res[2].data) || []).filter(a => a.auteur !== moiId).filter(a => D(a.publie_le || a.cree_le) <= now()).forEach(a => add("annonces", D(a.publie_le || a.cree_le), esc(a.auteur_nom) + " a publié une annonce", "#/classe/" + a.classe_id + "/flux", a.classe_id));
     S.devoirs.filter(d => d.date_limite && D(d.date_limite) > now() && D(d.date_limite) - now() < 864e5 && etat(d, moi()).t === "Attribué").forEach(d => add("echeances", D(d.date_limite), "À rendre " + dueTxt(D(d.date_limite)).toLowerCase() + " : « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id));
   }
   L.sort((a, b) => b.date - a.date);
@@ -4077,10 +4101,11 @@ VUES_PRO.programmes = function(){
   if (!S.prof) return VUES_PRO.semaine();
   const t = now(), L = [...S.devoirs.map(d => ({ o: d, k: "devoir", h: "#/devoir/" + d.id })), ...S.quiz.map(q => ({ o: q, k: "quiz", h: "#/quiz/" + q.id }))].filter(x => !x.o.brouillon && x.o.publie_le && D(x.o.publie_le) > t).sort((a, b) => D(a.o.publie_le) - D(b.o.publie_le));
   const sup = Object.entries(S.cache).flatMap(([cid, data]) => (data.supports || []).filter(s => !s.brouillon && s.publie_le && D(s.publie_le) > t).map(s => ({ o: { ...s, classe_id: cid }, k: "support", h: `#/classe/${cid}/travaux` })));
-  const tout = [...L, ...sup].sort((a, b) => D(a.o.publie_le) - D(b.o.publie_le));
+  const ann = Object.entries(S.cache).flatMap(([cid, data]) => (data.annonces || []).filter(a => a.publie_le && D(a.publie_le) > t).map(a => ({ o: { ...a, classe_id: cid, titre: "Annonce : " + ((new DOMParser().parseFromString(a.texte || "", "text/html").body.textContent || "").trim().slice(0, 70) || "(sans texte)") }, k: "annonce", h: `#/classe/${cid}/flux` })));
+  const tout = [...L, ...sup, ...ann].sort((a, b) => D(a.o.publie_le) - D(b.o.publie_le));
   return `<div class="page"><div class="homehead"><h1>Publications programmées</h1></div><p class="muted" style="margin:0">Ces éléments apparaîtront automatiquement aux élèves à la date indiquée. Pour programmer : dans l'éditeur, choisis « Programmer » au lieu de « Publier ».</p>
-    ${tout.length ? `<section class="group">${tout.map(x => { const c = cls(x.o.classe_id); return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${x.h}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(x.k === "quiz" ? "quiz" : x.k === "support" ? "support" : "devoir", "")}</span><span class="tt">${esc(x.o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${icon("cal")} ${fmtD(D(x.o.publie_le))}, ${fmtT(D(x.o.publie_le))}</span></a></div>`; }).join("")}</section>`
-      : `<div class="emptystate"><b>Aucune publication programmée.</b><span>Les documentations des cours que tu n'as pas encore ouverts dans cette session ne sont pas listées.</span></div>`}${pageFoot()}</div>`;
+    ${tout.length ? `<section class="group">${tout.map(x => { const c = cls(x.o.classe_id); return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${x.h}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(x.k === "quiz" ? "quiz" : x.k === "support" ? "support" : x.k === "annonce" ? "bell" : "devoir", "")}</span><span class="tt">${esc(x.o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${icon("cal")} ${fmtD(D(x.o.publie_le))}, ${fmtT(D(x.o.publie_le))}</span></a></div>`; }).join("")}</section>`
+      : `<div class="emptystate"><b>Aucune publication programmée.</b><span>Les documentations et annonces des cours que tu n'as pas encore ouverts dans cette session ne sont pas listées.</span></div>`}${pageFoot()}</div>`;
 };
 
 IC.cards = '<rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/>';
@@ -6171,6 +6196,272 @@ async function envoyerAvis(d, emails){
   if (res.length) toast("« " + titre + " » : " + res.join(" · "));
 }
 async function autoriserMail(){ try { await jetonGraph(true, ["Mail.Send"]); toast("Envoi d'e-mails autorisé ✓"); } catch (e) { toast("Autorisation refusée : " + (e.message || e)); } }
+/* =====================================================================
+   30 · Fonctions inspirées de Google Classroom (11/11/2026)
+   1. Scanner un travail papier (photos → un seul PDF)
+   2. Commentaires de classe sous chaque devoir (table commentaires_devoirs, étape 38)
+   4. QR code du cours (rejoindre sans taper de code)
+   6. Fiche PDF ou image annotée au doigt par l'élève
+   7. « Afficher en tant qu'élève » (aperçu en lecture seule, côté prof)
+   9. Lecture à voix haute des consignes
+   (3. Annonces programmées et épinglées : 03-classe.js, 05-editeurs.js)
+   ===================================================================== */
+IC.clock = IC.clock || '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
+IC.pin = IC.pin || '<path d="M9 4h6l-1 6 3 3v1H7v-1l3-3z"/><path d="M12 14v6"/>';
+IC.speaker = IC.speaker || '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>';
+IC.camera = IC.camera || '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>';
+IC.qr = IC.qr || '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M14 14h2v2h-2zM18 14h2M14 18h2M18 18h2v2"/>';
+
+/* petits registres utilisés par 08-fenetres.js et 09-evenements.js */
+const VUES_MODAL = {}, OK_MODAL = {}, ACTIONS_PLUS = {};
+const APRES_RENDU = [];
+function apresRenduPlus(){ for (const f of APRES_RENDU) { try { f(); } catch (e) { console.warn(e); } } }
+
+/* ---------------------------------------------------------------- 9. Lecture à voix haute */
+const voixOk = () => typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance === "function";
+const LECT = { id: null };
+/* bouton « Écouter » : lit le texte de l'élément #cible, ou le texte donné */
+function btnEcouter(cible, texte, petit){
+  if (!voixOk()) return "";
+  const id = cible || "t" + Math.abs([...String(texte || "")].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7));
+  const actif = LECT.id === id;
+  return `<button type="button" class="ecoute${petit ? " sm" : ""}${actif ? " on" : ""}" data-act="ecouter" data-id="${esc(id)}" ${cible ? `data-cible="${esc(cible)}"` : `data-texte="${esc(texte || "")}"`} aria-label="${actif ? "Arrêter la lecture" : "Écouter à voix haute"}" title="${actif ? "Arrêter la lecture" : "Écouter à voix haute"}">${icon("speaker")}${petit ? "" : `<span>${actif ? "Arrêter" : "Écouter"}</span>`}</button>`;
+}
+function textePourVoix(t){
+  return String(t || "").replace(/\s+/g, " ")
+    .replace(/×\s*10\^?\s*(-?\d+)/g, " fois 10 puissance $1 ").replace(/\^(-?\d+)/g, " puissance $1 ")
+    .replace(/²/g, " au carré").replace(/³/g, " au cube").replace(/→/g, " donne ").replace(/≈/g, " environ ")
+    .replace(/\bm\/s\b/g, "mètres par seconde").replace(/\bkm\/h\b/g, "kilomètres par heure").trim();
+}
+function lireAVoixHaute(a){
+  const ss = window.speechSynthesis, id = a.dataset.id;
+  if (LECT.id === id) { ss.cancel(); LECT.id = null; render(); return; }
+  ss.cancel();
+  let t = a.dataset.texte || "";
+  if (a.dataset.cible) { const el = document.getElementById(a.dataset.cible); t = el ? el.innerText || el.textContent : ""; }
+  t = textePourVoix(t.replace(/<[^>]*>/g, " "));
+  if (!t) { toast("Rien à lire."); return; }
+  const u = new SpeechSynthesisUtterance(t); u.lang = "fr-FR"; u.rate = .95;
+  const v = (ss.getVoices() || []).find(x => /^fr(-|_)FR/i.test(x.lang)) || (ss.getVoices() || []).find(x => /^fr/i.test(x.lang)); if (v) u.voice = v;
+  u.onend = u.onerror = () => { if (LECT.id === id) { LECT.id = null; render(); } };
+  LECT.id = id; ss.speak(u); render();
+}
+ACTIONS_PLUS.ecouter = (a, e) => { e.preventDefault(); lireAVoixHaute(a); };
+window.addEventListener("hashchange", () => { if (LECT.id && voixOk()) { window.speechSynthesis.cancel(); LECT.id = null; } });
+
+/* ---------------------------------------------------------------- 4. QR code du cours */
+const lienInvitation = code => ICI + "#/rejoindre/" + encodeURIComponent(code || "");
+APRES_RENDU.push(async () => {
+  const z = document.getElementById("qrCours"); if (!z || z.dataset.fait) return;
+  z.dataset.fait = "1";
+  try {
+    await chargerScript("qrcode.js?v=1", () => window.qrcode);
+    const qr = window.qrcode(0, "M"); qr.addData(z.dataset.lien); qr.make();
+    z.innerHTML = qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true });
+  } catch (_) { z.innerHTML = `<span class="muted">QR code indisponible : donne le code ci-dessus.</span>`; }
+});
+
+/* ---------------------------------------------------------------- 2. Commentaires de classe sous un devoir */
+async function chargerComsDevoir(did){
+  S.comsDv = S.comsDv || {};
+  try { const { data, error } = await sb.from("commentaires_devoirs").select("*").eq("devoir_id", did).order("cree_le"); S.comsDv[did] = error ? [] : data || []; }
+  catch (_) { S.comsDv[did] = []; }
+}
+function blocComsDevoir(d, c){
+  if (!c || (!S.prof && !fluxVisible(c))) return "";
+  const L = (S.comsDv || {})[d.id] || [], ouvert = S.open === "dv" + d.id || L.length <= 3, vus = ouvert ? L : L.slice(-2);
+  return `<section class="dvcoms"><h3>${icon("people")} Commentaires de la classe${L.length ? ` <span class="muted">(${L.length})</span>` : ""}</h3>
+    ${!L.length ? `<p class="muted" style="margin:0;font-size:.85rem">${S.prof ? "Les élèves peuvent poser ici une question que toute la classe verra." : "Une question sur ce travail ? Pose-la ici : toute la classe verra la réponse."}</p>` : ""}
+    ${!ouvert ? `<button class="linkbtn" data-act="dvcomsouvrir" data-id="${d.id}">Voir les ${L.length} commentaires</button>` : ""}
+    ${vus.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div>${S.prof || x.auteur === S.user.id ? `<button class="ib sm" data-act="dvcomx" data-id="${x.id}" data-d="${d.id}" aria-label="Supprimer le commentaire" title="Supprimer">${icon("x")}</button>` : ""}</div>`).join("")}
+    ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="dvcom-${d.id}" placeholder="Ajouter un commentaire pour la classe…" aria-label="Commentaire pour la classe" maxlength="2000" enterkeyhint="send"><button class="ib" data-act="dvcom" data-id="${d.id}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
+  </section>`;
+}
+ACTIONS_PLUS.dvcomsouvrir = (a, e) => { e.preventDefault(); S.open = "dv" + a.dataset.id; render(); };
+ACTIONS_PLUS.dvcom = async a => {
+  const did = Number(a.dataset.id), inp = document.getElementById("dvcom-" + did), t = inp ? inp.value.trim() : ""; if (!t) return;
+  a.disabled = true;
+  const { error } = await sb.from("commentaires_devoirs").insert({ devoir_id: did, auteur_nom: S.nom, texte: t });
+  if (error) { a.disabled = false; toast("Commentaire impossible : " + error.message); return; }
+  await chargerComsDevoir(did); S.open = "dv" + did; render();
+};
+ACTIONS_PLUS.dvcomx = async a => {
+  const { error } = await sb.from("commentaires_devoirs").delete().eq("id", a.dataset.id);
+  if (error) { toast("Suppression impossible : " + error.message); return; }
+  await chargerComsDevoir(Number(a.dataset.d)); render();
+};
+/* Entrée dans le champ = Envoyer (pratique sur téléphone) */
+document.addEventListener("keydown", e => {
+  const t = e.target; if (e.key !== "Enter" || !t || !t.id || !/^dvcom-\d+$/.test(t.id)) return;
+  e.preventDefault(); const b = t.parentElement && t.parentElement.querySelector('[data-act="dvcom"]'); if (b) b.click();
+});
+
+/* ---------------------------------------------------------------- 1. Scanner un travail papier */
+const SCAN = { pages: [] };
+const nomFichierPropre = n => String(n || "fichier").replace(/[\\/:*?"<>|#%]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 90);
+function imageDepuisFichier(f){
+  return new Promise((ok, ko) => { const u = URL.createObjectURL(f), i = new Image(); i.onload = () => ok(i); i.onerror = () => { URL.revokeObjectURL(u); ko(new Error("photo illisible")); }; i.src = u; });
+}
+/* dessine la page (rotation, taille max, « améliorer » = fond blanc et écriture foncée) */
+function dessinerPage(p, maxCote, ameliorer){
+  const w0 = p.img.naturalWidth, h0 = p.img.naturalHeight, k = Math.min(1, maxCote / Math.max(w0, h0));
+  const w = Math.round(w0 * k), h = Math.round(h0 * k), tourne = p.rot % 180 !== 0;
+  const c = document.createElement("canvas"); c.width = tourne ? h : w; c.height = tourne ? w : h;
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.translate(c.width / 2, c.height / 2); g.rotate(p.rot * Math.PI / 180); g.drawImage(p.img, -w / 2, -h / 2, w, h); g.setTransform(1, 0, 0, 1, 0, 0);
+  if (ameliorer) {
+    const im = g.getImageData(0, 0, c.width, c.height), px = im.data, hist = new Uint32Array(256), n = px.length / 4;
+    for (let i = 0; i < px.length; i += 4) { const y = (px[i] * 77 + px[i + 1] * 150 + px[i + 2] * 29) >> 8; px[i] = y; hist[y]++; }
+    let s = 0, lo = 0, hi = 255; for (let v = 0; v < 256; v++) { s += hist[v]; if (s >= n * .01) { lo = v; break; } }
+    s = 0; for (let v = 255; v >= 0; v--) { s += hist[v]; if (s >= n * .25) { hi = v; break; } }
+    if (hi - lo < 40) { lo = Math.max(0, hi - 120); }
+    const lut = new Uint8ClampedArray(256); for (let v = 0; v < 256; v++) { const x = (v - lo) / Math.max(1, hi - lo); lut[v] = 255 * Math.pow(Math.min(1, Math.max(0, x)), 1.6); }
+    for (let i = 0; i < px.length; i += 4) { const y = lut[px[i]]; px[i] = px[i + 1] = px[i + 2] = y; }
+    g.putImageData(im, 0, 0);
+  }
+  return c;
+}
+async function ajouterPagesScan(files){
+  for (const f of files) {
+    if (!/^image\//.test(f.type || "") && !/\.(jpe?g|png|heic|heif|webp)$/i.test(f.name || "")) { toast("« " + (f.name || "fichier") + " » n'est pas une photo."); continue; }
+    try { const img = await imageDepuisFichier(f), p = { img, rot: 0 }; p.vign = dessinerPage(p, 260, SCAN.ameliorer !== false).toDataURL("image/jpeg", .7); SCAN.pages.push(p); }
+    catch (e) { toast("Photo illisible : " + (e.message || e) + ". Sur iPhone, réglage Appareil photo > Formats > « Le plus compatible »."); }
+  }
+  render();
+}
+const majVignettes = () => SCAN.pages.forEach(p => { p.vign = dessinerPage(p, 260, SCAN.ameliorer !== false).toDataURL("image/jpeg", .7); });
+VUES_MODAL.scan = m => {
+  const P = SCAN.pages;
+  return { foot: false, body: `<h2>${icon("camera")} Scanner mon travail</h2>
+    <p class="muted" style="margin:0;font-size:.9rem">Prends en photo chaque page, bien à plat, avec de la lumière. Toutes les pages formeront <b>un seul PDF</b>.</p>
+    ${P.length ? `<div class="scanpages">${P.map((p, i) => `<div class="scanpage"><img src="${p.vign}" alt="Page ${i + 1}"><span class="scannum">Page ${i + 1}</span>
+      <div class="scanbtns"><button type="button" class="ib sm" data-act="scanrot" data-i="${i}" aria-label="Tourner la page ${i + 1}" title="Tourner">↻</button>${i ? `<button type="button" class="ib sm" data-act="scanavant" data-i="${i}" aria-label="Avancer la page ${i + 1}" title="Mettre avant">←</button>` : ""}<button type="button" class="ib sm" data-act="scanrm" data-i="${i}" aria-label="Retirer la page ${i + 1}" title="Retirer">✕</button></div></div>`).join("")}</div>` : ""}
+    <div class="scanadd"><label class="btn">${icon("camera")} ${P.length ? "Photo de la page suivante" : "Prendre une photo"}<input type="file" id="scanCam" accept="image/*" capture="environment" hidden></label>
+      <label class="btn ghost">${icon("upload")} Choisir dans mes photos<input type="file" id="scanGal" accept="image/*" multiple hidden></label></div>
+    <label class="check"><input type="checkbox" id="scanAmel" ${SCAN.ameliorer !== false ? "checked" : ""}> Rendre plus lisible (fond blanc, écriture plus foncée)</label>
+    <div class="scanfin">${P.length ? `<button class="btn" data-act="scanpdf" ${m.busy ? "disabled" : ""}>${icon("check")} ${m.busy ? "Création du PDF…" : `C'est fini : ajouter à mon travail (${P.length} page${P.length > 1 ? "s" : ""})`}</button>` : ""}<button class="btn ghost" data-act="mclose">Annuler</button></div>` };
+};
+ACTIONS_PLUS.scanner = (a, e) => { e.preventDefault(); S.menu = null; SCAN.pages = []; S.modal = { kind: "scan", did: a.dataset.id }; render(); };
+ACTIONS_PLUS.scanrot = a => { const p = SCAN.pages[Number(a.dataset.i)]; if (!p) return; p.rot = (p.rot + 90) % 360; p.vign = dessinerPage(p, 260, SCAN.ameliorer !== false).toDataURL("image/jpeg", .7); render(); };
+ACTIONS_PLUS.scanrm = a => { SCAN.pages.splice(Number(a.dataset.i), 1); render(); };
+ACTIONS_PLUS.scanavant = a => { const i = Number(a.dataset.i); if (i > 0) { const [p] = SCAN.pages.splice(i, 1); SCAN.pages.splice(i - 1, 0, p); } render(); };
+ACTIONS_PLUS.scanpdf = async a => {
+  const m = S.modal; if (!m || !SCAN.pages.length) return;
+  m.busy = true; render();
+  try {
+    await chargerScript(JSPDF, () => window.jspdf);
+    const A4 = [595.28, 841.89]; let doc = null;
+    for (const p of SCAN.pages) {
+      const c = dessinerPage(p, 1800, SCAN.ameliorer !== false), pay = c.width > c.height, [W, H] = pay ? [A4[1], A4[0]] : A4;
+      const k = Math.min(W / c.width, H / c.height), w = c.width * k, h = c.height * k;
+      if (!doc) doc = new window.jspdf.jsPDF({ orientation: pay ? "l" : "p", unit: "pt", format: "a4", compress: true }); else doc.addPage("a4", pay ? "l" : "p");
+      doc.addImage(c.toDataURL("image/jpeg", .72), "JPEG", (W - w) / 2, (H - h) / 2, w, h);
+    }
+    const d = S.devoirs.find(x => String(x.id) === String(m.did)), nom = nomFichierPropre("Travail scanné - " + ((d && d.titre) || "devoir")) + ".pdf";
+    const f = new File([doc.output("blob")], nom, { type: "application/pdf" });
+    if (f.size > 50e6) throw new Error("PDF trop lourd (plus de 50 Mo) : enlève des pages");
+    S.files.push(f); SCAN.pages.forEach(p => URL.revokeObjectURL(p.img.src)); SCAN.pages = []; S.modal = null; render();
+    toast("PDF ajouté à ton travail. Appuie sur « Rendre » pour l'envoyer.");
+  } catch (e) { m.busy = false; m.err = "Création du PDF impossible : " + (e.message || e); render(); }
+};
+APRES_RENDU.push(() => {
+  const cam = document.getElementById("scanCam"), gal = document.getElementById("scanGal"), am = document.getElementById("scanAmel");
+  for (const inp of [cam, gal]) if (inp && !inp.onchange) inp.onchange = () => { const f = [...inp.files]; inp.value = ""; if (f.length) ajouterPagesScan(f); };
+  if (am && !am.onchange) am.onchange = () => { SCAN.ameliorer = am.checked; majVignettes(); render(); };
+});
+
+/* ---------------------------------------------------------------- 6. Fiche annotée au doigt par l'élève */
+const ficheAnnotable = r => r && r.path && !r.od && ["png", "jpg", "jpeg", "webp", "gif", "pdf"].includes(extDe(r.label || r.path));
+ACTIONS_PLUS.ecrirefiche = async (a, e) => {
+  e.preventDefault(); S.menu = null; render();
+  const d = S.devoirs.find(x => String(x.id) === a.dataset.id), r = d && (d.ressources || [])[Number(a.dataset.i)]; if (!ficheAnnotable(r)) return;
+  const { data, error } = await sb.storage.from("documents").createSignedUrl(r.path, 3600);
+  if (error || !data || !data.signedUrl) { toast("Fiche introuvable."); return; }
+  ouvrirAnnotEleve(data.signedUrl, r.label || r.path.split("/").pop(), d);
+};
+async function ouvrirAnnotEleve(url, nom, d){
+  const ov = document.createElement("div"); ov.className = "annot annot-eleve";
+  ov.innerHTML = `<div class="anbar"><b>${icon("pen")} ${esc(nom)}</b><span class="spacer"></span>
+    <button class="btn sm on" data-o="bleu" style="--x:#1a56db">${icon("pen")} Bleu</button><button class="btn sm" data-o="noir" style="--x:#202124">Noir</button><button class="btn sm" data-o="vert" style="--x:#188038">Vert</button><button class="btn sm" data-o="surligneur" style="--x:#fbbc04">Surligneur</button>
+    <button class="btn ghost sm" data-o="defiler" aria-pressed="false">✋ Défiler</button><button class="btn ghost sm" data-o="annuler">↶ Annuler</button><button class="btn ghost sm" data-o="fermer">Fermer</button><button class="btn sm" data-o="finir">${icon("check")} Ajouter à mon travail</button></div>
+    <p class="anaide">Écris avec le doigt ou le stylet. Pour descendre dans la fiche, appuie sur <b>✋ Défiler</b>, puis de nouveau pour écrire.</p>
+    <div class="anpages"><div class="vempty">Chargement…</div></div>`;
+  document.body.appendChild(ov); document.body.style.overflow = "hidden";
+  AN.pages = []; AN.hist = []; AN.outil = "stylo"; AN.couleur = "#1a56db";
+  const zone = ov.querySelector(".anpages");
+  try {
+    const fonds = [];
+    if (extDe(nom) === "pdf" || /\.pdf(\?|$)/i.test(url)) {
+      await chargerScript(PDFJS, () => window.pdfjsLib); window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_W;
+      const pdf = await window.pdfjsLib.getDocument({ url }).promise, n = Math.min(pdf.numPages, 15);
+      for (let i = 1; i <= n; i++) { const p = await pdf.getPage(i), vp0 = p.getViewport({ scale: 1 }), vp = p.getViewport({ scale: Math.min(2, 1400 / vp0.width) });
+        const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; fonds.push(c); }
+      if (pdf.numPages > 15) toast("Seules les 15 premières pages sont modifiables.");
+    } else {
+      const img = await new Promise((ok, ko) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => ok(i); i.onerror = () => ko(new Error("image illisible")); i.src = url; });
+      const k = Math.min(1, 1600 / img.naturalWidth), c = document.createElement("canvas"); c.width = img.naturalWidth * k; c.height = img.naturalHeight * k; c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); fonds.push(c);
+    }
+    zone.innerHTML = "";
+    fonds.forEach((fond, i) => { const w = document.createElement("div"); w.className = "anpage"; const des = document.createElement("canvas"); des.width = fond.width; des.height = fond.height; w.append(fond, des); zone.appendChild(w); AN.pages.push({ fond, des }); brancherDessin(des, i); });
+  } catch (e) { zone.innerHTML = `<div class="vempty">Impossible d'ouvrir cette fiche : ${esc(e.message || e)}</div>`; }
+  ov.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-o]"); if (!b) return; const o = b.dataset.o;
+    const COUL = { bleu: "#1a56db", noir: "#202124", vert: "#188038", surligneur: "#fbbc04" };
+    if (o === "defiler") { const on = ov.classList.toggle("defile"); b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); return; }
+    if (COUL[o]) { ov.classList.remove("defile"); ov.querySelector('[data-o="defiler"]').classList.remove("on"); AN.outil = o === "surligneur" ? "surligneur" : "stylo"; AN.couleur = COUL[o]; ov.querySelectorAll(".anbar [data-o]").forEach(x => { if (COUL[x.dataset.o]) x.classList.toggle("on", x === b); }); return; }
+    if (o === "annuler") { const h = AN.hist.pop(); if (h) AN.pages[h.i].des.getContext("2d").putImageData(h.img, 0, 0); return; }
+    if (o === "fermer") { if (AN.hist.length && !confirmerFermeture(ov)) return; fermerAnnotation(ov); return; }
+    if (o === "finir") {
+      if (!AN.pages.length) return;
+      b.disabled = true; b.textContent = "Préparation…";
+      try {
+        await chargerScript(JSPDF, () => window.jspdf);
+        const fus = AN.pages.map(p => { const c = document.createElement("canvas"); c.width = p.fond.width; c.height = p.fond.height; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(p.fond, 0, 0); g.drawImage(p.des, 0, 0); return c; });
+        const p0 = fus[0], doc = new window.jspdf.jsPDF({ orientation: p0.width > p0.height ? "l" : "p", unit: "px", format: [p0.width, p0.height], compress: true });
+        fus.forEach((c, i) => { if (i) doc.addPage([c.width, c.height], c.width > c.height ? "l" : "p"); doc.addImage(c.toDataURL("image/jpeg", .8), "JPEG", 0, 0, c.width, c.height); });
+        const base = nomFichierPropre((S.nom || "élève") + " - " + nom.replace(/\.[^.]+$/, ""));
+        S.files.push(new File([doc.output("blob")], base + ".pdf", { type: "application/pdf" }));
+        fermerAnnotation(ov); render(); toast("Ta fiche est ajoutée à ton travail. Appuie sur « Rendre » pour l'envoyer.");
+      } catch (e) { b.disabled = false; b.textContent = "Ajouter à mon travail"; toast("Impossible : " + (e.message || e)); }
+    }
+  });
+}
+
+/* ---------------------------------------------------------------- 7. « Afficher en tant qu'élève » */
+const VUE_ELEVE_OK = new Set(["menu", "opencoms", "dvcomsouvrir", "ecouter", "quittervue", "mclose", "week"]);
+/* la page affichée appartient-elle au cours en aperçu ? */
+function dansVueEleve(r){
+  if (!S.vueEleve || !S.prof) return false;
+  if (r.v === "classe") return r.a === S.vueEleve && r.t !== "parametres" && r.t !== "corriger";
+  if (r.v === "devoir") { const d = S.devoirs.find(x => String(x.id) === r.a); return !!d && d.classe_id === S.vueEleve; }
+  if (r.v === "quiz") { const q = S.quiz.find(x => String(x.id) === r.a); return !!q && q.classe_id === S.vueEleve; }
+  return false;
+}
+const visibleEleve = o => o && !o.brouillon && (!o.publie_le || D(o.publie_le) <= now()) && !(o.eleves && o.eleves.length);
+/* exécute f() comme si le prof était un élève sans travail rendu ; tout est remis en place ensuite */
+function enVueEleve(f, r){
+  if (!dansVueEleve(r)) return f();
+  const c = cls(S.vueEleve), garde = { prof: S.prof, devoirs: S.devoirs, quiz: S.quiz, rendus: S.rendus, corrections: S.corrections, resultats: S.resultats, copies: S.copies, cache: S.cache[S.vueEleve], ed: S.ed, annonce: S.annonce };
+  try {
+    S.prof = false; S.devoirs = S.devoirs.filter(visibleEleve); S.quiz = S.quiz.filter(visibleEleve);
+    S.rendus = []; S.corrections = []; S.resultats = []; S.copies = []; S.ed = null; S.annonce = null;
+    if (garde.cache) S.cache[S.vueEleve] = { ...garde.cache, supports: (garde.cache.supports || []).filter(visibleEleve), annonces: (garde.cache.annonces || []).filter(a => D(a.publie_le || a.cree_le) <= now()) };
+    const masque = c && c.flux_mode === "masque" && r.v === "classe" && (r.t === "flux" || !r.t);
+    const html = masque ? `<div class="page"><div class="emptystate"><b>Le flux est masqué aux élèves.</b><a href="#/classe/${esc(c.id)}/travaux">Voir les travaux</a></div></div>` : f();
+    return `<div class="vuebar" role="status">${icon("eye")}<span><b>Aperçu élève</b> · tu vois ${c ? "« " + esc(c.nom) + " »" : "ce cours"} comme un élève qui n'a encore rien rendu. Rien n'est modifiable.</span><button class="btn sm" data-act="quittervue">Quitter l'aperçu</button></div>` + html;
+  } finally {
+    S.prof = garde.prof; S.devoirs = garde.devoirs; S.quiz = garde.quiz; S.rendus = garde.rendus; S.corrections = garde.corrections; S.resultats = garde.resultats; S.copies = garde.copies; S.ed = garde.ed; S.annonce = garde.annonce;
+    if (garde.cache) S.cache[S.vueEleve] = garde.cache;
+  }
+}
+/* bloque toute action pendant l'aperçu (sauf lire, ouvrir les menus, quitter) */
+function bloqueVueEleve(act, e){
+  if (!S.vueEleve || !dansVueEleve(route()) || VUE_ELEVE_OK.has(act)) return false;
+  e.preventDefault(); toast("Aperçu élève : les actions sont désactivées. Appuie sur « Quitter l'aperçu » pour revenir."); return true;
+}
+ACTIONS_PLUS.vueeleve = (a, e) => { e.preventDefault(); S.menu = null; S.vueEleve = a.dataset.c; const r = route(); if (r.v !== "classe" || r.a !== a.dataset.c || r.t === "parametres" || r.t === "corriger") go("/classe/" + a.dataset.c); else render(); window.scrollTo(0, 0); };
+ACTIONS_PLUS.quittervue = (a, e) => { e.preventDefault(); S.vueEleve = null; render(); toast("Aperçu élève terminé"); };
+window.addEventListener("hashchange", () => { if (S.vueEleve && !dansVueEleve(route())) S.vueEleve = null; });
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
@@ -6201,19 +6492,19 @@ async function render(){
     if (r.v === "classe") {
       if (!S.cache[r.a]) app.innerHTML = chargement(r);
       const data = cls(r.a) ? await chargerClasse(r.a) : null; if (id !== renderId) return;
-      content = vClasse(r, data);
+      content = enVueEleve(() => vClasse(r, data), r);
     } else if (r.v === "devoir") {
       const d = S.devoirs.find(x => String(x.id) === r.a);
-      if (d) { if (!S.cache[d.classe_id]) app.innerHTML = chargement(r); await chargerClasse(d.classe_id); const em = S.prof ? S.sel : moi(); if (em) await chargerCP(d.id, em); }
+      if (d) { if (!S.cache[d.classe_id]) app.innerHTML = chargement(r); await chargerClasse(d.classe_id); const em = S.prof ? S.sel : moi(); if (em) await chargerCP(d.id, em); await chargerComsDevoir(d.id); }
       if (id !== renderId) return;
-      content = vDevoir(r);
+      content = enVueEleve(() => vDevoir(r), r);
       if (d && S.prof && odActif() && !(S.syncFait || {})[d.id + ":" + rendusDe(d).length]) { (S.syncFait = S.syncFait || {})[d.id + ":" + rendusDe(d).length] = 1; syncRendus(d, true).then(n => { if (n) toast(n + " travail" + (n > 1 ? "x copiés" : " copié") + " dans OneDrive"); }).catch(() => {}); }
     } else if (r.v === "quiz") {
       const q = S.quiz.find(x => String(x.id) === r.a);
       if (q && S.prof) { await chargerClasse(q.classe_id); await chargerResultatsQuiz(q); }
       if (q) await urlsSignees((q.questions || []).map(x => x.img).filter(Boolean));
       if (id !== renderId) return;
-      content = vQuiz(r);
+      content = enVueEleve(() => vQuiz(r), r);
     } else if (r.v === "preparateur") {
       if (!S.prof) { go("/"); return; }
       if (!S.demandes) { app.innerHTML = chargement(r); await chargerDemandes(); if (id !== renderId) return; }
@@ -6247,7 +6538,7 @@ async function render(){
     { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
       Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
       document.title = (dv0 ? dv0.titre + (cd0 ? " · " + cd0.nom : "") + " · " : r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
-    { const pg = app.querySelector("main.content > .page"); if (pg && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
+    { const pg = app.querySelector("main.content > .page"); if (pg && !dansVueEleve(r) && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };
     const iz = document.getElementById("impZip"); if (iz) iz.onchange = () => { const f = [...iz.files]; iz.value = ""; if (f.length) importerZip(f).catch(er => { S.imp.busy = false; toast("Zip : " + (er.message || er)); render(); }); };
     const af = document.getElementById("anFile"); if (af) af.onchange = () => { uploadFichiers([...af.files], "annonce"); af.value = ""; };
@@ -6257,7 +6548,8 @@ async function render(){
   }
 }
 function apresRendu(foc){
-  if (S.modal && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox]), .modal textarea"); if (f) f.focus(); return; }
+  apresRenduPlus();
+  if (S.modal && S.modal.kind !== "scan" && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox]), .modal textarea"); if (f) f.focus(); return; }
   if (foc && document.getElementById(foc) && !["edHtml", "anHtml"].includes(foc)) { const el = document.getElementById(foc); el.focus(); if (el.setSelectionRange && el.type === "text") { const n = el.value.length; el.setSelectionRange(n, n); } }
 }
 const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; S.bell = false; S.apps = false; };
@@ -6271,6 +6563,8 @@ document.addEventListener("click", async e => {
     return;
   }
   const act = a.dataset.act, r = route();
+  if (bloqueVueEleve(act, e)) return;
+  if (ACTIONS_PLUS[act] && !(["INPUT"].includes(a.tagName))) { await ACTIONS_PLUS[act](a, e, r); return; }
   if (["INPUT"].includes(a.tagName) && ["pick", "pickall", "cibletous", "cibleun", "bonne", "ans", "inscr", "bonnecase", "anscase", "repchoix"].includes(act)) { /* traité par « change » */ if (act !== "pick" && act !== "pickall") return; }
   switch (act) {
     case "pubconnect": e.preventDefault(); connecter(); return;
@@ -6445,10 +6739,16 @@ document.addEventListener("click", async e => {
     case "supprcom": { const { error } = await sb.from("commentaires").delete().eq("id", a.dataset.id); if (error) { toast("Suppression impossible : " + error.message); return; } delete S.cache[a.dataset.c]; render(); return; }
     case "supprannonce": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"supprannonce", id:a.dataset.id, classe:a.dataset.c, titre:"Supprimer cette annonce ?", texte:"L'annonce et ses commentaires seront supprimés."}; render(); return;
     case "editannonce": { e.preventDefault(); S.menu = null; const an = ((S.cache[a.dataset.c] || {}).annonces || []).find(x => String(x.id) === a.dataset.id); if (!an) return;
-      S.annonce = { classe: a.dataset.c, id: an.id, html: an.texte || "", ressources: clone(an.ressources || []), uploaded: [], toDelete: [], linkMode: null, busy: false }; render(); window.scrollTo(0, 0); setTimeout(() => { const x = document.getElementById("anHtml"); if (x) x.focus(); }, 0); return; }
+      const fut = an.publie_le && D(an.publie_le) > now() ? D(an.publie_le) : null;
+      S.annonce = { classe: a.dataset.c, id: an.id, html: an.texte || "", ressources: clone(an.ressources || []), uploaded: [], toDelete: [], linkMode: null, busy: false, publieAvant: an.publie_le, quandD: fut ? ymd(fut) : "", quandH: fut ? String(fut.getHours()).padStart(2, "0") + ":" + String(fut.getMinutes()).padStart(2, "0") : "08:00" }; render(); window.scrollTo(0, 0); setTimeout(() => { const x = document.getElementById("anHtml"); if (x) x.focus(); }, 0); return; }
     case "copiertexte": { e.preventDefault(); S.menu = null; const an = ((S.cache[a.dataset.c] || {}).annonces || []).find(x => String(x.id) === a.dataset.id); const t = an ? (new DOMParser().parseFromString(an.texte || "", "text/html").body.textContent || "") : "";
       try { navigator.clipboard.writeText(t).then(() => toast("Texte copié"), () => toast("Copie impossible")); } catch (_) { toast("Copie impossible"); } render(); return; }
     case "opencoms": S.open = "an" + a.dataset.id; render(); return;
+    case "anquandx": e.preventDefault(); S.annonce.html = (document.getElementById("anHtml") || {}).innerHTML || S.annonce.html; S.annonce.quandD = ""; render(); return;
+    case "epingler": { e.preventDefault(); S.menu = null; const on = a.dataset.on === "1";
+      const { error } = await sb.from("annonces").update({ epingle: on }).eq("id", a.dataset.id);
+      if (error) { toast("Impossible : " + error.message); render(); return; }
+      delete S.cache[a.dataset.c]; render(); toast(on ? "Annonce épinglée en haut du flux" : "Annonce désépinglée"); return; }
 
     /* devoirs : élève */
     case "pickfile": e.preventDefault(); S.menu = null; document.getElementById("fileIn").click(); render(); return;
@@ -6605,6 +6905,7 @@ document.addEventListener("change", async e => {
   if (t.dataset.pref) { const p = { ...prefs() }; p[t.dataset.pref] = t.checked; await sauverPrefs(p); render(); return; }
   if (t.dataset.prefc) { const p = { ...prefs() }, off = new Set(p.cours_off || []); t.checked ? off.delete(t.dataset.prefc) : off.add(t.dataset.prefc); p.cours_off = [...off]; await sauverPrefs(p); return; }
   if (t.classList && t.classList.contains("edAussi") && S.ed) { const v = t.value; S.ed.aussi = t.checked ? [...new Set([...S.ed.aussi, v])] : S.ed.aussi.filter(x => x !== v); return; }
+  if (t.classList && t.classList.contains("anQuand") && S.annonce) { S.annonce.html = (document.getElementById("anHtml") || {}).innerHTML || S.annonce.html; S.annonce[t.id === "anDate" ? "quandD" : "quandH"] = t.value; render(); return; }
   if (t.classList && t.classList.contains("anAussi") && S.annonce) { const v = t.value, l = S.annonce.aussi || []; S.annonce.aussi = t.checked ? [...new Set([...l, v])] : l.filter(x => x !== v); return; }
   if (t.dataset.impmap != null) { S.imp.map[t.dataset.impmap] = t.value; return; }
   if (t.id === "impBrouillons") { S.imp.brouillons = t.checked; return; }

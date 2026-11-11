@@ -32,7 +32,8 @@ async function chargerNotifs(){
     sb.from("commentaires_prives").select("id, devoir_id, eleve_email, auteur, auteur_nom, texte, cree_le").gt("cree_le", depuis).order("cree_le", { ascending: false }).limit(60)
   ];
   if (S.prof) reqs.push(sb.from("rendus").select("id, devoir_id, auteur_email, rendu_le").gt("rendu_le", depuis).order("rendu_le", { ascending: false }).limit(80));
-  else reqs.push(sb.from("annonces").select("id, classe_id, auteur, auteur_nom, cree_le").gt("cree_le", depuis).limit(40), sb.from("supports").select("id, classe_id, titre, publie_le").gt("publie_le", depuis).limit(40));
+  else reqs.push(sb.from("annonces").select("id, classe_id, auteur, auteur_nom, cree_le, publie_le").gt("publie_le", depuis).limit(40), sb.from("supports").select("id, classe_id, titre, publie_le").gt("publie_le", depuis).limit(40));
+  reqs.push(sb.from("commentaires_devoirs").select("id, devoir_id, auteur, auteur_nom, texte, cree_le").gt("cree_le", depuis).order("cree_le", { ascending: false }).limit(60));
   const res = await Promise.all(reqs.map(p => Promise.resolve(p).catch(() => ({ data: [] }))));
   const [co, cp] = res.map(r => (r && !r.error && r.data) || []);
   const L = [], add = (k, date, titre, href, cid) => { if (notifOn(k) && coursOn(cid)) L.push({ k, date, titre, href, cid }); };
@@ -40,6 +41,9 @@ async function chargerNotifs(){
   co.filter(x => x.auteur !== moiId).forEach(x => { const a = x.annonces || {}, cid = a.classe_id, mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
     if (mention) add("mention", D(x.cree_le), esc(x.auteur_nom) + " vous a mentionné dans un commentaire", "#/classe/" + cid + "/flux", cid);
     else if (S.prof || a.auteur === moiId) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté " + (S.prof ? "une annonce" : "votre post"), "#/classe/" + cid + "/flux", cid); });
+  { const cd = (res[res.length - 1] && !res[res.length - 1].error && res[res.length - 1].data) || [];
+    cd.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id), mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
+      if (S.prof || mention || x.auteur_nom === R().prof.nom) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); }); }
   cp.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id); add("prives", D(x.cree_le), esc(x.auteur_nom) + " : commentaire privé sur « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
   if (S.prof) {
     ((res[2] && res[2].data) || []).forEach(x => { const d = dv(x.devoir_id); add("rendus", D(x.rendu_le), esc(nomDe(d.classe_id, x.auteur_email)) + (d.type === "question" ? " a répondu à « " : " a rendu « ") + esc(d.titre || "") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
@@ -56,7 +60,7 @@ async function chargerNotifs(){
     nouveaux.filter(x => D(x.o.publie_le) > vu && D(x.o.publie_le) <= now()).forEach(x => add("travaux", D(x.o.publie_le), x.l + " : « " + esc(x.o.titre) + " »", x.h, x.o.classe_id));
     S.corrections.filter(c => c.publiee && c.modifie_le && D(c.modifie_le) > vu).forEach(c => { const r = S.rendus.find(x => x.id === c.rendu_id), d = r && dv(r.devoir_id);
       if (d && d.id) add("notes", D(c.modifie_le), "Travail rendu : « " + esc(d.titre) + " »" + (c.note != null ? " · " + fmtNote(c.note) + "/" + d.points : ""), "#/devoir/" + d.id, d.classe_id); });
-    ((res[2] && res[2].data) || []).filter(a => a.auteur !== moiId).forEach(a => add("annonces", D(a.cree_le), esc(a.auteur_nom) + " a publié une annonce", "#/classe/" + a.classe_id + "/flux", a.classe_id));
+    ((res[2] && res[2].data) || []).filter(a => a.auteur !== moiId).filter(a => D(a.publie_le || a.cree_le) <= now()).forEach(a => add("annonces", D(a.publie_le || a.cree_le), esc(a.auteur_nom) + " a publié une annonce", "#/classe/" + a.classe_id + "/flux", a.classe_id));
     S.devoirs.filter(d => d.date_limite && D(d.date_limite) > now() && D(d.date_limite) - now() < 864e5 && etat(d, moi()).t === "Attribué").forEach(d => add("echeances", D(d.date_limite), "À rendre " + dueTxt(D(d.date_limite)).toLowerCase() + " : « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id));
   }
   L.sort((a, b) => b.date - a.date);

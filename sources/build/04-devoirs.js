@@ -36,6 +36,8 @@ function vDevoir(r){
       ${copiesEleve("devoir", d.id, moi()).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie modifiable : <b>${esc(x.nom)}</b><small class="muted" style="display:block">Tes modifications sont enregistrées automatiquement et ton professeur les voit.</small></span>${telephone() ? `<a href="#" data-act="wordtel" data-copie="${esc(x.id)}" data-devoir="${esc(d.id)}" class="btn sm">Ouvrir</a>` : `<a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a>`}</div>`).join("")}
       ${S.files.length ? `<div class="att rcards mini">${S.files.map((f, i) => carteEdit({ label: f.name, pending: f }, "rmfile", i, " · " + tailleTxt(f.size))).join("")}</div>` : ""}
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
+      ${(d.ressources || []).map((x, i) => ficheAnnotable(x) ? `<button class="btn tonal ecrirefiche" data-act="ecrirefiche" data-id="${d.id}" data-i="${i}">${icon("pen")} Écrire sur « ${esc(x.label || "la fiche")} »</button>` : "").join("")}
+      <button class="btn tonal" data-act="scanner" data-id="${d.id}">${icon("camera")} Scanner mon travail papier</button>
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
       <input type="file" id="fileIn" multiple hidden>
       ${!ouvert(d) ? `<p class="notice" style="margin:0;font-size:.85rem">La date limite est passée : ton travail sera marqué <b>en retard</b>.</p>` : ""}
@@ -48,9 +50,10 @@ function vDevoir(r){
       <div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
         <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}</div>
         <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
-      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}
+      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="consignehead">${btnEcouter("consigne-" + d.id)}</div><div class="richtext" id="consigne-${d.id}">${rich(d.consigne)}</div>` : ""}
         ${isQ ? "" : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un seul rendu par binôme : la note s'applique aux deux élèves." : "Travail individuel."}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>
       ${isQ ? reponsesClasse(d, c, rd, Q) : ""}
+      ${blocComsDevoir(d, c)}
     </div>
     <aside style="display:grid;gap:16px;align-content:start">
       <div class="yourwork"><header><h2>${isQ ? "Votre réponse" : "Votre travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
@@ -123,7 +126,7 @@ function vDevoirProf(d, c){
     return tabs + `<div class="page wide" style="--c:var(${k.c})"><div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${esc(d.titre)}</h1>
       <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}${d.brouillon ? " · <i>Brouillon</i>" : ""}${d.eleves ? " · attribué à " + d.eleves.length + " élève" + (d.eleves.length > 1 ? "s" : "") : ""}</div>
       <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
-      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="richtext">${rich(d.consigne)}</div>` : ""}${isQ ? `<p class="muted" style="margin:0;font-size:.85rem">${(d.question || {}).format === "choix" ? "Choix multiple : " + (d.question.options || []).map(esc).join(" · ") : "Réponse courte."}${(d.question || {}).voir ? " Les élèves voient les réponses de la classe." : ""}${(d.question || {}).modifier === false ? " Réponse non modifiable." : ""}</p>` : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un rendu par binôme." : "Individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>${pageFoot()}</div>`;
+      <div class="dvbody">${texteUtile(d.consigne) ? `<div class="consignehead">${btnEcouter("consigne-" + d.id)}</div><div class="richtext" id="consigne-${d.id}">${rich(d.consigne)}</div>` : ""}${isQ ? `<p class="muted" style="margin:0;font-size:.85rem">${(d.question || {}).format === "choix" ? "Choix multiple : " + (d.question.options || []).map(esc).join(" · ") : "Réponse courte."}${(d.question || {}).voir ? " Les élèves voient les réponses de la classe." : ""}${(d.question || {}).modifier === false ? " Réponse non modifiable." : ""}</p>` : `<p class="muted" style="margin:0;font-size:.85rem">${d.mode === "binome" ? "Un rendu par binôme." : "Individuel."}${d.formats ? " Formats : " + esc(d.formats) + "." : ""}</p>`}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}</div>${blocComsDevoir(d, c)}${pageFoot()}</div>`;
   }
   const rendusE = el.filter(e => renduDe(d, e.email)), autres = el.filter(e => !renduDe(d, e.email));
   const noteDe = e => { const cr = correctionDe(renduDe(d, e.email)); return cr && cr.note != null ? fmtNote(cr.note) : "__"; };

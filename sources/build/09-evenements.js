@@ -28,19 +28,19 @@ async function render(){
     if (r.v === "classe") {
       if (!S.cache[r.a]) app.innerHTML = chargement(r);
       const data = cls(r.a) ? await chargerClasse(r.a) : null; if (id !== renderId) return;
-      content = vClasse(r, data);
+      content = enVueEleve(() => vClasse(r, data), r);
     } else if (r.v === "devoir") {
       const d = S.devoirs.find(x => String(x.id) === r.a);
-      if (d) { if (!S.cache[d.classe_id]) app.innerHTML = chargement(r); await chargerClasse(d.classe_id); const em = S.prof ? S.sel : moi(); if (em) await chargerCP(d.id, em); }
+      if (d) { if (!S.cache[d.classe_id]) app.innerHTML = chargement(r); await chargerClasse(d.classe_id); const em = S.prof ? S.sel : moi(); if (em) await chargerCP(d.id, em); await chargerComsDevoir(d.id); }
       if (id !== renderId) return;
-      content = vDevoir(r);
+      content = enVueEleve(() => vDevoir(r), r);
       if (d && S.prof && odActif() && !(S.syncFait || {})[d.id + ":" + rendusDe(d).length]) { (S.syncFait = S.syncFait || {})[d.id + ":" + rendusDe(d).length] = 1; syncRendus(d, true).then(n => { if (n) toast(n + " travail" + (n > 1 ? "x copiés" : " copié") + " dans OneDrive"); }).catch(() => {}); }
     } else if (r.v === "quiz") {
       const q = S.quiz.find(x => String(x.id) === r.a);
       if (q && S.prof) { await chargerClasse(q.classe_id); await chargerResultatsQuiz(q); }
       if (q) await urlsSignees((q.questions || []).map(x => x.img).filter(Boolean));
       if (id !== renderId) return;
-      content = vQuiz(r);
+      content = enVueEleve(() => vQuiz(r), r);
     } else if (r.v === "preparateur") {
       if (!S.prof) { go("/"); return; }
       if (!S.demandes) { app.innerHTML = chargement(r); await chargerDemandes(); if (id !== renderId) return; }
@@ -74,7 +74,7 @@ async function render(){
     { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
       Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
       document.title = (dv0 ? dv0.titre + (cd0 ? " · " + cd0.nom : "") + " · " : r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
-    { const pg = app.querySelector("main.content > .page"); if (pg && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
+    { const pg = app.querySelector("main.content > .page"); if (pg && !dansVueEleve(r) && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };
     const iz = document.getElementById("impZip"); if (iz) iz.onchange = () => { const f = [...iz.files]; iz.value = ""; if (f.length) importerZip(f).catch(er => { S.imp.busy = false; toast("Zip : " + (er.message || er)); render(); }); };
     const af = document.getElementById("anFile"); if (af) af.onchange = () => { uploadFichiers([...af.files], "annonce"); af.value = ""; };
@@ -84,7 +84,8 @@ async function render(){
   }
 }
 function apresRendu(foc){
-  if (S.modal && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox]), .modal textarea"); if (f) f.focus(); return; }
+  apresRenduPlus();
+  if (S.modal && S.modal.kind !== "scan" && S.modal.kind !== "liens" && S.modal.kind !== "cible" && S.modal.kind !== "reutiliser") { const f = document.querySelector(".modal input:not([type=checkbox]), .modal textarea"); if (f) f.focus(); return; }
   if (foc && document.getElementById(foc) && !["edHtml", "anHtml"].includes(foc)) { const el = document.getElementById(foc); el.focus(); if (el.setSelectionRange && el.type === "text") { const n = el.value.length; el.setSelectionRange(n, n); } }
 }
 const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; S.bell = false; S.apps = false; };
@@ -98,6 +99,8 @@ document.addEventListener("click", async e => {
     return;
   }
   const act = a.dataset.act, r = route();
+  if (bloqueVueEleve(act, e)) return;
+  if (ACTIONS_PLUS[act] && !(["INPUT"].includes(a.tagName))) { await ACTIONS_PLUS[act](a, e, r); return; }
   if (["INPUT"].includes(a.tagName) && ["pick", "pickall", "cibletous", "cibleun", "bonne", "ans", "inscr", "bonnecase", "anscase", "repchoix"].includes(act)) { /* traité par « change » */ if (act !== "pick" && act !== "pickall") return; }
   switch (act) {
     case "pubconnect": e.preventDefault(); connecter(); return;
@@ -272,10 +275,16 @@ document.addEventListener("click", async e => {
     case "supprcom": { const { error } = await sb.from("commentaires").delete().eq("id", a.dataset.id); if (error) { toast("Suppression impossible : " + error.message); return; } delete S.cache[a.dataset.c]; render(); return; }
     case "supprannonce": e.preventDefault(); S.menu = null; S.modal = {kind:"confirm", action:"supprannonce", id:a.dataset.id, classe:a.dataset.c, titre:"Supprimer cette annonce ?", texte:"L'annonce et ses commentaires seront supprimés."}; render(); return;
     case "editannonce": { e.preventDefault(); S.menu = null; const an = ((S.cache[a.dataset.c] || {}).annonces || []).find(x => String(x.id) === a.dataset.id); if (!an) return;
-      S.annonce = { classe: a.dataset.c, id: an.id, html: an.texte || "", ressources: clone(an.ressources || []), uploaded: [], toDelete: [], linkMode: null, busy: false }; render(); window.scrollTo(0, 0); setTimeout(() => { const x = document.getElementById("anHtml"); if (x) x.focus(); }, 0); return; }
+      const fut = an.publie_le && D(an.publie_le) > now() ? D(an.publie_le) : null;
+      S.annonce = { classe: a.dataset.c, id: an.id, html: an.texte || "", ressources: clone(an.ressources || []), uploaded: [], toDelete: [], linkMode: null, busy: false, publieAvant: an.publie_le, quandD: fut ? ymd(fut) : "", quandH: fut ? String(fut.getHours()).padStart(2, "0") + ":" + String(fut.getMinutes()).padStart(2, "0") : "08:00" }; render(); window.scrollTo(0, 0); setTimeout(() => { const x = document.getElementById("anHtml"); if (x) x.focus(); }, 0); return; }
     case "copiertexte": { e.preventDefault(); S.menu = null; const an = ((S.cache[a.dataset.c] || {}).annonces || []).find(x => String(x.id) === a.dataset.id); const t = an ? (new DOMParser().parseFromString(an.texte || "", "text/html").body.textContent || "") : "";
       try { navigator.clipboard.writeText(t).then(() => toast("Texte copié"), () => toast("Copie impossible")); } catch (_) { toast("Copie impossible"); } render(); return; }
     case "opencoms": S.open = "an" + a.dataset.id; render(); return;
+    case "anquandx": e.preventDefault(); S.annonce.html = (document.getElementById("anHtml") || {}).innerHTML || S.annonce.html; S.annonce.quandD = ""; render(); return;
+    case "epingler": { e.preventDefault(); S.menu = null; const on = a.dataset.on === "1";
+      const { error } = await sb.from("annonces").update({ epingle: on }).eq("id", a.dataset.id);
+      if (error) { toast("Impossible : " + error.message); render(); return; }
+      delete S.cache[a.dataset.c]; render(); toast(on ? "Annonce épinglée en haut du flux" : "Annonce désépinglée"); return; }
 
     /* devoirs : élève */
     case "pickfile": e.preventDefault(); S.menu = null; document.getElementById("fileIn").click(); render(); return;
@@ -432,6 +441,7 @@ document.addEventListener("change", async e => {
   if (t.dataset.pref) { const p = { ...prefs() }; p[t.dataset.pref] = t.checked; await sauverPrefs(p); render(); return; }
   if (t.dataset.prefc) { const p = { ...prefs() }, off = new Set(p.cours_off || []); t.checked ? off.delete(t.dataset.prefc) : off.add(t.dataset.prefc); p.cours_off = [...off]; await sauverPrefs(p); return; }
   if (t.classList && t.classList.contains("edAussi") && S.ed) { const v = t.value; S.ed.aussi = t.checked ? [...new Set([...S.ed.aussi, v])] : S.ed.aussi.filter(x => x !== v); return; }
+  if (t.classList && t.classList.contains("anQuand") && S.annonce) { S.annonce.html = (document.getElementById("anHtml") || {}).innerHTML || S.annonce.html; S.annonce[t.id === "anDate" ? "quandD" : "quandH"] = t.value; render(); return; }
   if (t.classList && t.classList.contains("anAussi") && S.annonce) { const v = t.value, l = S.annonce.aussi || []; S.annonce.aussi = t.checked ? [...new Set([...l, v])] : l.filter(x => x !== v); return; }
   if (t.dataset.impmap != null) { S.imp.map[t.dataset.impmap] = t.value; return; }
   if (t.id === "impBrouillons") { S.imp.brouillons = t.checked; return; }

@@ -218,15 +218,25 @@ async function enregistrer(mode, programme){
 }
 
 /* ---------- annonces du flux ---------- */
+/* date de publication choisie (annonce programmée), ou null pour tout de suite */
+function quandAnnonce(A){
+  if (!A || !A.quandD) return null;
+  const d = new Date(A.quandD + "T" + (A.quandH || "08:00"));
+  return isNaN(d) || d <= now() ? null : d;
+}
 async function publierAnnonce(){
   const A = S.annonce, el = document.getElementById("anHtml"); if (el) A.html = el.innerHTML;
+  if (A.quandD && !quandAnnonce(A)) { toast("Choisis une date de publication dans le futur, ou retire la date."); return; }
+  const quand = quandAnnonce(A), pub = S.prof ? { publie_le: (quand || (A.id && A.publieAvant && D(A.publieAvant) > now() ? now() : null)) } : {};
+  if (pub.publie_le) pub.publie_le = pub.publie_le.toISOString(); else delete pub.publie_le;
   const txt = (A.html || "").replace(/<[^>]*>/g, "").trim();
   if (!txt && !A.ressources.length) { toast("Écris un message avant de publier."); return; }
   A.busy = true; render();
-  const { error } = A.id ? await sb.from("annonces").update({ texte: A.html, ressources: A.ressources }).eq("id", A.id)
-    : await sb.from("annonces").insert({ classe_id: A.classe, auteur_nom: S.nom, texte: A.html, ressources: A.ressources });
+  const { error } = A.id ? await sb.from("annonces").update({ texte: A.html, ressources: A.ressources, ...pub }).eq("id", A.id)
+    : await sb.from("annonces").insert({ classe_id: A.classe, auteur_nom: S.nom, texte: A.html, ressources: A.ressources, ...pub });
   if (error) { A.busy = false; render(); toast("Enregistrement impossible : " + error.message); return; }
   if (A.toDelete && A.toDelete.length) await sb.storage.from("documents").remove(A.toDelete);
-  for (const cid of (!A.id && A.aussi) || []) { await sb.from("annonces").insert({ classe_id: cid, auteur_nom: S.nom, texte: A.html, ressources: await copierRessources(A.ressources, cid) }); delete S.cache[cid]; }
-  const c = A.classe, modif = !!A.id; S.annonce = null; delete S.cache[c]; render(); toast(modif ? "Annonce modifiée" : "Annonce publiée");
+  for (const cid of (!A.id && A.aussi) || []) { await sb.from("annonces").insert({ classe_id: cid, auteur_nom: S.nom, texte: A.html, ressources: await copierRessources(A.ressources, cid), ...pub }); delete S.cache[cid]; }
+  const c = A.classe, modif = !!A.id; S.annonce = null; delete S.cache[c]; render();
+  toast(quand ? "Annonce programmée : " + quand.toLocaleString("fr-FR", {weekday:"long", day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}) : modif ? "Annonce modifiée" : "Annonce publiée");
 }

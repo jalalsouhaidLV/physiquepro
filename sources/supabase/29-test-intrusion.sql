@@ -43,6 +43,10 @@ begin
   insert into copies (classe_id, objet, objet_id, source, eleve_email, nom, od_id, web) values ('zz_x', 'devoir', d1, 'src', 'lv.zz.testb@lycee-verdun.edu.lb', 'copie B', 'od', 'https://exemple/odB');
   insert into flashcards (classe_id, recto, verso) values ('zz_y', 'Q Y', 'R Y');
   insert into sessions_ouvertes (id, user_id, appareil) values (gen_random_uuid(), b, 'PC test');
+  -- étape 38 : commentaires de classe sous les devoirs (B) et annonce programmée
+  insert into commentaires_devoirs (devoir_id, auteur_nom, texte) values (d1, 'ZZ Test B', 'Commentaire de classe de B'), (d2, 'ZZ Test B', 'Commentaire sous le devoir réservé à B'), (d3, 'ZZ Test B', 'Commentaire classe Y');
+  update commentaires_devoirs set auteur = b where devoir_id in (d1, d2, d3);
+  insert into annonces (classe_id, auteur, auteur_nom, texte, publie_le) values ('zz_x', null, 'Professeur', 'ZZ annonce programmée', now() + interval '3 days');
   insert into t_ids values ('A', a), ('B', b), ('D1', d1), ('D2', d2), ('D3', d3), ('R', r), ('Q', q), ('AN', an), ('S', s), ('C', c);
 end $$;
 
@@ -97,6 +101,9 @@ select pg_temp.lire('Lire', 'Sauvegardes', $$select * from sauvegardes$$);
 select pg_temp.lire('Lire', 'Demandes de matériel', $$select * from demandes_materiel$$);
 select pg_temp.lire('Lire', 'Copies de tous les élèves réels', $$select * from rendus where auteur <> auth.uid()$$);
 select pg_temp.lire('Lire', 'Notes de tous les élèves réels', $$select * from corrections$$);
+select pg_temp.lire('Lire', 'Commentaire de classe sous le devoir réservé à B', $$select * from commentaires_devoirs where devoir_id = (select v::bigint from t_ids where k = 'D2')$$);
+select pg_temp.lire('Lire', 'Commentaires de classe sous un devoir d''une autre classe', $$select * from commentaires_devoirs where devoir_id = (select v::bigint from t_ids where k = 'D3')$$);
+select pg_temp.lire('Lire', 'Annonce programmée pas encore publiée', $$select * from annonces where texte = 'ZZ annonce programmée'$$);
 select pg_temp.lire('Lire', 'Profils des autres utilisateurs', $$select * from profiles where id <> auth.uid()$$);
 
 -- 2. MODIFIER ou SUPPRIMER les données de B
@@ -105,6 +112,10 @@ select pg_temp.ecrire('Modifier', 'Supprimer la copie de B', $$delete from rendu
 select pg_temp.ecrire('Modifier', 'Changer la note de B', $$update corrections set note = 0 where rendu_id = (select v::bigint from t_ids where k = 'R')$$);
 select pg_temp.ecrire('Modifier', 'Supprimer la note de B', $$delete from corrections where rendu_id = (select v::bigint from t_ids where k = 'R')$$);
 select pg_temp.ecrire('Modifier', 'Supprimer le commentaire privé de B', $$delete from commentaires_prives where eleve_email = 'lv.zz.testb@lycee-verdun.edu.lb'$$);
+select pg_temp.ecrire('Modifier', 'Supprimer le commentaire de classe de B sous un devoir', $$delete from commentaires_devoirs where texte = 'Commentaire de classe de B'$$);
+select pg_temp.ecrire('Modifier', 'Écrire sous un devoir d''une autre classe', $$insert into commentaires_devoirs (devoir_id, texte) values ((select v::bigint from t_ids where k = 'D3'), 'pirate')$$);
+select pg_temp.ecrire('Modifier', 'Écrire sous le devoir réservé à B', $$insert into commentaires_devoirs (devoir_id, texte) values ((select v::bigint from t_ids where k = 'D2'), 'pirate')$$);
+select pg_temp.ecrire('Modifier', 'Publier une annonce épinglée (flux réservé au prof)', $$insert into annonces (classe_id, texte, epingle, publie_le) values ('zz_x', 'pirate', true, now() + interval '1 day')$$);
 select pg_temp.ecrire('Modifier', 'Supprimer le commentaire public de B', $$delete from commentaires where texte = 'Commentaire public de B'$$);
 select pg_temp.ecrire('Modifier', 'Modifier le résultat de quiz de B', $$update resultats_quiz set score = 1 where eleve = (select v::uuid from t_ids where k = 'B')$$);
 select pg_temp.ecrire('Modifier', 'Supprimer le message urgent de B', $$delete from messages_urgents where eleve_email = 'lv.zz.testb@lycee-verdun.edu.lb'$$);
