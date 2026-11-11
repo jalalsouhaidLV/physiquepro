@@ -24,7 +24,7 @@ self.addEventListener("fetch", e => {
   })());
 });
 /* bibliothèques (jsDelivr, versions figées et vérifiées) et polices : gardées pour que le site s'ouvre sans réseau */
-const CDN = /^(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)$/;
+const CDN = /^cdn\.jsdelivr\.net$/;   /* les polices sont maintenant dans le dépôt (dossier polices/) */
 self.addEventListener("fetch", e => {
   const r = e.request, u = new URL(r.url);
   if (r.method !== "GET" || !CDN.test(u.hostname)) return;

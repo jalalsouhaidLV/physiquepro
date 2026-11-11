@@ -1,8 +1,8 @@
 /* ---------- connexion ---------- */
 function vLogin(message, info){
-  app.innerHTML = `<div class="login"><div class="card">
+  app.innerHTML = `<main class="login"><div class="card">
     <div class="brand" style="cursor:default;padding:0">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></div>
-    <div><h2 style="font-size:1.4rem">Connexion</h2><p class="muted" style="margin:.3rem 0 0">Utilise ton compte Microsoft 365 du lycée.</p></div>
+    <div><h1 style="font-size:1.4rem;margin:0">Connexion</h1><p class="muted" style="margin:.3rem 0 0">Utilise ton compte Microsoft 365 du lycée.</p></div>
     ${message ? `<div class="${info ? "notice" : "err"}">${message}</div>` : ""}
     <div class="field"><label for="mail">Adresse Microsoft 365</label><input id="mail" type="email" placeholder="${esc(CFG.prefixeEleve ?? "lv.")}prenom.nom@${esc(CFG.domaine)}" autocomplete="username"></div>
     <div id="mailErr" class="err" hidden></div>
@@ -10,7 +10,8 @@ function vLogin(message, info){
     <p class="muted" style="margin:0;font-size:.82rem">Tu passeras par la page Microsoft habituelle pour taper ton mot de passe, puis tu reviendras ici.</p>
     ${logos.replace('class="logos"', 'class="logos" style="justify-content:center;border-top:1px solid var(--line);padding-top:14px"')}
     ${S.public ? `<a href="#/" data-act="pubretour" class="linkbtn" style="justify-self:center">${icon("left")} Retour à l'accueil</a>` : ""}
-  </div></div>`;
+    <a href="#/donnees" class="linkbtn" style="justify-self:center">Tes données sur ce site</a>
+  </div></main>`;
   const btn = document.getElementById("loginBtn"), inp = document.getElementById("mail");
   const lancer = async () => {
     const m = inp.value.trim().toLowerCase(), err = document.getElementById("mailErr");
@@ -39,7 +40,7 @@ function topbar(r){
   return `<header class="topbar">
     <a href="#" class="pp-saut" data-saut="1">Aller au contenu</a>
     <button class="ib menubtn${S.prof ? "" : " mbeleve"}" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
-    <div class="crumbs"><a class="brand" href="#/" aria-label="Accueil PhysiquePro" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
+    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<span class="vh">Accueil </span><span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
     ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}${S.prof ? "" : " qeleve"}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
     ${lanceurApps()}
@@ -87,7 +88,7 @@ function liensUtilesEleve(){
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
 const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : ""}</div></div>`;
-const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
+const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""} · <a class="footdon" href="#/donnees">Tes données</a></span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
 

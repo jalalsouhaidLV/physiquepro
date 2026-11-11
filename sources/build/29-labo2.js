@@ -25,7 +25,7 @@ function uiOnde(){
     <div class="labbtns"><button class="btn sm" data-lab="go">${icon("restore")} Relancer depuis la source</button><button class="btn sm tonal" data-lab="pause">${icon("pause")} Pause</button></div>
     <div class="labopts">${coche("oLam", "Montrer la longueur d'onde λ", ONDE.lam)}</div>
     <div class="labinfo" id="oInfo"></div></div>
-  <div class="labscene seul deux"><canvas id="oCv" class="labcv" aria-label="Milieu de propagation"></canvas><canvas id="oG" class="labcv" aria-label="Élongation du point M en fonction du temps"></canvas></div>`;
+  <div class="labscene seul deux"><canvas id="oCv" class="labcv" role="img" aria-label="Milieu de propagation"></canvas><canvas id="oG" class="labcv" role="img" aria-label="Élongation du point M en fonction du temps"></canvas></div>`;
 }
 const elongOnde = (x, t) => t < x / ONDE.v ? 0 : ONDE.A * Math.sin(2 * Math.PI * (t / ONDE.T - x / (ONDE.v * ONDE.T)));
 function initOnde(p){
@@ -76,7 +76,7 @@ function uiRadio(){
     <div class="labbtns"><button class="btn sm" data-lab="go">${icon("play")} Lancer</button><button class="btn sm tonal" data-lab="pause">${icon("pause")} Pause</button><button class="btn sm ghost" data-lab="zero">${icon("restore")} Recommencer</button></div>
     <div class="labopts">${coche("rTheo", "Courbe théorique N₀·e<sup>−λt</sup>", RAD.theo)}</div>
     <div class="labinfo" id="rInfo"></div></div>
-  <div class="labscene"><canvas id="rCv" class="labcv" aria-label="Noyaux"></canvas><canvas id="rG" class="labcv" aria-label="Nombre de noyaux restants en fonction du temps"></canvas></div>`;
+  <div class="labscene"><canvas id="rCv" class="labcv" role="img" aria-label="Noyaux"></canvas><canvas id="rG" class="labcv" role="img" aria-label="Nombre de noyaux restants en fonction du temps"></canvas></div>`;
 }
 function initRadio(p){
   const q = s => p.querySelector(s), zero = () => { RAD.t = 0; RAD.run = false; RAD.etat = new Uint8Array(RAD.N0); RAD.flash = new Float32Array(RAD.N0); RAD.pts = [[0, RAD.N0]]; };
@@ -135,7 +135,7 @@ function uiAtome(){
     <div class="labrange"><label for="aZ">Numéro atomique Z<output id="aZO">${ATO.z}</output></label><input type="range" id="aZ" min="1" max="20" step="1" value="${ATO.z}"></div>
     <div class="labbtns"><button class="btn sm tonal" data-lab="moins">${icon("left")} Précédent</button><button class="btn sm tonal" data-lab="plus">Suivant ${icon("chevright")}</button></div>
     <div class="labinfo" id="aInfo"></div></div>
-  <div class="labscene seul"><canvas id="aCv" class="labcv" aria-label="Modèle de l'atome"></canvas></div>`;
+  <div class="labscene seul"><canvas id="aCv" class="labcv" role="img" aria-label="Modèle de l'atome"></canvas></div>`;
 }
 function initAtome(p){
   const q = s => p.querySelector(s), maj = () => { q("#aZ").value = ATO.z; q("#aZO").textContent = ATO.z; infoAtome(); };

@@ -59,7 +59,7 @@ function vEditer(){
       <section class="edcard">
         <div class="field"><label for="edTitre">${isQ ? "Question *" : "Titre *"}</label><input id="edTitre" data-f="titre" value="${esc(e.titre)}" placeholder="${e.type === "devoir" ? "ex. Compte rendu du TP titrage" : e.type === "questionnaire" ? "ex. QCM · Les acides et les bases" : isQ ? "ex. Quelle est l'unité de la quantité de matière ?" : "ex. Cours · Les acides et les bases"}"></div>
         <div class="field"><label>${e.type === "documentation" ? "Description" : "Instructions"} <span class="muted">(facultatif)</span></label>
-          <div class="rte"><div id="edHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" data-ph="Ajoute les consignes pour les élèves…">${rich(e.html)}</div><div class="rtebar">${fmtBar()}</div></div></div>
+          <div class="rte"><div id="edHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Consignes pour les élèves" data-ph="Ajoute les consignes pour les élèves…">${rich(e.html)}</div><div class="rtebar">${fmtBar()}</div></div></div>
       </section>
       ${e.type === "questionnaire" ? vQuestionsEditeur(e) : ""}
       ${isQ && e.qformat === "choix" ? `<section class="edcard"><h3>Options de réponse</h3><div class="qopts" style="padding:0">${e.qoptions.map((o, j) => `<div class="qopt"><span class="muted mono">${j + 1}</span><input class="otext qoinput" data-qo="${j}" value="${esc(o)}" placeholder="Option ${j + 1}" aria-label="Option ${j + 1}">${e.qoptions.length > 2 ? `<button class="ib sm" data-act="rmqo" data-i="${j}" aria-label="Supprimer l'option">${icon("x")}</button>` : ""}</div>`).join("")}</div>

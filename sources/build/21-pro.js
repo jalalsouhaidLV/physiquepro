@@ -26,7 +26,7 @@ function basculerFavori(nom){
   try { localStorage.setItem(cleFavoris(), JSON.stringify(f)); } catch (_) {}
 }
 const classesLien = l => `${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}`;
-const lienRapide = l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${classesLien(l)}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}" title="${esc(l.nom)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`;
+const lienRapide = l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${classesLien(l)}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}" title="${esc(l.nom)}" aria-label="${esc(l.nom)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`;
 function lanceurApps(){
   const L = liensVisibles(), f = favorisNoms();
   return `<div class="dd apps"><button class="ib appsbtn" data-act="apps" title="Toutes les applications" aria-label="Toutes les applications" aria-expanded="${!!S.apps}">${icon("apps")}</button>
@@ -87,7 +87,7 @@ function blocTableauDeBord(){
       + (maResa ? tuile("#/rendezvous", "rdv", fmtShort(D(maResa.debut)), "prochain rendez-vous", "info", fmtT(D(maResa.debut))) : "");
   }
   return `<section class="tdb"><div class="tdbhead"><div><h1>${salut()} ${esc(premierPrenom())}</h1><p>${esc(fmtD(t).replace(/^./, m => m.toUpperCase()))}</p></div>
-      <button class="tdbsearch" data-act="recherche" aria-label="Rechercher (Ctrl+K)">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
+      <button class="tdbsearch" data-act="recherche">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
     ${tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent, aucun élève à surveiller." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
 }
 
@@ -240,13 +240,8 @@ const a11y = () => { try { return { ...A11Y_DEF, ...JSON.parse(localStorage.getI
 function appliquerA11y(){ const a = a11y(), de = document.documentElement;
   de.style.fontSize = a.taille === 100 ? "" : a.taille + "%"; de.classList.toggle("a11y-contraste", !!a.contraste); de.classList.toggle("a11y-calme", !!a.calme);
   de.dataset.police = a.police || ""; policeA11y(a.police); }
-/* Lot D (11/11/2026) : les polices « Très lisible » et « Adaptée dyslexie » ne sont chargées que si l'élève les choisit */
-function policeA11y(p){
-  if (!p || document.getElementById("ppPoliceA11y")) return;
-  const l = document.createElement("link"); l.id = "ppPoliceA11y"; l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;600&display=swap";
-  document.head.appendChild(l);
-}
+/* Lot C (audit sur 20) : ces polices sont maintenant rangées dans le dépôt (dossier polices/, déclarées en tête de app.css) : le navigateur ne les télécharge que si elles servent, sans appel à Google */
+function policeA11y(){}
 appliquerA11y();
 function panneauA11y(){
   if (document.getElementById("a11yBox")) return; const a = a11y();

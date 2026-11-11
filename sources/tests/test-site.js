@@ -29,14 +29,14 @@ const DOSSIER_CAPTURES = path.join(__dirname, "captures");
 
 /* pages ouvertes pour chaque rôle (adresse après le #) */
 const PAGES = {
-  visiteur: ["/accueil", "/outils", "/simulations", "/physique"],
+  visiteur: ["/accueil", "/outils", "/simulations", "/physique", "/donnees"],
   eleve: ["/accueil", "/classe/tle", "/classe/tle/flux", "/classe/tle/travaux", "/classe/tle/personnes", "/classe/tle/notes", "/classe/snt",
     "/devoir/1", "/devoir/2", "/devoir/3", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/outils", "/simulations", "/physique",
-    "/rendezvous", "/admin/profil"],
+    "/rendezvous", "/admin/profil", "/donnees"],
   prof: ["/accueil", "/classe/tle", "/classe/tle/flux", "/classe/tle/travaux", "/classe/tle/personnes", "/classe/tle/notes", "/classe/tle/corriger",
     "/classe/tle/parametres", "/classe/snt", "/devoir/1", "/devoir/2", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/programmes",
     "/corbeille", "/suivi", "/urgences", "/preparateur", "/rendezvous", "/outils", "/simulations", "/physique",
-    "/admin/profil", "/admin/site", "/admin/cours", "/admin/eleves", "/admin/fichiers", "/admin/import", "/admin/sauvegarde"]
+    "/admin/profil", "/admin/site", "/admin/cours", "/admin/eleves", "/admin/fichiers", "/admin/import", "/admin/sauvegarde", "/donnees"]
 };
 /* ce que la page doit montrer pour être considérée comme chargée */
 const PRET = "#app > :not(.loading)";

@@ -1,3 +1,17 @@
+/* Polices rangées dans le dépôt (lot C de l'audit sur 20, 11/11/2026) : plus aucun appel à Google Fonts. Licence SIL OFL 1.1, voir polices/LISEZMOI.txt */
+@font-face{font-family:"Roboto";font-style:normal;font-weight:400;font-display:swap;src:url(polices/roboto-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Roboto";font-style:normal;font-weight:500;font-display:swap;src:url(polices/roboto-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Roboto";font-style:normal;font-weight:700;font-display:swap;src:url(polices/roboto-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url(polices/ibm-plex-mono-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url(polices/ibm-plex-mono-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:500;font-display:swap;src:url(polices/plus-jakarta-sans-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:600;font-display:swap;src:url(polices/plus-jakarta-sans-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:700;font-display:swap;src:url(polices/plus-jakarta-sans-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:800;font-display:swap;src:url(polices/plus-jakarta-sans-latin-800-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Atkinson Hyperlegible";font-style:normal;font-weight:400;font-display:swap;src:url(polices/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Atkinson Hyperlegible";font-style:normal;font-weight:700;font-display:swap;src:url(polices/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Lexend";font-style:normal;font-weight:400;font-display:swap;src:url(polices/lexend-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Lexend";font-style:normal;font-weight:600;font-display:swap;src:url(polices/lexend-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 /* Layout : barre supérieure + menu latéral (fixe ≥1100px, superposé en dessous) + contenu ; organisation inspirée de Classroom, identité PhysiquePro */
 :root{
   --bg:#F0F4F9; --surface:#FFFFFF; --surface-2:#E9EEF6; --hover:#E2E8F0; --ink:#0B1F28; --muted:#536973; --line:#D9E4E8;
@@ -2574,3 +2588,66 @@ section.uneq.qdernier .qnavbas{padding-top:2px}
 /* T8 : cartes de cours de l'accueil : le texte reste dans la carte (« … » au lieu d'être coupé au bord) */
 .ccard .body{grid-template-columns:minmax(0,1fr)}
 .ccard .body>*{min-width:0}
+
+/* =====================================================================
+   Lot A (audit sur 20, 11/11/2026) : zones de toucher de 44 px sur
+   téléphone et contrastes du mode sombre
+   ===================================================================== */
+/* A1 : tout ce qui se touche fait au moins 44 px de haut (et de large pour les boutons ronds) */
+@media (max-width:760px),(pointer:coarse){
+  .ib,.ib.sm,.tabicons .ib,.topbar .ib,.dlbtn{min-width:44px;min-height:44px}
+  .topbar .avatar,.dd.ddme>.avatar{width:44px;height:44px}
+  .topbar .quick>a{min-height:44px}
+  .topbar .crumbs .brand{min-width:44px;min-height:44px;justify-content:center}
+  .topbar .crumbs a.cur{min-height:44px;display:inline-flex;align-items:center}
+  .pp-saut{min-height:44px;display:inline-flex;align-items:center}
+  .btn,.btn.sm,.linkbtn,.box .linkbtn,.defiopt,.ecoute,.ecoute.sm,.phyongs button,.fchips .chip,.sommaire .chip,
+  .yourwork .copierow a.btn.sm,.crcard .btn.sm{min-height:44px}
+  .ecoute.sm{min-width:44px;justify-content:center}
+  .fchips .chip{padding-inline:14px}
+  .comform input,.ochin input,select,.agsel,.field select{min-height:44px}
+  .tabs a,.tabs button{min-width:44px}
+  section.uneq .qpuce,.qpuce{min-width:44px;min-height:44px;height:44px}
+  .day a.ev{min-height:46px}
+  .tel-prochain a.tpautres,.sciday h2 a,.caside a.uplink,.fcdocs a,.box a.uplink{padding-block:13px;margin-block:-13px}
+  .ccard .body>a{padding-block:12px;margin-block:-12px}
+  .crrow a,.who2 a.linkbtn{min-height:44px;display:inline-flex;align-items:center}
+  .telqui a,.yourwork span>a[data-act]{display:inline-block;padding-block:13px;margin-block:-13px}
+  .richtext .etapes>li>.etapecase{appearance:none;-webkit-appearance:none;width:44px;height:44px;margin:-10px -6px -10px -10px;border:0;border-radius:10px;background:no-repeat center/26px 26px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='2' width='22' height='22' rx='5' fill='none' stroke='%236B8A96' stroke-width='2.5'/%3E%3C/svg%3E")}
+  .richtext .etapes>li>.etapecase:checked{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='2' width='22' height='22' rx='5' fill='%2318703F' stroke='%2318703F' stroke-width='2.5'/%3E%3Cpath d='M7 13.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+}
+/* A2 : mode sombre : plus de couleur fixe sur un fond qui change */
+.att.rcards .rtxt small,.crstats div small{color:var(--muted)}
+.att.rcards .rcard.macopie .rtxt small{color:var(--ok)}
+:root[data-theme="dark"] .drawer .it[aria-current="page"] small,:root[data-theme="dark"] .drawer a[aria-current="page"] small{color:var(--muted)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .drawer .it[aria-current="page"] small,:root:not([data-theme="light"]) .drawer a[aria-current="page"] small{color:var(--muted)}}
+.ochin input{color:var(--ink)}
+.ores.err{background:var(--bad-bg);color:var(--bad)}
+.ores.bon{background:var(--ok-bg)}
+.decimg span,.fchips .chip.on,.labneuf,.btn.danger,.pp-saut{color:var(--accent-ink)}
+/* A3 : téléphones étroits (440 px au plus) : zones de 44 px sans élargir la barre du haut, pour garder les logos Pronote et PIX */
+@media (pointer:coarse) and (max-width:440px){
+  .topbar .ib{margin-inline:-2px}
+  .topbar .avatar,.dd.ddme>.avatar{padding:4px;margin-inline:-4px;background-clip:content-box}
+  .topbar .crumbs .brand{margin-inline:-7px}
+}
+@media (pointer:coarse) and (min-width:360px) and (max-width:440px){.topbar .avatar,.dd.ddme>.avatar{padding:2px;margin-inline:-2px}}
+
+/* =====================================================================
+   Lots C et D (audit sur 20, 11/11/2026)
+   ===================================================================== */
+/* C : page « Tes données » */
+.donnees{max-width:820px}
+.donnees .dnintro{margin:0;font-size:1rem}
+.donnees .dncarte{display:grid;gap:10px}
+.donnees .dncarte h2{display:flex;align-items:center;gap:10px;margin:0;font-size:1.15rem}
+.donnees .dncarte h2 .i{width:22px;height:22px;flex:none;color:var(--accent)}
+.donnees .dncarte ul{margin:0;padding-left:1.2rem;display:grid;gap:8px}
+.donnees .dncarte p{margin:0}
+.donnees .dnact{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.donnees .dnmail{overflow-wrap:anywhere;user-select:all}
+.donnees .dnmaj{margin:0;font-size:.85rem}
+.foot a.footdon{color:inherit;white-space:nowrap}
+@media (max-width:760px),(pointer:coarse){.foot a.footdon{display:inline-block;padding-block:13px;margin-block:-13px}}
+/* C : pastille d'un lien (première lettre du site) */
+.rglyph.rlettre{font-size:1.25rem}

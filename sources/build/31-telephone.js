@@ -684,7 +684,7 @@ chargerClasse = async function(id, force){
 /* appelée au démarrage quand Internet manque : affiche la dernière version gardée */
 async function demarrerHorsLigne(session){
   const sn = await idbGet("snap_" + session.user.id);
-  if (!sn) { app.innerHTML = `<div class="loading"><div class="notice" style="display:grid;gap:10px;justify-items:center">${icon("wifi")}<b>Pas de connexion Internet</b><span>Active le Wi-Fi ou les données mobiles, puis touche « Réessayer ».</span><button class="btn" onclick="location.reload()">Réessayer</button></div></div>`; return true; }
+  if (!sn) { app.innerHTML = `<div class="loading"><div class="notice" style="display:grid;gap:10px;justify-items:center">${icon("wifi")}<b>Pas de connexion Internet</b><span>Active le Wi-Fi ou les données mobiles, puis touche « Réessayer ».</span><button class="btn" data-act="recharger">Réessayer</button></div></div>`; return true; }
   S.user = session.user; S.profil = sn.profil; S.prof = sn.profil.role === "prof"; S.nom = sn.nom;
   [S.classes, S.devoirs, S.rendus, S.corrections, S.quiz, S.resultats] = [sn.classes, sn.devoirs, sn.rendus, sn.corrections, sn.quiz, sn.resultats];
   S.copies = sn.copies || []; S.cache = sn.cache || {}; appliquerReglages(sn.R); S.horsLigne = sn.le;
@@ -696,7 +696,7 @@ function bandeauHorsLigne(){
   const off = !enLigne() || S.horsLigne;
   if (!off) { b?.remove(); return; }
   if (!b) { b = document.createElement("div"); b.id = "ppHorsLigne"; b.setAttribute("role", "status"); document.body.appendChild(b); }
-  b.innerHTML = enLigne() && S.horsLigne ? `${icon("wifi")}<span>La connexion est revenue.</span><button class="btn sm" onclick="location.reload()">Actualiser</button>`
+  b.innerHTML = enLigne() && S.horsLigne ? `${icon("wifi")}<span>La connexion est revenue.</span><button class="btn sm" data-act="recharger">Actualiser</button>`
     : `${icon("wifi")}<span><b>Hors connexion</b> · ${S.horsLigne ? "version du " + fmtShort(new Date(S.horsLigne)) + " à " + fmtT(new Date(S.horsLigne)) : "tu peux lire, mais pas envoyer"}. Tes réponses sont gardées.</span>`;
 }
 window.addEventListener("online", bandeauHorsLigne); window.addEventListener("offline", bandeauHorsLigne);

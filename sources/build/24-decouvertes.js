@@ -109,7 +109,7 @@ function blocDecouvertes(){
   const s = simDuJour();
   return `<section class="decouvertes">
     <article class="decarte decsim"><small class="declbl">${icon("atom")} Simulation du jour <span class="simniv">${esc(s.niv || "")}</span></small>
-      <button class="decimg" data-act="simu" data-t="${esc(s.t)}" data-u="${esc(s.url)}" title="Lancer la simulation"><img src="${esc(s.img)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('vide');this.remove()"><span>${icon("play")} Lancer</span></button>
+      <button class="decimg" data-act="simu" data-t="${esc(s.t)}" data-u="${esc(s.url)}" title="Lancer la simulation"><img src="${esc(s.img)}" alt="" loading="lazy" data-err="vide"><span>${icon("play")} Lancer</span></button>
       <h3>${esc(s.t)}</h3><a class="linkbtn" href="#/simulations">Toutes les simulations ${icon("chevright")}</a></article>
     ${carteDefi()}${carteFait()}</section>`;
 }

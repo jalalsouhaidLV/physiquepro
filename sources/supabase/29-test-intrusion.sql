@@ -47,6 +47,10 @@ begin
   insert into commentaires_devoirs (devoir_id, auteur_nom, texte) values (d1, 'ZZ Test B', 'Commentaire de classe de B'), (d2, 'ZZ Test B', 'Commentaire sous le devoir réservé à B'), (d3, 'ZZ Test B', 'Commentaire classe Y');
   update commentaires_devoirs set auteur = b where devoir_id in (d1, d2, d3);
   insert into annonces (classe_id, auteur, auteur_nom, texte, publie_le) values ('zz_x', null, 'Professeur', 'ZZ annonce programmée', now() + interval '3 days');
+  -- étape 44 : annonce écrite par A (pour tenter de la déplacer), code de la classe Y (pour tenter d'y entrer sous un faux nom)
+  insert into annonces (classe_id, auteur, auteur_nom, texte) values ('zz_x', null, 'ZZ Test A', 'ZZ annonce de A');
+  update annonces set auteur = a where texte = 'ZZ annonce de A';
+  insert into t_ids values ('CY', (select code from classes where id = 'zz_y'));
   insert into t_ids values ('A', a), ('B', b), ('D1', d1), ('D2', d2), ('D3', d3), ('R', r), ('Q', q), ('AN', an), ('S', s), ('C', c);
 end $$;
 
@@ -173,6 +177,18 @@ select pg_temp.appel('Fonctions', 'Supprimer le compte de B (pp_supprimer_compte
 select pg_temp.appel('Fonctions', 'Lister tous les fichiers (pp_fichiers)', $$select pp_fichiers()$$);
 select pg_temp.appel('Fonctions', 'Rejoindre une classe avec un faux code', $$select rejoindre_classe('ZZFAUX00', 'A')$$);
 select pg_temp.appel('Fonctions', 'Répondre deux fois à un quiz noté', $$select soumettre_quiz((select v::bigint from t_ids where k = 'Q'), '[1]'); select soumettre_quiz((select v::bigint from t_ids where k = 'Q'), '[1]')$$);
+
+-- 6. ÉTAPE 44 (audit sur 20) : à garder EN DERNIER, car A finit inscrit dans la classe Y
+select pg_temp.ecrire('Tricher', 'Déplacer sa propre annonce dans une classe où A n''est pas inscrit', $$update annonces set classe_id = 'zz_y' where texte = 'ZZ annonce de A'$$);
+select pg_temp.ecrire('Tricher', 'Rendre un lien qui ne commence pas par https', $$insert into rendus (devoir_id, auteur, auteur_email, lien) values ((select v::bigint from t_ids where k = 'D1'), auth.uid(), 'lv.zz.testa@lycee-verdun.edu.lb', 'javascript:alert(1)')$$);
+select pg_temp.ecrire('Tricher', 'Écrire un commentaire privé de 10 000 caractères', $$insert into commentaires_prives (devoir_id, eleve_email, texte) values ((select v::bigint from t_ids where k = 'D1'), 'lv.zz.testa@lycee-verdun.edu.lb', repeat('x', 10000))$$);
+-- A rejoint la classe Y avec le vrai code, en envoyant le nom de B : le nom enregistré doit rester celui du compte de A
+do $$ declare n text; begin
+  perform rejoindre_classe((select v from t_ids where k = 'CY'), 'ZZ Test B');
+  select nom into n from inscriptions where classe_id = 'zz_y' and email = 'lv.zz.testa@lycee-verdun.edu.lb';
+  insert into t_res (groupe, test, obtenu, ok) values ('Usurper', 'Rejoindre un cours en envoyant le nom de B', 'nom enregistré : ' || coalesce(n, 'aucun'), n = 'ZZ Test A');
+exception when others then insert into t_res (groupe, test, obtenu, ok) values ('Usurper', 'Rejoindre un cours en envoyant le nom de B', 'erreur (' || sqlstate || ') ' || left(sqlerrm, 90), false);
+end $$;
 
 -- ---------- résultat : affiché sous forme d'erreur volontaire, ce qui ANNULE tout ----------
 reset role;

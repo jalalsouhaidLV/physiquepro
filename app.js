@@ -208,9 +208,9 @@ const resultatDe = (q, uid) => S.resultats.find(x => x.quiz_id === q.id && x.ele
 const noteQuiz = (q, r) => r ? Math.round(r.score / Math.max(1, r.sur) * (q.points || 20) * 100) / 100 : null;
 /* ---------- connexion ---------- */
 function vLogin(message, info){
-  app.innerHTML = `<div class="login"><div class="card">
+  app.innerHTML = `<main class="login"><div class="card">
     <div class="brand" style="cursor:default;padding:0">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></div>
-    <div><h2 style="font-size:1.4rem">Connexion</h2><p class="muted" style="margin:.3rem 0 0">Utilise ton compte Microsoft 365 du lycée.</p></div>
+    <div><h1 style="font-size:1.4rem;margin:0">Connexion</h1><p class="muted" style="margin:.3rem 0 0">Utilise ton compte Microsoft 365 du lycée.</p></div>
     ${message ? `<div class="${info ? "notice" : "err"}">${message}</div>` : ""}
     <div class="field"><label for="mail">Adresse Microsoft 365</label><input id="mail" type="email" placeholder="${esc(CFG.prefixeEleve ?? "lv.")}prenom.nom@${esc(CFG.domaine)}" autocomplete="username"></div>
     <div id="mailErr" class="err" hidden></div>
@@ -218,7 +218,8 @@ function vLogin(message, info){
     <p class="muted" style="margin:0;font-size:.82rem">Tu passeras par la page Microsoft habituelle pour taper ton mot de passe, puis tu reviendras ici.</p>
     ${logos.replace('class="logos"', 'class="logos" style="justify-content:center;border-top:1px solid var(--line);padding-top:14px"')}
     ${S.public ? `<a href="#/" data-act="pubretour" class="linkbtn" style="justify-self:center">${icon("left")} Retour à l'accueil</a>` : ""}
-  </div></div>`;
+    <a href="#/donnees" class="linkbtn" style="justify-self:center">Tes données sur ce site</a>
+  </div></main>`;
   const btn = document.getElementById("loginBtn"), inp = document.getElementById("mail");
   const lancer = async () => {
     const m = inp.value.trim().toLowerCase(), err = document.getElementById("mailErr");
@@ -247,7 +248,7 @@ function topbar(r){
   return `<header class="topbar">
     <a href="#" class="pp-saut" data-saut="1">Aller au contenu</a>
     <button class="ib menubtn${S.prof ? "" : " mbeleve"}" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
-    <div class="crumbs"><a class="brand" href="#/" aria-label="Accueil PhysiquePro" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
+    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<span class="vh">Accueil </span><span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
     ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}${S.prof ? "" : " qeleve"}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
     ${lanceurApps()}
@@ -295,7 +296,7 @@ function liensUtilesEleve(){
 }
 const nbTxt = n => (n || 0) + " élève" + ((n || 0) > 1 ? "s" : "");
 const pageHead = () => `<div class="foot headband"><div class="hbtxt"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${S.prof ? compteurVisites() : ""}</div></div>`;
-const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""}</span>${logos}</div>`;
+const pageFoot = () => `<div class="foot"><span><b>PhysiquePro</b> · site de M. ${esc(nomProfSans())}${R().prof.titre ? " · " + esc(R().prof.titre) : ""} · <a class="footdon" href="#/donnees">Tes données</a></span>${logos}</div>`;
 const bientot = txt => `<div class="emptystate"><b>Bientôt disponible</b><span>${txt}</span></div>`;
 const avatarP = (nom, cls2 = "") => `<div class="avatar ${cls2}" style="background:var(--surface-2);color:var(--ink)">${initials(nom)}</div>`;
 
@@ -412,15 +413,17 @@ function familleRes(nom){
   if (/^(zip|rar|7z)$/.test(x)) return "zip"; if (/^(txt|md|py|html?|js|css)$/.test(x)) return "txt"; return "";
 }
 const domaineDe = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (_) { return ""; } };
+/* Lot C (audit sur 20) : plus d'appel à un service extérieur pour l'aperçu d'un lien (ni icône Google, ni capture d'écran WordPress) :
+   une pastille de couleur avec la première lettre du site, toujours la même pour un même site */
+const couleurDomaine = d => { let h = 0; for (const ch of d) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h} 55% 38%)`; };
 const MINI = {};          // vignettes déjà trouvées (id → url)
 function vignetteRes(r, fam){
   const t = TYPE_RES[fam];
-  const glyphe = t ? `<span class="rglyph" style="--g:${t[1]}">${t[2]}</span>` : r.url && domaineDe(r.url) ? `<img class="rfav" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domaineDe(r.url))}&sz=64" alt="" loading="lazy" onerror="this.outerHTML='<span class=rglyph style=--g:#5F6368>URL</span>'">` : `<span class="rglyph" style="--g:#5F6368">${icon("links")}</span>`;
+  const glyphe = t ? `<span class="rglyph" style="--g:${t[1]}">${t[2]}</span>` : r.url && domaineDe(r.url) ? `<span class="rglyph rlettre" style="--g:${couleurDomaine(domaineDe(r.url))}">${esc(domaineDe(r.url).charAt(0).toUpperCase())}</span>` : `<span class="rglyph" style="--g:#5F6368">${icon("links")}</span>`;
   let img = "";
   if (r.od && r.od.id) { const v = MINI["od:" + r.od.id]; if (v) img = v; else vignetteOD(r.od.id); }
-  else if (!r.path && !fam && /^https?:/.test(r.url || "")) img = "https://s.wordpress.com/mshots/v1/" + encodeURIComponent(r.url) + "?w=320&h=240";
   else if (r.path && fam === "img" && (r.bucket || "documents") === "documents") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
-  return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('img');this.remove()">` : ""}</span>`;
+  return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" data-err="retirer">` : ""}</span>`;
 }
 function carteRes(r, ctx = {}){
   if (!r.path && ytId(r.url)) {
@@ -493,7 +496,7 @@ function vFlux(c, data){
   const A = S.annonce && S.annonce.classe === c.id ? S.annonce : null;
   const composer = !peutPublier(c) ? "" : A ? `<section class="post composer">
       <div class="field"><label>${A.id ? "Modifier l'annonce" : "Pour : " + esc(c.nom) + " · tous les élèves"}</label>
-      <div class="rte"><div id="anHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" data-ph="Annoncez quelque chose à la classe">${rich(A.html)}</div>
+      <div class="rte"><div id="anHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texte de l'annonce" data-ph="Annoncez quelque chose à la classe">${rich(A.html)}</div>
       <div class="rtebar">${fmtBar()}</div></div></div>
       ${cartesEdit(A.ressources, "anrm")}
       ${S.prof && !A.id && actives().length > 1 ? `<details class="aussi"><summary>Publier aussi dans d'autres cours${(A.aussi || []).length ? " (" + A.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== c.id).map(x => `<label class="check"><input type="checkbox" class="anAussi" value="${esc(x.id)}" ${(A.aussi || []).includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}</details>` : ""}
@@ -997,7 +1000,7 @@ function vEditer(){
       <section class="edcard">
         <div class="field"><label for="edTitre">${isQ ? "Question *" : "Titre *"}</label><input id="edTitre" data-f="titre" value="${esc(e.titre)}" placeholder="${e.type === "devoir" ? "ex. Compte rendu du TP titrage" : e.type === "questionnaire" ? "ex. QCM · Les acides et les bases" : isQ ? "ex. Quelle est l'unité de la quantité de matière ?" : "ex. Cours · Les acides et les bases"}"></div>
         <div class="field"><label>${e.type === "documentation" ? "Description" : "Instructions"} <span class="muted">(facultatif)</span></label>
-          <div class="rte"><div id="edHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" data-ph="Ajoute les consignes pour les élèves…">${rich(e.html)}</div><div class="rtebar">${fmtBar()}</div></div></div>
+          <div class="rte"><div id="edHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Consignes pour les élèves" data-ph="Ajoute les consignes pour les élèves…">${rich(e.html)}</div><div class="rtebar">${fmtBar()}</div></div></div>
       </section>
       ${e.type === "questionnaire" ? vQuestionsEditeur(e) : ""}
       ${isQ && e.qformat === "choix" ? `<section class="edcard"><h3>Options de réponse</h3><div class="qopts" style="padding:0">${e.qoptions.map((o, j) => `<div class="qopt"><span class="muted mono">${j + 1}</span><input class="otext qoinput" data-qo="${j}" value="${esc(o)}" placeholder="Option ${j + 1}" aria-label="Option ${j + 1}">${e.qoptions.length > 2 ? `<button class="ib sm" data-act="rmqo" data-i="${j}" aria-label="Supprimer l'option">${icon("x")}</button>` : ""}</div>`).join("")}</div>
@@ -1273,8 +1276,8 @@ function vParametres(c){
   const s = S.settings, k = C(s.couleur);
   const f = (key, label, ph = "", type = "text") => `<div class="field"><label for="s_${key}">${label}</label><input id="s_${key}" type="${type}" data-s="${key}" value="${esc(s[key])}" placeholder="${esc(ph)}"></div>`;
   const sw = (key, label, aide = "") => `<label class="switch"><span><b>${label}</b>${aide ? `<small class="muted">${aide}</small>` : ""}</span><input type="checkbox" data-s="${key}" ${s[key] ? "checked" : ""}><i aria-hidden="true"></i></label>`;
-  return `<div class="edtop" style="--c:var(${k.c})"><a class="ib" href="#/classe/${esc(c.id)}" aria-label="Fermer">${icon("x")}</a><h1>Paramètres du cours</h1><span class="spacer"></span>
-      <button class="btn" data-act="savesettings" ${s.busy ? "disabled" : ""}>${s.busy ? "Enregistrement…" : "Enregistrer"}</button></div>
+  return `<header class="edtop" style="--c:var(${k.c})"><a class="ib" href="#/classe/${esc(c.id)}" aria-label="Fermer">${icon("x")}</a><h1>Paramètres du cours</h1><span class="spacer"></span>
+      <button class="btn" data-act="savesettings" ${s.busy ? "disabled" : ""}>${s.busy ? "Enregistrement…" : "Enregistrer"}</button></header>
     <div class="settings" role="main">
       ${s.err ? `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">${esc(s.err)}</div>` : ""}
       <section class="edcard"><h2>Informations sur la classe</h2>
@@ -2139,7 +2142,7 @@ async function chargerNotifs(){
 function cloche(){
   if (prefs().bell === false) return "";
   const n = S.nbNotifs || 0, L = S.notifs || [];
-  return `<div class="dd bellwrap"><button class="ib" data-act="bell" title="Notifications" aria-label="Notifications${n ? " (" + n + " nouvelles)" : ""}" aria-expanded="${!!S.bell}">${icon("bell")}${n ? `<span class="badge">${n > 99 ? "99+" : n}</span>` : ""}</button>
+  return `<div class="dd bellwrap"><button class="ib" data-act="bell" title="Notifications" aria-expanded="${!!S.bell}">${icon("bell")}<span class="vh">Notifications${n ? " : " : ""}</span>${n ? `<span class="badge">${n > 99 ? "99+" : n}</span><span class="vh"> nouvelles</span>` : ""}</button>
     ${S.bell ? `<div class="dd-menu bellmenu"><div class="bellhead"><b>Notifications</b>${n ? `<button class="linkbtn" data-act="toutlu">Tout marquer comme lu</button>` : ""}</div>
       ${L.length ? `<div class="belllist">${L.slice(0, 40).map(x => { const c = cls(x.cid); const nv = estNouvelle(x), cle = esc(cleNotifLue(x)); return `<div class="bitem${nv ? " new" : ""}"><a href="${x.href}" data-nk="${cle}"><span class="ini" style="--bb:var(${C(c && c.couleur).b})">${esc(c ? (c.symbole || c.nom).slice(0, 3) : "•")}</span><span><span class="bt">${x.titre}</span><small class="muted">${esc(c ? c.nom : "")} · ${fmtQuand(x.date)}</small></span></a>${nv ? `<button class="ib blu" data-act="notiflu" data-nk="${cle}" title="Marquer comme lu" aria-label="Marquer comme lu">${icon("check")}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="muted" style="margin:8px 10px">Aucune nouvelle notification.</p>`}
       <a class="bellfoot" href="#/admin/profil">${icon("gear")} Paramètres des notifications</a></div>` : ""}</div>`;
@@ -2976,7 +2979,7 @@ async function importerZip(files){
 }
 /* ---------- page d'accueil publique (visiteur non connecté) ---------- */
 const PUB = { classes: [], charge: false };
-const ROUTES_PUBLIQUES = ["accueil", "outils", "simulations", "physique"];
+const ROUTES_PUBLIQUES = ["accueil", "outils", "simulations", "physique", "donnees"];
 async function chargerPublic(){
   try {
     const { data, error } = await sb.rpc("pp_accueil_public");
@@ -2997,9 +3000,9 @@ async function connecter(suite){
 const btnConnexion = (txt = "Se connecter", cls2 = "") => `<button class="btn ${cls2}" data-act="pubconnect">${icon("logout")} ${txt}</button>`;
 function topbarPublic(){
   return `<header class="topbar pubtop">
-    <div class="crumbs"><a class="brand" href="#/" aria-label="Accueil PhysiquePro" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a></div>
+    <div class="crumbs"><a class="brand" href="#/" style="text-decoration:none;color:inherit">${logoSVG}<span class="vh">Accueil </span><span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a></div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    <nav class="quick pubquick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).slice(0, 12).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
+    <nav class="quick pubquick" aria-label="Liens rapides">${R().liensUtiles.filter(l => !l.prof).slice(0, 12).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${l.principal ? "main" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}" title="${esc(l.nom)}" aria-label="${esc(l.nom)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`).join("")}</nav>
   </header>`;
 }
 function cartePublique(c){
@@ -3013,6 +3016,7 @@ function cartePublique(c){
 }
 const blocOutils = () => R().outils.map(g => `<section class="theme" style="--c:var(--${esc(g.couleur)})"><div class="themehead"><h2>${esc(g.matiere)}</h2></div>${g.liens.map(([n, d, u]) => `<div class="work"><a class="workrow" href="${esc(u)}" target="_blank" rel="noopener" style="padding:10px 8px;gap:16px"><span class="ico pale">${icon("links", "")}</span><span class="tt">${esc(n)}<br><small class="muted" style="font-weight:400">${esc(d)}</small></span><span class="muted">↗</span></a></div>`).join("")}</section>`).join("");
 function vPublic(r){
+  if (r.v === "donnees") return VUES_PRO.donnees().replace('<div class="homehead"><h1>', `<div class="homehead"><a class="linkbtn" href="#/">${icon("left")} Accueil</a></div><div class="homehead"><h1>`);
   if (r.v === "simulations" || r.v === "physique") return VUES_PRO[r.v]().replace('<div class="homehead"><h1>', `<div class="homehead"><a class="linkbtn" href="#/">${icon("left")} Accueil</a></div><div class="homehead"><h1>`);
   if (r.v === "outils") return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">Boîte à outils</h1><span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a class="linkbtn" href="#/">${icon("left")} Accueil</a>${btnConnexion("Se connecter avec Microsoft 365")}</span></div>${blocOutils()}${pageFoot()}</div>`;
   return `<div class="page wide home">
@@ -3024,7 +3028,7 @@ function vPublic(r){
     <nav class="pubres"><a href="#/simulations">${icon("atom")}<span><b>Simulations</b><small>Toutes les simulations PhET du programme, à côté de la page</small></span></a><a href="#/physique">${icon("ruler")}<span><b>Outils Scientifiques Importants</b><small>Unités, éléments, formules, chimie, SNT, SI…</small></span></a><a href="#/outils">${icon("tools")}<span><b>Boîte à outils</b><small>Les sites utiles par matière</small></span></a></nav>
     ${blocScientifique()}
     ${blocDecouvertes()}
-    <section class="homepanel"><div class="homehead"><h1>Boîte à outils</h1><a class="linkbtn" href="#/outils">Tout voir ${icon("ext")}</a></div><div class="puboutils">${blocOutils()}</div></section>
+    <section class="homepanel"><div class="homehead"><h2 class="hcours">Boîte à outils</h2><a class="linkbtn" href="#/outils">Tout voir ${icon("ext")}</a></div><div class="puboutils">${blocOutils()}</div></section>
     ${pageFoot()}</div>`;
 }
 function renderPublic(){
@@ -3032,7 +3036,7 @@ function renderPublic(){
   if (!ROUTES_PUBLIQUES.includes(r.v)) { demanderConnexion(location.hash); return; }
   app.innerHTML = topbarPublic() + `<div class="shell pubshell"><main class="content">${vPublic(r)}</main></div>`;
   const pg = app.querySelector("main.content > .page"); if (pg) pg.insertAdjacentHTML("afterbegin", pageHead());
-  document.title = (r.v === "outils" ? "Boîte à outils · " : "") + "PhysiquePro";
+  document.title = (r.v === "outils" ? "Boîte à outils · " : r.v === "donnees" ? "Tes données · " : "") + "PhysiquePro";
 }
 /* page protégée demandée sans être connecté : on garde l'adresse pour y revenir après la connexion */
 function demanderConnexion(suite){
@@ -3303,8 +3307,8 @@ function imprimerDemande(x){
   const bloc = (t, s) => s.trim() ? `<h2>${t}</h2><ul>${s.trim().split(/\n+/).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
   w.document.write(`<!doctype html><meta charset="utf-8"><title>Demande · ${esc(x.titre)}</title><style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 20px;color:#111}h1{font-size:22px;margin:0}h2{font-size:15px;margin:18px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}ul{margin:0;padding-left:20px}.m{color:#555}table{border-collapse:collapse;margin-top:10px}td{padding:3px 14px 3px 0}</style>
     <h1>Demande de matériel · ${esc(x.titre)}</h1><p class="m">${esc(R().prof.nom)} · ${esc(c ? c.nom : "")}</p><table><tr><td><b>Date</b></td><td>${d ? fmtD(d) + " à " + fmtT(d) : "à préciser"}</td></tr><tr><td><b>Salle</b></td><td>${esc(x.salle || "à préciser")}</td></tr><tr><td><b>Postes</b></td><td>${x.postes || "à préciser"}</td></tr></table>
-    ${bloc("Solutions et produits", x.solutions)}${bloc("Matériel et verrerie", x.materiel)}${x.remarques.trim() ? `<h2>Remarques</h2><p>${esc(x.remarques).replace(/\n/g, "<br>")}</p>` : ""}<script>onload=()=>print()<\/script>`);
-  w.document.close();
+    ${bloc("Solutions et produits", x.solutions)}${bloc("Matériel et verrerie", x.materiel)}${x.remarques.trim() ? `<h2>Remarques</h2><p>${esc(x.remarques).replace(/\n/g, "<br>")}</p>` : ""}`);
+  w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 300);
 }
 async function actionDemande(act, a){
   const x = (S.demandes || []).find(y => String(y.id) === a.dataset.id);
@@ -3858,7 +3862,7 @@ function basculerFavori(nom){
   try { localStorage.setItem(cleFavoris(), JSON.stringify(f)); } catch (_) {}
 }
 const classesLien = l => `${l.principal ? "main" : ""}${l.prof ? " qprof" : ""}${l.ordi ? " qordi" : ""}${COTE_A_COTE[l.icone] ? " qside" + (SP.cle === l.icone ? " on" : "") : ""}`;
-const lienRapide = l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${classesLien(l)}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}" title="${esc(l.nom)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`;
+const lienRapide = l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="${classesLien(l)}" data-cle="${esc(l.icone || "")}" style="--q:${esc(l.couleur)}" title="${esc(l.nom)}" aria-label="${esc(l.nom)}"><span class="qi">${quickIcon(l.icone)}</span><span class="ql">${esc(l.nom)}</span></a>`;
 function lanceurApps(){
   const L = liensVisibles(), f = favorisNoms();
   return `<div class="dd apps"><button class="ib appsbtn" data-act="apps" title="Toutes les applications" aria-label="Toutes les applications" aria-expanded="${!!S.apps}">${icon("apps")}</button>
@@ -3919,7 +3923,7 @@ function blocTableauDeBord(){
       + (maResa ? tuile("#/rendezvous", "rdv", fmtShort(D(maResa.debut)), "prochain rendez-vous", "info", fmtT(D(maResa.debut))) : "");
   }
   return `<section class="tdb"><div class="tdbhead"><div><h1>${salut()} ${esc(premierPrenom())}</h1><p>${esc(fmtD(t).replace(/^./, m => m.toUpperCase()))}</p></div>
-      <button class="tdbsearch" data-act="recherche" aria-label="Rechercher (Ctrl+K)">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
+      <button class="tdbsearch" data-act="recherche">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
     ${tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent, aucun élève à surveiller." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
 }
 
@@ -4072,13 +4076,8 @@ const a11y = () => { try { return { ...A11Y_DEF, ...JSON.parse(localStorage.getI
 function appliquerA11y(){ const a = a11y(), de = document.documentElement;
   de.style.fontSize = a.taille === 100 ? "" : a.taille + "%"; de.classList.toggle("a11y-contraste", !!a.contraste); de.classList.toggle("a11y-calme", !!a.calme);
   de.dataset.police = a.police || ""; policeA11y(a.police); }
-/* Lot D (11/11/2026) : les polices « Très lisible » et « Adaptée dyslexie » ne sont chargées que si l'élève les choisit */
-function policeA11y(p){
-  if (!p || document.getElementById("ppPoliceA11y")) return;
-  const l = document.createElement("link"); l.id = "ppPoliceA11y"; l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;600&display=swap";
-  document.head.appendChild(l);
-}
+/* Lot C (audit sur 20) : ces polices sont maintenant rangées dans le dépôt (dossier polices/, déclarées en tête de app.css) : le navigateur ne les télécharge que si elles servent, sans appel à Google */
+function policeA11y(){}
 appliquerA11y();
 function panneauA11y(){
   if (document.getElementById("a11yBox")) return; const a = a11y();
@@ -4787,7 +4786,7 @@ async function infosWiki(nom, titre){
   return PHOTOS[cle];
 }
 const lienWiki = (nom, titre) => titre ? "https://fr.wikipedia.org/wiki/" + encodeURIComponent(titre) : "https://fr.wikipedia.org/w/index.php?search=" + encodeURIComponent(nom) + "&go=Aller";
-const imgSci = (u, nom) => `<img src="${esc(u)}" alt="Portrait de ${esc(nom)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(initials(nom))}'}))">`;
+const imgSci = (u, nom) => `<img src="${esc(u)}" alt="Portrait de ${esc(nom)}" loading="lazy" data-err="initiales" data-ini="${esc(initials(nom))}">`;
 function blocScientifique(){
   const [nom, dates, titre, bio, notions] = scientifiqueDuJour(), cle = titre || nom, x = PHOTOS[cle], url = (x && x.lien) || lienWiki(nom, titre);
   if (x === undefined) infosWiki(nom, titre).then(v => { document.querySelectorAll(`.sciday[data-t="${CSS.escape(cle)}"]`).forEach(z => {
@@ -5137,7 +5136,7 @@ function blocDecouvertes(){
   const s = simDuJour();
   return `<section class="decouvertes">
     <article class="decarte decsim"><small class="declbl">${icon("atom")} Simulation du jour <span class="simniv">${esc(s.niv || "")}</span></small>
-      <button class="decimg" data-act="simu" data-t="${esc(s.t)}" data-u="${esc(s.url)}" title="Lancer la simulation"><img src="${esc(s.img)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('vide');this.remove()"><span>${icon("play")} Lancer</span></button>
+      <button class="decimg" data-act="simu" data-t="${esc(s.t)}" data-u="${esc(s.url)}" title="Lancer la simulation"><img src="${esc(s.img)}" alt="" loading="lazy" data-err="vide"><span>${icon("play")} Lancer</span></button>
       <h3>${esc(s.t)}</h3><a class="linkbtn" href="#/simulations">Toutes les simulations ${icon("chevright")}</a></article>
     ${carteDefi()}${carteFait()}</section>`;
 }
@@ -5813,7 +5812,7 @@ function uiDosage(){
     <div class="labopts">${coche("dTheo", "Courbe théorique en pointillés", DOS.theo)}${coche("dDer", "Courbe dérivée dpH/dV", DOS.deriv)}${coche("dEq", "Repérer l'équivalence", DOS.eqv)}</div>
     <div class="labinfo" id="dInfo"></div>
   </div>
-  <div class="labscene"><canvas id="dScene" class="labcv scene" aria-label="Burette, bécher et pH-mètre"></canvas><canvas id="dGraph" class="labcv graph" role="img" aria-label="Courbe pH en fonction du volume versé"></canvas></div>`;
+  <div class="labscene"><canvas id="dScene" class="labcv scene" role="img" aria-label="Burette, bécher et pH-mètre"></canvas><canvas id="dGraph" class="labcv graph" role="img" aria-label="Courbe pH en fonction du volume versé"></canvas></div>`;
 }
 function initDosage(p){
   const q = s => p.querySelector(s);
@@ -6001,7 +6000,7 @@ function uiOnde(){
     <div class="labbtns"><button class="btn sm" data-lab="go">${icon("restore")} Relancer depuis la source</button><button class="btn sm tonal" data-lab="pause">${icon("pause")} Pause</button></div>
     <div class="labopts">${coche("oLam", "Montrer la longueur d'onde λ", ONDE.lam)}</div>
     <div class="labinfo" id="oInfo"></div></div>
-  <div class="labscene seul deux"><canvas id="oCv" class="labcv" aria-label="Milieu de propagation"></canvas><canvas id="oG" class="labcv" aria-label="Élongation du point M en fonction du temps"></canvas></div>`;
+  <div class="labscene seul deux"><canvas id="oCv" class="labcv" role="img" aria-label="Milieu de propagation"></canvas><canvas id="oG" class="labcv" role="img" aria-label="Élongation du point M en fonction du temps"></canvas></div>`;
 }
 const elongOnde = (x, t) => t < x / ONDE.v ? 0 : ONDE.A * Math.sin(2 * Math.PI * (t / ONDE.T - x / (ONDE.v * ONDE.T)));
 function initOnde(p){
@@ -6052,7 +6051,7 @@ function uiRadio(){
     <div class="labbtns"><button class="btn sm" data-lab="go">${icon("play")} Lancer</button><button class="btn sm tonal" data-lab="pause">${icon("pause")} Pause</button><button class="btn sm ghost" data-lab="zero">${icon("restore")} Recommencer</button></div>
     <div class="labopts">${coche("rTheo", "Courbe théorique N₀·e<sup>−λt</sup>", RAD.theo)}</div>
     <div class="labinfo" id="rInfo"></div></div>
-  <div class="labscene"><canvas id="rCv" class="labcv" aria-label="Noyaux"></canvas><canvas id="rG" class="labcv" aria-label="Nombre de noyaux restants en fonction du temps"></canvas></div>`;
+  <div class="labscene"><canvas id="rCv" class="labcv" role="img" aria-label="Noyaux"></canvas><canvas id="rG" class="labcv" role="img" aria-label="Nombre de noyaux restants en fonction du temps"></canvas></div>`;
 }
 function initRadio(p){
   const q = s => p.querySelector(s), zero = () => { RAD.t = 0; RAD.run = false; RAD.etat = new Uint8Array(RAD.N0); RAD.flash = new Float32Array(RAD.N0); RAD.pts = [[0, RAD.N0]]; };
@@ -6111,7 +6110,7 @@ function uiAtome(){
     <div class="labrange"><label for="aZ">Numéro atomique Z<output id="aZO">${ATO.z}</output></label><input type="range" id="aZ" min="1" max="20" step="1" value="${ATO.z}"></div>
     <div class="labbtns"><button class="btn sm tonal" data-lab="moins">${icon("left")} Précédent</button><button class="btn sm tonal" data-lab="plus">Suivant ${icon("chevright")}</button></div>
     <div class="labinfo" id="aInfo"></div></div>
-  <div class="labscene seul"><canvas id="aCv" class="labcv" aria-label="Modèle de l'atome"></canvas></div>`;
+  <div class="labscene seul"><canvas id="aCv" class="labcv" role="img" aria-label="Modèle de l'atome"></canvas></div>`;
 }
 function initAtome(p){
   const q = s => p.querySelector(s), maj = () => { q("#aZ").value = ATO.z; q("#aZO").textContent = ATO.z; infoAtome(); };
@@ -7244,7 +7243,7 @@ chargerClasse = async function(id, force){
 /* appelée au démarrage quand Internet manque : affiche la dernière version gardée */
 async function demarrerHorsLigne(session){
   const sn = await idbGet("snap_" + session.user.id);
-  if (!sn) { app.innerHTML = `<div class="loading"><div class="notice" style="display:grid;gap:10px;justify-items:center">${icon("wifi")}<b>Pas de connexion Internet</b><span>Active le Wi-Fi ou les données mobiles, puis touche « Réessayer ».</span><button class="btn" onclick="location.reload()">Réessayer</button></div></div>`; return true; }
+  if (!sn) { app.innerHTML = `<div class="loading"><div class="notice" style="display:grid;gap:10px;justify-items:center">${icon("wifi")}<b>Pas de connexion Internet</b><span>Active le Wi-Fi ou les données mobiles, puis touche « Réessayer ».</span><button class="btn" data-act="recharger">Réessayer</button></div></div>`; return true; }
   S.user = session.user; S.profil = sn.profil; S.prof = sn.profil.role === "prof"; S.nom = sn.nom;
   [S.classes, S.devoirs, S.rendus, S.corrections, S.quiz, S.resultats] = [sn.classes, sn.devoirs, sn.rendus, sn.corrections, sn.quiz, sn.resultats];
   S.copies = sn.copies || []; S.cache = sn.cache || {}; appliquerReglages(sn.R); S.horsLigne = sn.le;
@@ -7256,7 +7255,7 @@ function bandeauHorsLigne(){
   const off = !enLigne() || S.horsLigne;
   if (!off) { b?.remove(); return; }
   if (!b) { b = document.createElement("div"); b.id = "ppHorsLigne"; b.setAttribute("role", "status"); document.body.appendChild(b); }
-  b.innerHTML = enLigne() && S.horsLigne ? `${icon("wifi")}<span>La connexion est revenue.</span><button class="btn sm" onclick="location.reload()">Actualiser</button>`
+  b.innerHTML = enLigne() && S.horsLigne ? `${icon("wifi")}<span>La connexion est revenue.</span><button class="btn sm" data-act="recharger">Actualiser</button>`
     : `${icon("wifi")}<span><b>Hors connexion</b> · ${S.horsLigne ? "version du " + fmtShort(new Date(S.horsLigne)) + " à " + fmtT(new Date(S.horsLigne)) : "tu peux lire, mais pas envoyer"}. Tes réponses sont gardées.</span>`;
 }
 window.addEventListener("online", bandeauHorsLigne); window.addEventListener("offline", bandeauHorsLigne);
@@ -7434,6 +7433,75 @@ function titresDeLaPage(){
 }
 
 APRES_RENDU.push(() => { logosQuiTiennent(); titresDeLaPage(); });
+/* =====================================================================
+   34 · Lots C et D de l'audit sur 20 (11/11/2026)
+   C. Page « Tes données » (#/donnees), ouverte aussi aux visiteurs, et demande d'effacement
+   D. La touche Tab reste dans la fenêtre ouverte ; images en erreur et bouton « Recharger »
+      sans code écrit dans la page (pour la règle de sécurité CSP d'index.html)
+   ===================================================================== */
+
+/* ---------------------------------------------------------------- C. Page « Tes données » */
+VUES_PRO.donnees = function(){
+  const prof = "M. " + esc(nomProfSans()), mail = (CFG.prof && CFG.prof.email) || "";
+  const sujet = "Demande d'effacement de mes données PhysiquePro";
+  const corps = "Bonjour Monsieur,\n\nJe vous demande d'effacer mon compte et mes données du site PhysiquePro.\n\nNom et classe : \n\nMerci.";
+  const lienMail = "mailto:" + mail + "?subject=" + encodeURIComponent(sujet) + "&body=" + encodeURIComponent(corps);
+  const bloc = (ic, titre, html) => `<section class="edcard dncarte"><h2>${icon(ic)} ${titre}</h2>${html}</section>`;
+  return `<div class="page donnees"><div class="homehead"><h1>Tes données sur PhysiquePro</h1></div>
+    <p class="muted dnintro">Cette page explique, simplement, ce que le site garde sur toi, qui peut le voir et comment le faire effacer. Montre-la à tes parents s'ils te posent la question.</p>
+    ${bloc("people", "Ce que le site garde", `<ul>
+      <li><b>Ton identité</b> : ton nom et ton adresse du lycée, donnés par ton compte Microsoft 365. Le site ne connaît jamais ton mot de passe.</li>
+      <li><b>Ton travail</b> : tes cours, les fichiers et les liens que tu rends, tes réponses aux questionnaires, tes notes et les appréciations.</li>
+      <li><b>Tes messages</b> : tes commentaires, tes questions privées au professeur, tes messages d'urgence et tes rendez-vous.</li>
+      <li><b>Tes notes personnelles</b> (Coin perso) et tes réglages (apparence, police).</li>
+      <li><b>Tes visites</b> : le nombre de visites, la date de la dernière, si tu es en ligne, et le type d'appareil (par exemple « iPhone » ou « PC »).</li>
+      <li><b>Les notifications</b>, seulement si tu les as acceptées : une adresse technique qui permet d'envoyer une alerte à ton appareil.</li>
+    </ul>`)}
+    ${bloc("eye", "Qui peut voir quoi", `<ul>
+      <li><b>${prof}</b> voit tout ce qui concerne ses cours.</li>
+      <li><b>Les élèves de ton cours</b> voient ton nom dans la liste du cours et les commentaires que tu écris pour la classe.</li>
+      <li><b>Personne d'autre</b> : un élève ne peut pas lire tes copies, tes notes, tes questions privées ni tes notes personnelles. Un visiteur non connecté ne voit aucune donnée d'élève.</li>
+    </ul>`)}
+    ${bloc("nuage", "Où sont rangées les données", `<ul>
+      <li>La base de données du site est chez <b>Supabase</b>, sur des serveurs situés en Allemagne (Francfort).</li>
+      <li>Tes copies Word et tes fichiers rendus sont dans le <b>OneDrive Microsoft 365 du lycée</b> ou dans l'espace de fichiers privé du site.</li>
+      <li>Les pages du site sont servies par GitHub Pages et Netlify. Comme tout site, ils voient l'adresse internet de ton appareil, mais ni ton nom ni ton travail.</li>
+    </ul>`)}
+    ${bloc("links", "Les autres services", `<ul>
+      <li>Le site n'a <b>aucune publicité</b> et <b>aucun outil de pistage</b>. Tes données ne sont ni vendues ni partagées.</li>
+      <li>La connexion passe par <b>Microsoft</b> (ton compte du lycée).</li>
+      <li>Quelques programmes nécessaires au site sont chargés depuis <b>jsDelivr</b> et <b>cdnjs</b>, deux services publics de fichiers. Les polices d'écriture sont rangées dans le site lui-même.</li>
+      <li>Quand une <b>vidéo YouTube</b> est jointe à un cours, ton navigateur demande son image et son titre à YouTube. Les portraits de scientifiques viennent de Wikipédia.</li>
+      <li>Les logos en haut des pages (Pronote, PIX, WhatsApp…) sont de simples liens : rien n'est envoyé tant que tu ne les touches pas.</li>
+    </ul>`)}
+    ${bloc("trash", "Faire corriger ou effacer tes données", `<p>Toi ou tes parents pouvez demander à ${prof} de corriger ton nom, ou d'effacer ton compte et tout ce qui s'y rattache. Il le fait depuis ses paramètres.</p>
+      ${mail ? `<p class="dnact"><a class="btn" href="${esc(lienMail)}">${icon("mail")} Demander l'effacement</a><span class="muted">ou écris à <b class="dnmail">${esc(mail)}</b></span></p>` : ""}
+      <p class="muted">Ce bouton ouvre ta messagerie avec un message déjà préparé. Rien n'est effacé tant que le professeur n'a pas répondu.</p>`)}
+    <p class="muted dnmaj">Page mise à jour le 11 novembre 2026.</p>
+    ${pageFoot()}</div>`;
+};
+
+/* ---------------------------------------------------------------- D. Tab reste dans la fenêtre ouverte (aria-modal) */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Tab") return;
+  const boites = [...document.querySelectorAll('[aria-modal="true"]')].filter(b => b.getClientRects().length);
+  const boite = boites[boites.length - 1]; if (!boite) return;
+  const els = [...boite.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]')].filter(x => x.getClientRects().length);
+  if (!els.length) { e.preventDefault(); return; }
+  const premier = els[0], dernier = els[els.length - 1], ici = document.activeElement;
+  if (!boite.contains(ici)) { e.preventDefault(); (e.shiftKey ? dernier : premier).focus(); }
+  else if (e.shiftKey && ici === premier) { e.preventDefault(); dernier.focus(); }
+  else if (!e.shiftKey && ici === dernier) { e.preventDefault(); premier.focus(); }
+});
+
+/* ---------------------------------------------------------------- D. Images en erreur, sans « onerror » écrit dans la page */
+document.addEventListener("error", e => {
+  const im = e.target; if (!im || im.tagName !== "IMG" || !im.dataset || !im.dataset.err) return;
+  if (im.dataset.err === "retirer") { if (im.parentNode) im.parentNode.classList.remove("img"); im.remove(); }
+  else if (im.dataset.err === "vide") { if (im.parentNode) im.parentNode.classList.add("vide"); im.remove(); }
+  else if (im.dataset.err === "initiales") { const s = document.createElement("span"); s.textContent = im.dataset.ini || ""; im.replaceWith(s); }
+}, true);
+ACTIONS_PLUS.recharger = () => location.reload();
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
@@ -7508,7 +7576,7 @@ async function render(){
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + navMobile(r) + (S.modal ? vModal() : "");
     { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
-      Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées", telephone: "Mon téléphone", partage: "Partager", mesnotes: "Mes notes" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
+      Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées", telephone: "Mon téléphone", partage: "Partager", mesnotes: "Mes notes", donnees: "Tes données" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
       document.title = (dv0 ? dv0.titre + (cd0 ? " · " + cd0.nom : "") + " · " : r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
     { const pg = app.querySelector("main.content > .page"); if (pg && r.v === "accueil" && !dansVueEleve(r) && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     if (r.v === "admin" && typeof sommaireParametres === "function") sommaireParametres();

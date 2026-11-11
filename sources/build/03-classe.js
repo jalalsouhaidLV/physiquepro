@@ -40,15 +40,17 @@ function familleRes(nom){
   if (/^(zip|rar|7z)$/.test(x)) return "zip"; if (/^(txt|md|py|html?|js|css)$/.test(x)) return "txt"; return "";
 }
 const domaineDe = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (_) { return ""; } };
+/* Lot C (audit sur 20) : plus d'appel à un service extérieur pour l'aperçu d'un lien (ni icône Google, ni capture d'écran WordPress) :
+   une pastille de couleur avec la première lettre du site, toujours la même pour un même site */
+const couleurDomaine = d => { let h = 0; for (const ch of d) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h} 55% 38%)`; };
 const MINI = {};          // vignettes déjà trouvées (id → url)
 function vignetteRes(r, fam){
   const t = TYPE_RES[fam];
-  const glyphe = t ? `<span class="rglyph" style="--g:${t[1]}">${t[2]}</span>` : r.url && domaineDe(r.url) ? `<img class="rfav" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domaineDe(r.url))}&sz=64" alt="" loading="lazy" onerror="this.outerHTML='<span class=rglyph style=--g:#5F6368>URL</span>'">` : `<span class="rglyph" style="--g:#5F6368">${icon("links")}</span>`;
+  const glyphe = t ? `<span class="rglyph" style="--g:${t[1]}">${t[2]}</span>` : r.url && domaineDe(r.url) ? `<span class="rglyph rlettre" style="--g:${couleurDomaine(domaineDe(r.url))}">${esc(domaineDe(r.url).charAt(0).toUpperCase())}</span>` : `<span class="rglyph" style="--g:#5F6368">${icon("links")}</span>`;
   let img = "";
   if (r.od && r.od.id) { const v = MINI["od:" + r.od.id]; if (v) img = v; else vignetteOD(r.od.id); }
-  else if (!r.path && !fam && /^https?:/.test(r.url || "")) img = "https://s.wordpress.com/mshots/v1/" + encodeURIComponent(r.url) + "?w=320&h=240";
   else if (r.path && fam === "img" && (r.bucket || "documents") === "documents") { const v = (S.urls || {})[r.path]; if (v) img = v; else if (!MINI["p:" + r.path]) { MINI["p:" + r.path] = 1; urlsSignees([r.path]).then(() => { if ((S.urls || {})[r.path]) render(); }); } }
-  return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('img');this.remove()">` : ""}</span>`;
+  return `<span class="rthumb${img ? " img" : ""}">${glyphe}${img ? `<img class="rimg" src="${esc(img)}" alt="" loading="lazy" data-err="retirer">` : ""}</span>`;
 }
 function carteRes(r, ctx = {}){
   if (!r.path && ytId(r.url)) {
@@ -121,7 +123,7 @@ function vFlux(c, data){
   const A = S.annonce && S.annonce.classe === c.id ? S.annonce : null;
   const composer = !peutPublier(c) ? "" : A ? `<section class="post composer">
       <div class="field"><label>${A.id ? "Modifier l'annonce" : "Pour : " + esc(c.nom) + " · tous les élèves"}</label>
-      <div class="rte"><div id="anHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" data-ph="Annoncez quelque chose à la classe">${rich(A.html)}</div>
+      <div class="rte"><div id="anHtml" class="rtebody" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texte de l'annonce" data-ph="Annoncez quelque chose à la classe">${rich(A.html)}</div>
       <div class="rtebar">${fmtBar()}</div></div></div>
       ${cartesEdit(A.ressources, "anrm")}
       ${S.prof && !A.id && actives().length > 1 ? `<details class="aussi"><summary>Publier aussi dans d'autres cours${(A.aussi || []).length ? " (" + A.aussi.length + ")" : ""}</summary>${actives().filter(x => x.id !== c.id).map(x => `<label class="check"><input type="checkbox" class="anAussi" value="${esc(x.id)}" ${(A.aussi || []).includes(x.id) ? "checked" : ""}> ${esc(x.nom)}</label>`).join("")}</details>` : ""}

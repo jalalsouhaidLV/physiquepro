@@ -91,7 +91,7 @@ function uiDosage(){
     <div class="labopts">${coche("dTheo", "Courbe théorique en pointillés", DOS.theo)}${coche("dDer", "Courbe dérivée dpH/dV", DOS.deriv)}${coche("dEq", "Repérer l'équivalence", DOS.eqv)}</div>
     <div class="labinfo" id="dInfo"></div>
   </div>
-  <div class="labscene"><canvas id="dScene" class="labcv scene" aria-label="Burette, bécher et pH-mètre"></canvas><canvas id="dGraph" class="labcv graph" role="img" aria-label="Courbe pH en fonction du volume versé"></canvas></div>`;
+  <div class="labscene"><canvas id="dScene" class="labcv scene" role="img" aria-label="Burette, bécher et pH-mètre"></canvas><canvas id="dGraph" class="labcv graph" role="img" aria-label="Courbe pH en fonction du volume versé"></canvas></div>`;
 }
 function initDosage(p){
   const q = s => p.querySelector(s);

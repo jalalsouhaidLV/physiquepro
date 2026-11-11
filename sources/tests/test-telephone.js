@@ -467,7 +467,7 @@ async function testsCinquieme() {
   const pill = await page.evaluate(() => { location.hash = "#/accueil"; return new Promise(ok => setTimeout(() => ok([...document.querySelectorAll(".recentrow .pill")].map(p => p.innerText)), 700)); });
   verif("Q Élève : « À faire » au lieu de « Attribué »", pill.length && !pill.includes("Attribué") && pill.includes("À faire"), pill.join(","));
   e = await page.evaluate(() => [...document.querySelectorAll(".topbar .ib, .topbar .avatar")].filter(b => b.offsetWidth).map(b => Math.round(Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height))));
-  verif("Q Boutons du haut : 40 px au moins (icônes 44 px)", e.every(x => x >= 40), e.join(","));
+  verif("Q Boutons du haut : 44 px au moins (lot A de l'audit sur 20)", e.every(x => x >= 44), e.join(","));
   await ctx.close();
   for (const dv of ["Pixel 7", "Galaxy S9+"]) {
     ({ ctx, page } = await contexte(dv)); await ouvrir(page);

@@ -77,8 +77,8 @@ function imprimerDemande(x){
   const bloc = (t, s) => s.trim() ? `<h2>${t}</h2><ul>${s.trim().split(/\n+/).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
   w.document.write(`<!doctype html><meta charset="utf-8"><title>Demande · ${esc(x.titre)}</title><style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 20px;color:#111}h1{font-size:22px;margin:0}h2{font-size:15px;margin:18px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}ul{margin:0;padding-left:20px}.m{color:#555}table{border-collapse:collapse;margin-top:10px}td{padding:3px 14px 3px 0}</style>
     <h1>Demande de matériel · ${esc(x.titre)}</h1><p class="m">${esc(R().prof.nom)} · ${esc(c ? c.nom : "")}</p><table><tr><td><b>Date</b></td><td>${d ? fmtD(d) + " à " + fmtT(d) : "à préciser"}</td></tr><tr><td><b>Salle</b></td><td>${esc(x.salle || "à préciser")}</td></tr><tr><td><b>Postes</b></td><td>${x.postes || "à préciser"}</td></tr></table>
-    ${bloc("Solutions et produits", x.solutions)}${bloc("Matériel et verrerie", x.materiel)}${x.remarques.trim() ? `<h2>Remarques</h2><p>${esc(x.remarques).replace(/\n/g, "<br>")}</p>` : ""}<script>onload=()=>print()<\/script>`);
-  w.document.close();
+    ${bloc("Solutions et produits", x.solutions)}${bloc("Matériel et verrerie", x.materiel)}${x.remarques.trim() ? `<h2>Remarques</h2><p>${esc(x.remarques).replace(/\n/g, "<br>")}</p>` : ""}`);
+  w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 300);
 }
 async function actionDemande(act, a){
   const x = (S.demandes || []).find(y => String(y.id) === a.dataset.id);

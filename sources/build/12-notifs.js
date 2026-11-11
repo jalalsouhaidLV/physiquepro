@@ -72,7 +72,7 @@ async function chargerNotifs(){
 function cloche(){
   if (prefs().bell === false) return "";
   const n = S.nbNotifs || 0, L = S.notifs || [];
-  return `<div class="dd bellwrap"><button class="ib" data-act="bell" title="Notifications" aria-label="Notifications${n ? " (" + n + " nouvelles)" : ""}" aria-expanded="${!!S.bell}">${icon("bell")}${n ? `<span class="badge">${n > 99 ? "99+" : n}</span>` : ""}</button>
+  return `<div class="dd bellwrap"><button class="ib" data-act="bell" title="Notifications" aria-expanded="${!!S.bell}">${icon("bell")}<span class="vh">Notifications${n ? " : " : ""}</span>${n ? `<span class="badge">${n > 99 ? "99+" : n}</span><span class="vh"> nouvelles</span>` : ""}</button>
     ${S.bell ? `<div class="dd-menu bellmenu"><div class="bellhead"><b>Notifications</b>${n ? `<button class="linkbtn" data-act="toutlu">Tout marquer comme lu</button>` : ""}</div>
       ${L.length ? `<div class="belllist">${L.slice(0, 40).map(x => { const c = cls(x.cid); const nv = estNouvelle(x), cle = esc(cleNotifLue(x)); return `<div class="bitem${nv ? " new" : ""}"><a href="${x.href}" data-nk="${cle}"><span class="ini" style="--bb:var(${C(c && c.couleur).b})">${esc(c ? (c.symbole || c.nom).slice(0, 3) : "•")}</span><span><span class="bt">${x.titre}</span><small class="muted">${esc(c ? c.nom : "")} · ${fmtQuand(x.date)}</small></span></a>${nv ? `<button class="ib blu" data-act="notiflu" data-nk="${cle}" title="Marquer comme lu" aria-label="Marquer comme lu">${icon("check")}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="muted" style="margin:8px 10px">Aucune nouvelle notification.</p>`}
       <a class="bellfoot" href="#/admin/profil">${icon("gear")} Paramètres des notifications</a></div>` : ""}</div>`;

@@ -1,0 +1,4 @@
+Polices du site PhysiquePro, servies depuis le dépôt (aucun appel à Google Fonts).
+Fichiers woff2 (alphabet latin) tirés des paquets npm @fontsource 5.3.0 :
+Roboto, IBM Plex Mono, Plus Jakarta Sans, Atkinson Hyperlegible, Lexend.
+Toutes sont sous licence SIL Open Font License 1.1 (https://openfontlicense.org).

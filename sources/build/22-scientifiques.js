@@ -201,7 +201,7 @@ async function infosWiki(nom, titre){
   return PHOTOS[cle];
 }
 const lienWiki = (nom, titre) => titre ? "https://fr.wikipedia.org/wiki/" + encodeURIComponent(titre) : "https://fr.wikipedia.org/w/index.php?search=" + encodeURIComponent(nom) + "&go=Aller";
-const imgSci = (u, nom) => `<img src="${esc(u)}" alt="Portrait de ${esc(nom)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(initials(nom))}'}))">`;
+const imgSci = (u, nom) => `<img src="${esc(u)}" alt="Portrait de ${esc(nom)}" loading="lazy" data-err="initiales" data-ini="${esc(initials(nom))}">`;
 function blocScientifique(){
   const [nom, dates, titre, bio, notions] = scientifiqueDuJour(), cle = titre || nom, x = PHOTOS[cle], url = (x && x.lien) || lienWiki(nom, titre);
   if (x === undefined) infosWiki(nom, titre).then(v => { document.querySelectorAll(`.sciday[data-t="${CSS.escape(cle)}"]`).forEach(z => {
