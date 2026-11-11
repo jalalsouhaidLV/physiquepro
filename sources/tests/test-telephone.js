@@ -20,13 +20,13 @@ const verif = (n, ok, detail = "") => { res.push({ n, ok: !!ok, detail }); conso
 let base, nav;
 async function contexte(appareil, o = {}) {
   const dev = devices[appareil];
-  const ctx = await nav.newContext({ ...dev, locale: "fr-FR", serviceWorkers: o.sw ? "allow" : "block", acceptDownloads: true });
+  const ctx = await nav.newContext({ ...(dev || {}), ...(o.vue ? { viewport: o.vue } : {}), locale: "fr-FR", serviceWorkers: o.sw ? "allow" : "block", acceptDownloads: true });
   await ctx.addInitScript(([uid, flags, extra]) => {
-    window.__PP_ROLE = "eleve";
+    window.__PP_ROLE = extra.role || "eleve";
     try { if (!sessionStorage.getItem("pp_test_init")) { sessionStorage.setItem("pp_test_init", "1"); for (const [k, v] of Object.entries(flags)) localStorage.setItem("pp_tel_" + uid + "_" + k, v); } } catch (_) {}
     window.__BADGE = null; navigator.setAppBadge = n => { window.__BADGE = n; return Promise.resolve(); }; navigator.clearAppBadge = () => { window.__BADGE = 0; return Promise.resolve(); };
     if (extra.standalone) Object.defineProperty(navigator, "standalone", { get: () => true });
-  }, [UID, o.flags || { visite: "1", installvu: "1" }, { standalone: !!o.standalone }]);
+  }, [UID, o.flags || { visite: "1", installvu: "1" }, { standalone: !!o.standalone, role: o.role }]);
   await ctx.route("**/*", r => {
     const u = new URL(r.request().url());
     if (u.hostname === "127.0.0.1" || u.protocol === "data:" || u.protocol === "blob:") return r.continue();
@@ -349,6 +349,64 @@ async function testsPetitEcran() {
   await ctx.close();
 }
 
+/* 3e évaluation (11/11/2026) : touche Retour, téléphone en paysage, finitions */
+async function testsTroisieme() {
+  console.log("\n— 3e évaluation : touche Retour, paysage, finitions —");
+  const ouvert = page => page.evaluate(() => ({ h: location.hash, menu: !document.querySelector(".drawer").hidden, cloche: !!document.querySelector(".bellmenu") }));
+  let { ctx, page } = await contexte("Pixel 7");
+  await ouvrir(page, "#/accueil"); await aller(page, "#/devoir/1", 900);
+  await page.tap('.navbas [data-act="drawer"]'); await page.waitForTimeout(600);
+  await page.goBack(); await page.waitForTimeout(700);
+  let e = await ouvert(page);
+  verif("I Retour avec le menu ouvert : le menu se ferme, on reste sur le devoir", !e.menu && e.h === "#/devoir/1", JSON.stringify(e));
+  await page.tap('[data-act="bell"]'); await page.waitForTimeout(600);
+  await page.goBack(); await page.waitForTimeout(700);
+  e = await ouvert(page);
+  verif("I Retour avec la cloche ouverte : la cloche se ferme, on reste sur le devoir", !e.cloche && e.h === "#/devoir/1", JSON.stringify(e));
+  await page.tap('.navbas [data-act="drawer"]'); await page.waitForTimeout(600);
+  await page.touchscreen.tap(400, 420); await page.waitForTimeout(800);
+  await page.goBack(); await page.waitForTimeout(800);
+  e = await ouvert(page);
+  verif("I Menu fermé par le voile, puis Retour : on revient à la page d'avant en un seul appui", e.h === "#/accueil" && !e.menu, JSON.stringify(e));
+  await aller(page, "#/devoir/1", 900);
+  await page.tap('.navbas [data-act="drawer"]'); await page.waitForTimeout(600);
+  await page.tap('.drawer a[href="#/revisions"]'); await page.waitForTimeout(800);
+  await page.goBack(); await page.waitForTimeout(800);
+  e = await ouvert(page);
+  verif("I Lien du menu, puis Retour : on revient au devoir, menu fermé", e.h === "#/devoir/1" && !e.menu, JSON.stringify(e));
+  verif("K Notification d'une note : « Note reçue »", await page.evaluate(async () => { document.querySelector('[data-act="bell"]').click(); await new Promise(r => setTimeout(r, 800)); return /Note reçue/.test(document.querySelector(".bellmenu").innerText); }));
+  await page.goBack(); await page.waitForTimeout(500);
+  await aller(page, "#/devoir/1", 900);
+  const termine = page.locator('button:has-text("Marquer comme terminé")');
+  if (await termine.count()) { await termine.first().tap(); await page.waitForTimeout(1500); }
+  verif("L Faux Supabase : la date du rendu est enregistrée (pas « Invalid Date »)", !(await page.evaluate(() => /Invalid Date/.test(document.body.innerText))));
+  await ctx.close();
+  ({ ctx, page } = await contexte("Pixel 7 landscape"));
+  await ouvrir(page, "#/accueil");
+  e = await page.evaluate(() => ({ nb: getComputedStyle(document.querySelector(".navbas")).display, quick: [...document.querySelectorAll(".topbar .quick")].every(q => getComputedStyle(q).display === "none"), w: document.documentElement.scrollWidth - innerWidth }));
+  verif("J Téléphone en paysage : barre du bas visible, logos du haut retirés, rien ne dépasse", e.nb !== "none" && e.quick && e.w <= 0, JSON.stringify(e));
+  await capture(page, "J-paysage");
+  await ctx.close();
+  ({ ctx, page } = await contexte("Galaxy S9+"));
+  await ouvrir(page, "#/todo");
+  e = await page.evaluate(() => Math.round(Math.max(...[...document.querySelectorAll(".tabs3 button")].map(b => b.getBoundingClientRect().right))));
+  verif("K 320 px : les 3 onglets de « À faire » tiennent dans l'écran", e <= 320, e + " px");
+  await capture(page, "K-onglets-320");
+  await ctx.close();
+  ({ ctx, page } = await contexte(null, { vue: { width: 1366, height: 768 } }));
+  await ouvrir(page, "#/accueil");
+  await page.keyboard.press("Tab");
+  const t = await page.evaluate(() => document.activeElement.innerText.trim());
+  await page.keyboard.press("Enter"); await page.waitForTimeout(300);
+  verif("K Clavier : 1er Tab = « Aller au contenu », Entrée place le clavier sur la page", t === "Aller au contenu" && await page.evaluate(() => document.activeElement.matches("main.content") && location.hash === "#/accueil"), t);
+  await ctx.close();
+  ({ ctx, page } = await contexte(null, { vue: { width: 1366, height: 768 }, role: "prof" }));
+  await ouvrir(page, "#/accueil");
+  verif("K Prof : le questionnaire de « À rendre récemment » a son compteur de rendus", await page.evaluate(() => [...document.querySelectorAll(".recentrow")].some(a => /\/quiz\//.test(a.getAttribute("href")) && /rendus? sur/.test(a.innerText))));
+  await ctx.close();
+}
+
+
 (async () => {
   const srv = await demarrer(0); base = "http://127.0.0.1:" + srv.address().port;
   nav = await chromium.launch({ headless: !VOIR });
@@ -356,7 +414,7 @@ async function testsPetitEcran() {
     const man = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "manifest.json"), "utf8"));
     verif("D29 Raccourcis de l'icône (À faire, Agenda, Mes notes)", (man.shortcuts || []).map(x => x.name).join(",") === "À faire,Agenda,Mes notes");
     verif("D28 L'appli accepte les partages (share_target)", man.share_target && man.share_target.method === "POST" && man.share_target.params.files[0].accept.includes("image/*"));
-    await testsIPhone(); await testsVisite(); await testsAndroid(); await testsPetitEcran(); await testsAppli();
+    await testsIPhone(); await testsVisite(); await testsAndroid(); await testsPetitEcran(); await testsTroisieme(); await testsAppli();
   } catch (e) { verif("Le test a planté", false, String(e && e.stack || e).slice(0, 400)); }
   finally { await nav.close(); srv.close(); }
   const ko = res.filter(x => !x.ok);

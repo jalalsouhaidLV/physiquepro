@@ -59,7 +59,7 @@ async function chargerNotifs(){
       ...((res[3] && res[3].data) || []).map(s => ({ o: s, h: "#/classe/" + s.classe_id + "/travaux", l: "Nouveau document" }))];
     nouveaux.filter(x => D(x.o.publie_le) > vu && D(x.o.publie_le) <= now()).forEach(x => add("travaux", D(x.o.publie_le), x.l + " : « " + esc(x.o.titre) + " »", x.h, x.o.classe_id));
     S.corrections.filter(c => c.publiee && c.modifie_le && D(c.modifie_le) > vu).forEach(c => { const r = S.rendus.find(x => x.id === c.rendu_id), d = r && dv(r.devoir_id);
-      if (d && d.id) add("notes", D(c.modifie_le), "Travail rendu : « " + esc(d.titre) + " »" + (c.note != null ? " · " + fmtNote(c.note) + "/" + d.points : ""), "#/devoir/" + d.id, d.classe_id); });
+      if (d && d.id) add("notes", D(c.modifie_le), (c.note != null ? "Note reçue" : "Correction reçue") + " : « " + esc(d.titre) + " »" + (c.note != null ? " · " + fmtNote(c.note) + "/" + d.points : ""), "#/devoir/" + d.id, d.classe_id); });
     ((res[2] && res[2].data) || []).filter(a => a.auteur !== moiId).filter(a => D(a.publie_le || a.cree_le) <= now()).forEach(a => add("annonces", D(a.publie_le || a.cree_le), esc(a.auteur_nom) + " a publié une annonce", "#/classe/" + a.classe_id + "/flux", a.classe_id));
     S.devoirs.filter(d => d.date_limite && D(d.date_limite) > now() && D(d.date_limite) - now() < 864e5 && etat(d, moi()).t === "Attribué").forEach(d => add("echeances", D(d.date_limite), "À rendre " + dueTxt(D(d.date_limite)).toLowerCase() + " : « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id));
   }

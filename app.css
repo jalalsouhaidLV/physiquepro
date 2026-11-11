@@ -2413,3 +2413,29 @@ details.autresrendus .autresliste{display:grid;gap:10px;padding-bottom:12px}
   .telqui .i{vertical-align:-3px;margin-right:4px}
 }
 .simq,.simq input{min-width:0}
+/* ---- 3e évaluation (11/11/2026), lots J et K ---- */
+/* K : lien « Aller au contenu », visible seulement quand le clavier arrive dessus */
+.pp-saut{position:absolute;left:8px;top:-60px;z-index:200;background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;font-weight:700;text-decoration:none}
+.pp-saut:focus{top:8px}
+main.content:focus{outline:none}
+/* J : téléphone tourné (paysage) : on garde la barre du bas et on retire les logos du haut (ils sont dans Applications) */
+@media (pointer:coarse) and (max-height:500px) and (min-width:761px){
+  .topbar .quick,.topbar .topmid{display:none!important}
+  .navbas{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding:2px max(4px,env(safe-area-inset-right,0px)) calc(2px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px));box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+  .navbas a{display:flex;justify-content:center;align-items:center;gap:6px;padding:6px 2px;border-radius:12px;color:var(--muted);text-decoration:none;font-size:.8rem;font-weight:600}
+  .navbas a .i{width:20px;height:20px}
+  .navbas a.on{color:var(--accent);background:var(--accent-soft)}
+  main.content{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+  #coinPerso{bottom:calc(52px + env(safe-area-inset-bottom,0px))}
+}
+@media (max-width:600px){
+  /* K : la pastille rouge se met au coin de la cloche, sans la cacher */
+  .topbar .bellwrap .badge{top:-2px;right:-6px}
+  /* K : liens des cartes de cours et des Révisions : 24 px de haut au moins */
+  .ccard .body .cder a,.fcdocs a{min-height:24px;padding-block:2px}
+}
+/* K : les 3 onglets de « À faire » tiennent sur un petit écran (320 px) */
+@media (max-width:400px){
+  .tabsbar .tabs.tabs3{-webkit-mask-image:none;mask-image:none;display:flex}
+  .tabsbar .tabs.tabs3 button{flex:1 1 auto;padding:14px 6px 11px;font-size:.84rem}
+}

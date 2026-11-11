@@ -37,6 +37,7 @@ function topbar(r){
   const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : r.v === "quiz" ? cls((S.quiz.find(q => String(q.id) === r.a) || {}).classe_id) : null;
   if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none" title="${esc(c.nom)}"><span class="curnom">${esc(c.nom)}</span><small>${esc(c.section)}</small></a>`;
   return `<header class="topbar">
+    <a href="#" class="pp-saut" data-saut="1">Aller au contenu</a>
     <button class="ib menubtn${S.prof ? "" : " mbeleve"}" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" aria-label="Accueil PhysiquePro" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
@@ -148,6 +149,7 @@ function blocRecent(){
   const ligne = it => { const o = it.o, c = cls(o.classe_id);
     let droite = "";
     if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
+    else if (S.prof && it.k === "quiz") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => S.resultats.some(x => x.quiz_id === o.id && (S.profils || {})[x.eleve] === e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
     else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${e.t}</span>`; }
     return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
   return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "À rendre récemment" : "À faire bientôt"}</h2>

@@ -243,6 +243,7 @@ function topbar(r){
   const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : r.v === "quiz" ? cls((S.quiz.find(q => String(q.id) === r.a) || {}).classe_id) : null;
   if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none" title="${esc(c.nom)}"><span class="curnom">${esc(c.nom)}</span><small>${esc(c.section)}</small></a>`;
   return `<header class="topbar">
+    <a href="#" class="pp-saut" data-saut="1">Aller au contenu</a>
     <button class="ib menubtn${S.prof ? "" : " mbeleve"}" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" aria-label="Accueil PhysiquePro" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
@@ -354,6 +355,7 @@ function blocRecent(){
   const ligne = it => { const o = it.o, c = cls(o.classe_id);
     let droite = "";
     if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
+    else if (S.prof && it.k === "quiz") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => S.resultats.some(x => x.quiz_id === o.id && (S.profils || {})[x.eleve] === e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
     else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${e.t}</span>`; }
     return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
   return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "À rendre récemment" : "À faire bientôt"}</h2>
@@ -908,7 +910,7 @@ function vTodo(){
     if (it.d) { const e = etat(o, moi()); right = e.t === "Noté" ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(e.note)}/${o.points}</span>` : e.t === "Rendu" ? "Rendu" : dueOf(o).replace("Échéance : ", "") + (e.t === "Attribué" ? relEch(o.date_limite) : ""); }
     else { const r = resultatDe(o, S.user.id); right = r ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(noteQuiz(o, r))}/${o.points}</span>` : o.date_limite ? dueTxt(D(o.date_limite)).replace("Échéance : ", "") + relEch(o.date_limite) : "Aucune date limite"; }
     return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${it.d ? "#/devoir/" : "#/quiz/"}${o.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(it.d ? "devoir" : "quiz", "")}</span><span class="tt">${esc(o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${right}</span></a></div>`; };
-  return `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs" role="tablist">${Object.keys(L).map(k => `<button role="tab" aria-selected="${S.todoTab === k}" data-act="todotab" data-t="${k}">${L[k]} <span class="muted mono">${groups[k].length}</span></button>`).join("")}</div></div>
+  return `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs tabs3" role="tablist">${Object.keys(L).map(k => `<button role="tab" aria-selected="${S.todoTab === k}" data-act="todotab" data-t="${k}">${L[k]} <span class="muted mono">${groups[k].length}</span></button>`).join("")}</div></div>
   <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(ligne).join("") : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail manquant." : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
 }
 
@@ -2115,7 +2117,7 @@ async function chargerNotifs(){
       ...((res[3] && res[3].data) || []).map(s => ({ o: s, h: "#/classe/" + s.classe_id + "/travaux", l: "Nouveau document" }))];
     nouveaux.filter(x => D(x.o.publie_le) > vu && D(x.o.publie_le) <= now()).forEach(x => add("travaux", D(x.o.publie_le), x.l + " : « " + esc(x.o.titre) + " »", x.h, x.o.classe_id));
     S.corrections.filter(c => c.publiee && c.modifie_le && D(c.modifie_le) > vu).forEach(c => { const r = S.rendus.find(x => x.id === c.rendu_id), d = r && dv(r.devoir_id);
-      if (d && d.id) add("notes", D(c.modifie_le), "Travail rendu : « " + esc(d.titre) + " »" + (c.note != null ? " · " + fmtNote(c.note) + "/" + d.points : ""), "#/devoir/" + d.id, d.classe_id); });
+      if (d && d.id) add("notes", D(c.modifie_le), (c.note != null ? "Note reçue" : "Correction reçue") + " : « " + esc(d.titre) + " »" + (c.note != null ? " · " + fmtNote(c.note) + "/" + d.points : ""), "#/devoir/" + d.id, d.classe_id); });
     ((res[2] && res[2].data) || []).filter(a => a.auteur !== moiId).filter(a => D(a.publie_le || a.cree_le) <= now()).forEach(a => add("annonces", D(a.publie_le || a.cree_le), esc(a.auteur_nom) + " a publié une annonce", "#/classe/" + a.classe_id + "/flux", a.classe_id));
     S.devoirs.filter(d => d.date_limite && D(d.date_limite) > now() && D(d.date_limite) - now() < 864e5 && etat(d, moi()).t === "Attribué").forEach(d => add("echeances", D(d.date_limite), "À rendre " + dueTxt(D(d.date_limite)).toLowerCase() + " : « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id));
   }
@@ -7263,6 +7265,42 @@ document.addEventListener("toggle", e => {
   if (d.matches("details.decjour")) S.decOuvert = d.open;
   else if (d.matches("details.autresrendus")) S.autresRendus = d.open;
 }, true);
+/* =====================================================================
+   PhysiquePro · 32 · 3e évaluation (11/11/2026), lots I et K
+   ---------------------------------------------------------------------
+   Lot I : sur téléphone, la touche Retour d'Android (ou le glissement
+   « retour » de l'iPhone) ferme d'abord le menu, la cloche, un menu
+   déroulant ou une fenêtre ouverte, au lieu de quitter la page.
+   Principe : quand une de ces « couches » s'ouvre, une étape est ajoutée
+   à l'historique (même adresse, donc pas de changement de page) ; Retour
+   la retire et referme la couche. Si la couche a été fermée autrement
+   (voile, croix, Échap), Retour saute cette étape devenue inutile.
+   Lot K : lien « Aller au contenu » (clavier, lecteurs d'écran).
+   ===================================================================== */
+const COUCHE = { etat: null };
+const coucheOuverte = () => !!((S.drawer && window.innerWidth < 1100) || S.bell || S.dd || S.me || S.menu || S.apps || (S.modal && !S.modal.busy) || S.viewer);
+const surCouche = () => !!(history.state && history.state.ppCouche);
+APRES_RENDU.push(() => {
+  if (coucheOuverte() && !surCouche()) { try { history.pushState({ ...(history.state || {}), ppCouche: true }, "", location.href); } catch (_) {} }
+  COUCHE.etat = { c: surCouche(), h: location.href };
+});
+window.addEventListener("popstate", () => {
+  const avant = COUCHE.etat; COUCHE.etat = { c: surCouche(), h: location.href };
+  if (coucheOuverte()) {
+    if (window.innerWidth < 1100) S.drawer = false;
+    fermerMenus(); if (S.modal && !S.modal.busy) S.modal = null; S.viewer = null;
+    render(); return;
+  }
+  /* la couche avait déjà été fermée (voile, croix, Échap) : cette étape ne sert plus, on passe directement à la page d'avant */
+  if (avant && avant.c && !COUCHE.etat.c && avant.h === location.href) history.back();
+});
+/* « Aller au contenu » : place le clavier au début de la page (sans changer l'adresse #/…) */
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest("[data-saut]"); if (!a) return;
+  e.preventDefault();
+  const m = document.querySelector("main.content"); if (!m) return;
+  m.setAttribute("tabindex", "-1"); m.focus(); m.scrollIntoView({ block: "start" });
+});
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;

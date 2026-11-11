@@ -221,6 +221,8 @@
           const n = Object.assign({}, r);
           if (!("id" in n) && DB[this.t].some(x => typeof x.id === "number")) n.id = nouvelId(this.t);
           if (!("cree_le" in n) && DB[this.t].some(x => "cree_le" in x)) n.cree_le = new Date().toISOString();
+          /* dates remplies par défaut dans la vraie base (default now()) */
+          for (const k of ["rendu_le", "fait_le", "modifie_le"]) if (!(k in n) && DB[this.t].some(x => k in x)) n[k] = new Date().toISOString();
           DB[this.t].push(n); sortie.push(n);
         }
         res = ok(this.renvoyer ? sortie : null);
