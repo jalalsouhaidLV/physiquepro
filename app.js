@@ -6211,15 +6211,17 @@ async function activerPush(){
   if (perm !== "granted") return toast("Notifications refusées. Autorise-les dans les réglages du téléphone ou du navigateur.");
   try {
     const reg = await navigator.serviceWorker.ready;
-    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "cle" } });
-    if (error || !data || !data.cle) throw new Error((error && error.message) || "clé introuvable");
+    let { data, error } = await sb.functions.invoke("pp-push", { body: { action: "cle" } });
+    /* jeton refusé (session fermée ailleurs, jeton ancien) : on renouvelle la connexion une fois et on réessaie */
+    if (error || !data || !data.cle) { try { await sb.auth.refreshSession(); } catch (_) {} ({ data, error } = await sb.functions.invoke("pp-push", { body: { action: "cle" } })); }
+    if (error || !data || !data.cle) { const st = error && error.context && error.context.status; throw new Error(st === 401 ? "ta connexion a expiré. Déconnecte-toi, reconnecte-toi, puis réessaie." : "le service de notifications ne répond pas. Réessaie dans un moment."); }
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64EnOctets(data.cle) });
     const j = sub.toJSON();
     const { error: e2 } = await sb.rpc("pp_push_abonner", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_appareil: (estIOS() ? "iPhone/iPad" : /Android/i.test(navigator.userAgent) ? "Android" : "Ordinateur") });
     if (e2) throw e2;
     S.pushOn = true; toast("Notifications activées sur cet appareil ✓"); render();
-  } catch (e) { toast("Activation impossible : " + (e.message || e)); }
+  } catch (e) { const m = String((e && e.message) || e || ""); toast("Activation impossible : " + (/non-2xx|Failed to fetch|NetworkError/i.test(m) ? "le service de notifications ne répond pas. Réessaie dans un moment." : m)); }
 }
 async function desactiverPush(){
   const sub = await abonnementPush();
