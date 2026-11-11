@@ -6,7 +6,7 @@ function teamsVisible(c){ return c.teams_url && (S.prof || c.teams_visible); }
 
 function classTabs(c, tab){
   const T = []; if (fluxVisible(c)) T.push(["flux", "Flux"]);
-  T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "Mes notes"]);
+  T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "<span class=\"tl\">Mes notes</span><span class=\"tc\">Notes</span>"]);
   if (S.prof) T.push(["corriger", "À corriger"]);
   return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}</div>
     <div class="tabicons">

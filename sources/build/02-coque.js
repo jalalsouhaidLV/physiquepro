@@ -37,10 +37,10 @@ function topbar(r){
   const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : r.v === "quiz" ? cls((S.quiz.find(q => String(q.id) === r.a) || {}).classe_id) : null;
   if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none" title="${esc(c.nom)}"><span class="curnom">${esc(c.nom)}</span><small>${esc(c.section)}</small></a>`;
   return `<header class="topbar">
-    <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
+    <button class="ib menubtn${S.prof ? "" : " mbeleve"}" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" aria-label="Accueil PhysiquePro" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
+    ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}${S.prof ? "" : " qeleve"}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
     ${lanceurApps()}
     ${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
@@ -131,9 +131,11 @@ function vAccueil(){
   const list = actives();
   if (!list.length) return `<div class="page">${S.prof ? `<div class="emptystate"><b>Aucun cours actif.</b><span>Crée ton premier cours avec le bouton + en haut de la page.</span><div><button class="btn" data-act="newclass">${icon("plus")} Créer un cours</button></div></div>` :
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
+  const replie = !S.prof && window.innerWidth <= 600;   /* téléphone élève : l'essentiel d'abord, la « Découverte du jour » repliée en bas */
+  const decouverte = replie ? `<details class="decjour"${S.decOuvert ? " open" : ""}><summary>${icon("idea")} Découverte du jour <small>scientifique, simulation, défi, anecdote</small></summary>${blocScientifique()}${blocDecouvertes()}</details>` : "";
   return `<div class="page wide home">${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
-    ${blocScientifique()}<section class="homepanel"><div class="homehead"><h1>Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
-    <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${blocDecouvertes()}${pageFoot()}</div>`;
+    ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h1>Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
+    <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${replie ? decouverte : blocDecouvertes()}${pageFoot()}</div>`;
 }
 /* « À rendre récemment » (en haut de l'accueil, comme Classroom) */
 function blocRecent(){

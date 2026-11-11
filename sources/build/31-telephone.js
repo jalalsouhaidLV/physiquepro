@@ -755,3 +755,10 @@ APRES_RENDU.push(() => {
   if (!S.user || S.public) return;
   unParEcran(); casesConsigne(); signerPhotosCP(); repriseLecture(); majPastille(); bandeauHorsLigne(); proposerInstall();
 });
+
+/* ---------------------------------------------------------------- Lot B de l'évaluation (11/11/2026) : volets repliables qui restent ouverts au rafraîchissement */
+document.addEventListener("toggle", e => {
+  const d = e.target; if (!d || !d.matches) return;
+  if (d.matches("details.decjour")) S.decOuvert = d.open;
+  else if (d.matches("details.autresrendus")) S.autresRendus = d.open;
+}, true);

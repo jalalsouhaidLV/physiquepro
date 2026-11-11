@@ -2346,3 +2346,37 @@ body.simtelouvert{overflow:hidden}
 /* Lot A de l'évaluation (11/11/2026) : une question à la fois sur téléphone (.q est en grid, ce qui annulait hidden) ; « Commencer » sans soulignement */
 section.card > .q[hidden]{display:none!important}
 .btn.tpgo,.btn.tpgo:hover{text-decoration:none!important}
+/* Lot B de l'évaluation (11/11/2026) : téléphone plus simple pour les collégiens */
+details.decjour{margin:18px 0 8px;border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
+details.decjour>summary{list-style:none;cursor:pointer;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:16px 18px;font-weight:700;font-size:1.05rem;min-height:56px}
+details.decjour>summary::-webkit-details-marker{display:none}
+details.decjour>summary::after{content:"";margin-left:auto;width:10px;height:10px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s}
+details.decjour[open]>summary::after{transform:rotate(-135deg)}
+details.decjour>summary small{flex-basis:100%;order:3;font-weight:400;font-size:.85rem;color:var(--muted)}
+details.decjour>summary .i{width:22px;height:22px;color:var(--accent)}
+details.decjour[open]{padding:0 12px 12px}
+details.decjour[open]>summary{margin:0 -12px}
+details.autresrendus{border:1px dashed var(--line);border-radius:14px;padding:0 10px}
+details.autresrendus>summary{cursor:pointer;padding:12px 4px;font-weight:600;min-height:44px;display:flex;align-items:center;flex-wrap:wrap;gap:2px 8px}
+details.autresrendus>summary small{font-weight:400;color:var(--muted)}
+details.autresrendus .autresliste{display:grid;gap:10px;padding-bottom:12px}
+@media (max-width:760px){
+  /* la barre du bas a déjà « Menu » : pas de second bouton menu en haut pour l'élève */
+  body:has(.navbas) .topbar .menubtn.mbeleve{display:none}
+}
+@media (max-width:600px){
+  .home .ordreaide{display:none}
+  /* barre du haut de l'élève : logo, applications (qui contiennent aussi Pronote, Lycée…), cloche, compte */
+  .topbar .quick.qeleve{display:none}
+  /* onglets du cours : un dégradé indique qu'il y a une suite à faire défiler */
+  .tabsbar .tabs{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  /* textes : 12 px minimum */
+  .topbar .badge{font-size:12px;min-width:20px;height:20px;line-height:20px}
+  .navbas a{font-size:.75rem}
+  .tel-prochain small,.recentrow .rel,.dt .rel,.scilbl,.declbl,.declbl .simniv,.sciphoto em,.cprog small,.tagpost,.nlib,.copierow small,.ev small,.smitem small,.smitem .smh,.smitem .pill,.slot small,.who2 .ini{font-size:12px!important}
+  /* cibles à toucher : 24 px minimum */
+  a.tpautres,a[data-act="pasmoi"],a.uplink{display:inline-block;min-height:24px;padding-block:3px}
+  .q input[type=radio],.q input[type=checkbox]{width:24px;height:24px}
+}
+.tabs .tc{display:none}
+@media (max-width:440px){.tabs .tc{display:inline}}

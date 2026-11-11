@@ -243,10 +243,10 @@ function topbar(r){
   const c = r.v === "classe" ? cls(r.a) : r.v === "devoir" ? cls((S.devoirs.find(d => String(d.id) === r.a) || {}).classe_id) : r.v === "quiz" ? cls((S.quiz.find(q => String(q.id) === r.a) || {}).classe_id) : null;
   if (c) crumb = `<span class="sep">›</span><a class="cur" href="#/classe/${esc(c.id)}" style="color:inherit;text-decoration:none" title="${esc(c.nom)}"><span class="curnom">${esc(c.nom)}</span><small>${esc(c.section)}</small></a>`;
   return `<header class="topbar">
-    <button class="ib menubtn" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
+    <button class="ib menubtn${S.prof ? "" : " mbeleve"}" data-act="drawer" aria-label="Menu principal">${icon("menu")}${nbUrgents() ? `<span class="badge urgdot">${nbUrgents()}</span>` : ""}</button>
     <div class="crumbs"><a class="brand" href="#/" aria-label="Accueil PhysiquePro" style="text-decoration:none;color:inherit">${logoSVG}<span class="brandtx"><b>Physique<span>Pro</span></b><small>site de M. ${esc(nomProfSans())}</small></span></a>${crumb}</div>
     <span class="spacer topmid"><img class="toplogo" src="logo-verdun-haut.png?v=2" alt="Lycée franco-libanais Verdun" width="81" height="48"></span>
-    ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
+    ${(() => { const L = liensFavoris(); return `<nav class="quick${L.length > 12 ? " deux" : ""}${S.prof ? "" : " qeleve"}" style="--qc:${Math.min(12, Math.ceil(L.length / 2))}" aria-label="Liens rapides favoris">${L.map(lienRapide).join("")}</nav>`; })()}
     ${lanceurApps()}
     ${cloche()}
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
@@ -337,9 +337,11 @@ function vAccueil(){
   const list = actives();
   if (!list.length) return `<div class="page">${S.prof ? `<div class="emptystate"><b>Aucun cours actif.</b><span>Crée ton premier cours avec le bouton + en haut de la page.</span><div><button class="btn" data-act="newclass">${icon("plus")} Créer un cours</button></div></div>` :
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
+  const replie = !S.prof && window.innerWidth <= 600;   /* téléphone élève : l'essentiel d'abord, la « Découverte du jour » repliée en bas */
+  const decouverte = replie ? `<details class="decjour"${S.decOuvert ? " open" : ""}><summary>${icon("idea")} Découverte du jour <small>scientifique, simulation, défi, anecdote</small></summary>${blocScientifique()}${blocDecouvertes()}</details>` : "";
   return `<div class="page wide home">${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
-    ${blocScientifique()}<section class="homepanel"><div class="homehead"><h1>Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
-    <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${blocDecouvertes()}${pageFoot()}</div>`;
+    ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h1>Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
+    <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${replie ? decouverte : blocDecouvertes()}${pageFoot()}</div>`;
 }
 /* « À rendre récemment » (en haut de l'accueil, comme Classroom) */
 function blocRecent(){
@@ -372,7 +374,7 @@ function teamsVisible(c){ return c.teams_url && (S.prof || c.teams_visible); }
 
 function classTabs(c, tab){
   const T = []; if (fluxVisible(c)) T.push(["flux", "Flux"]);
-  T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "Mes notes"]);
+  T.push(["travaux", "Travaux<span class=\"tl\"> et devoirs</span>"], ["personnes", "Personnes"]); T.push(["notes", S.prof ? "Notes" : "<span class=\"tl\">Mes notes</span><span class=\"tc\">Notes</span>"]);
   if (S.prof) T.push(["corriger", "À corriger"]);
   return `<div class="tabsbar" style="--c:var(${C(c.couleur).c})"><div class="tabs" role="tablist">${T.map(([k, l]) => `<a role="tab" aria-selected="${tab === k}" href="#/classe/${esc(c.id)}/${k}">${l}</a>`).join("")}</div>
     <div class="tabicons">
@@ -725,9 +727,11 @@ function vDevoir(r){
       ${copiesEleve("devoir", d.id, moi()).map(x => `<div class="copierow">${icon("edit")}<span>Ta copie modifiable : <b>${esc(x.nom)}</b><small class="muted" style="display:block">Tes modifications sont enregistrées automatiquement et ton professeur les voit.</small></span>${telephone() ? `<a href="#" data-act="wordtel" data-copie="${esc(x.id)}" data-devoir="${esc(d.id)}" class="btn sm">Ouvrir</a>` : `<a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a>`}</div>`).join("")}
       ${S.files.length ? `<div class="att rcards mini">${S.files.map((f, i) => carteEdit({ label: f.name, pending: f }, "rmfile", i, " · " + tailleTxt(f.size))).join("")}</div>` : ""}
       ${S.lienOpen ? `<div class="field"><label for="lien">Lien (OneDrive, vidéo…)</label><input id="lien" type="url" placeholder="https://…" value="${esc(S.lien)}"></div>` : ""}
-      ${(d.ressources || []).map((x, i) => ficheAnnotable(x) ? `<button class="btn tonal ecrirefiche" data-act="ecrirefiche" data-id="${d.id}" data-i="${i}">${icon("pen")} Écrire sur « ${esc(x.label || "la fiche")} »</button>` : "").join("")}
+      ${(() => { const aCopie = copiesEleve("devoir", d.id, moi()).length > 0, ouvre = S.autresRendus || S.files.length || S.lienOpen || S.menu === "ajouter";
+        const autres = `${(d.ressources || []).map((x, i) => ficheAnnotable(x) ? `<button class="btn tonal ecrirefiche" data-act="ecrirefiche" data-id="${d.id}" data-i="${i}">${icon("pen")} Écrire sur « ${esc(x.label || "la fiche")} »</button>` : "").join("")}
       <button class="btn tonal" data-act="scanner" data-id="${d.id}">${icon("camera")} Scanner mon travail papier</button>
-      <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
+      <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>`;
+        return aCopie ? `<details class="autresrendus"${ouvre ? " open" : ""}><summary>Autres façons de rendre <small>photo, fichier, lien</small></summary><div class="autresliste">${autres}</div></details>` : autres; })()}
       <input type="file" id="fileIn" multiple hidden>
       ${!ouvert(d) ? `<p class="notice" style="margin:0;font-size:.85rem">La date limite est passée : ton travail sera marqué <b>en retard</b>.</p>` : ""}
       <div id="depErr" class="err" hidden></div>${quiRend()}
@@ -7233,6 +7237,13 @@ APRES_RENDU.push(() => {
   if (!S.user || S.public) return;
   unParEcran(); casesConsigne(); signerPhotosCP(); repriseLecture(); majPastille(); bandeauHorsLigne(); proposerInstall();
 });
+
+/* ---------------------------------------------------------------- Lot B de l'évaluation (11/11/2026) : volets repliables qui restent ouverts au rafraîchissement */
+document.addEventListener("toggle", e => {
+  const d = e.target; if (!d || !d.matches) return;
+  if (d.matches("details.decjour")) S.decOuvert = d.open;
+  else if (d.matches("details.autresrendus")) S.autresRendus = d.open;
+}, true);
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
