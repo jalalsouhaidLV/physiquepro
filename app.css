@@ -2380,3 +2380,15 @@ details.autresrendus .autresliste{display:grid;gap:10px;padding-bottom:12px}
 }
 .tabs .tc{display:none}
 @media (max-width:440px){.tabs .tc{display:inline}}
+/* Lot C de l'évaluation (11/11/2026) : écrans du prof */
+.sommaire{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 16px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.sommaire b{font-size:.9rem;margin-right:4px}
+.sommaire .chip{border:1px solid var(--line);background:var(--surface-2,var(--bg));color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;min-height:32px}
+.sommaire .chip:hover,.sommaire .chip:focus-visible{border-color:var(--accent);color:var(--accent)}
+/* cases de sélection des élèves : plus grandes */
+.person input[type=checkbox]{width:20px;height:20px;flex:none}
+/* 18 raccourcis en haut : icônes seules (le nom apparaît au survol), plus de noms coupés */
+@media (min-width:761px){
+  .topbar .quick.deux .ql{display:none!important}
+  .topbar .quick.deux{grid-template-columns:repeat(var(--qc,12),58px)!important;row-gap:4px}
+}

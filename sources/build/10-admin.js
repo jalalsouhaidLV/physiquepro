@@ -46,7 +46,7 @@ function admSite(){
       ${A.modif ? `<button class="btn ghost sm" data-act="admreset">Annuler</button>` : ""}<button class="btn sm" data-act="admsave" ${A.busy || !A.modif ? "disabled" : ""}>${A.busy ? "Enregistrement…" : "Enregistrer"}</button></div>
     <section class="edcard"><h2>${icon("people")} Identité</h2>
       <div class="two"><div class="field"><label>Nom affiché</label>${inp("prof.nom", "ex. Jalal SOUHAID", "text", "Nom affiché")}</div>
-      <div class="field"><label>Adresse du professeur</label><input value="${esc(R().prof.email)}" disabled></div></div>
+      <div class="field"><label>Adresse du professeur</label><input value="${esc(R().prof.email)}" disabled aria-label="Adresse du professeur"></div></div>
       <div class="field"><label>Titre (bas de chaque page)</label>${inp("prof.titre", "ex. Professeur de Physique-Chimie", "text", "Titre")}</div>
       <p class="muted" style="margin:0;font-size:.82rem">Ton adresse ne se change pas ici : c'est elle qui te donne les droits de professeur.</p>
     </section>
@@ -295,3 +295,14 @@ function exporterEleves(){
 }
 
 const confirmerPerte = () => { S.modal = { kind: "confirm", action: "perte", titre: "Quitter sans enregistrer ?", texte: "Tes modifications de la boîte à outils seront perdues.", ok: "Quitter" }; render(); return false; };
+
+/* Lot C de l'évaluation (11/11/2026) : sommaire en haut des longues pages de Paramètres (4 rubriques ou plus) */
+function sommaireParametres(){
+  const pg = document.querySelector("main.content > .page"); if (!pg || pg.querySelector(".sommaire")) return;
+  const S2 = [...pg.querySelectorAll("section.edcard > h2")]; if (S2.length < 4) return;
+  S2.forEach((h, i) => { h.parentElement.id = "rub" + i; h.parentElement.style.scrollMarginTop = "90px"; });
+  const nav = document.createElement("nav"); nav.className = "sommaire"; nav.setAttribute("aria-label", "Sommaire de la page");
+  nav.innerHTML = "<b>Aller à :</b>" + S2.map((h, i) => `<button type="button" class="chip" data-somm="${i}">${esc(h.textContent.trim())}</button>`).join("");
+  const ancre = pg.querySelector(".savebar") || S2[0].parentElement; ancre.after(nav);
+}
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-somm]"); if (!b) return; e.preventDefault(); document.getElementById("rub" + b.dataset.somm)?.scrollIntoView({ behavior: "smooth", block: "start" }); });
