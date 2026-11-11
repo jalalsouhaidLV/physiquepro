@@ -202,5 +202,7 @@ function etat(d, email){
   if (r) return {t:"Rendu", k:"info", r, c, retard:enRetard(d, r)};
   return !ouvert(d) ? {t:"Manquant", k:"bad"} : {t:"Attribué", k:""};
 }
+/* 5e évaluation (11/11/2026) : l'élève (parfois collégien) lit des mots simples ; le prof garde ceux de Classroom */
+const libEtat = t => S.prof ? t : t === "Attribué" ? "À faire" : t === "Manquant" ? "En retard" : t;
 const resultatDe = (q, uid) => S.resultats.find(x => x.quiz_id === q.id && x.eleve === uid);
 const noteQuiz = (q, r) => r ? Math.round(r.score / Math.max(1, r.sur) * (q.points || 20) * 100) / 100 : null;

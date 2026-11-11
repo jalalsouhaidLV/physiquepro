@@ -64,7 +64,9 @@ function blocTableauDeBord(){
     const crs = S.rdv ? S.rdv.creneaux.filter(c => aujourdhui(c.debut)) : [], rdvJour = S.rdv ? S.rdv.resa.filter(r => crs.some(c => c.id === r.creneau_id)).length : null;
     const tps = (S.demandes || []).filter(x => x.date_tp && D(x.date_tp) >= new Date(+t - 864e5 / 2) && D(x.date_tp) <= dans7);
     const prochain = dvs.filter(d => d.date_limite && D(d.date_limite) > t).sort((a, b) => D(a.date_limite) - D(b.date_limite))[0];
-    tuiles = tuile(premier ? `#/classe/${esc(premier.id)}/corriger` : "#/todo", "check", acor, acor > 1 ? "copies à corriger" : "copie à corriger", acor ? "warn" : "ok", premier && acor ? esc(premier.nom) : acor ? "" : "Tout est corrigé")
+    /* 5e évaluation : la tuile des copies est toujours là, en premier (« Tout est corrigé ✓ » quand il n'y a rien) ; le clic ouvre le premier devoir à corriger */
+    const dvAcor = dvs.filter(d => aCorriger(d) > 0).sort((a, b) => (a.date_limite ? +D(a.date_limite) : 9e15) - (b.date_limite ? +D(b.date_limite) : 9e15))[0];
+    tuiles = tuile(dvAcor ? `#/devoir/${dvAcor.id}` : "#/todo", "check", acor || "0", acor > 1 ? "copies à corriger" : "copie à corriger", acor ? "warn" : "ok", dvAcor ? esc(dvAcor.titre) + (premier ? " · " + esc(premier.nom) : "") : "Tout est corrigé ✓")
       + tuile("#/urgences", "urgent", urg, urg > 1 ? "messages urgents" : "message urgent", urg ? "bad" : "ok", urg ? "non lu" + (urg > 1 ? "s" : "") : "Rien de nouveau")
       + tuile("#/rendezvous", "rdv", rdvJour == null ? "…" : rdvJour, "rendez-vous aujourd'hui", rdvJour ? "info" : "", crs.length ? crs.length + " créneau" + (crs.length > 1 ? "x" : "") + " prévu" + (crs.length > 1 ? "s" : "") : "")
       + tuile("#/suivi", "alerte", alertes, alertes > 1 ? "élèves à surveiller" : "élève à surveiller", alertes ? "warn" : "ok", alertes ? "décrochage possible" : "Tout va bien")
@@ -187,7 +189,7 @@ VUES_PRO.semaine = function(){
     const c = cls(d.classe_id), e = S.prof ? null : etat(d, moi());
     const fait = S.prof ? aCorriger(d) === 0 && rendusDe(d).length > 0 : !!(e && (e.t === "Rendu" || e.t === "Noté"));
     items.push({ d: D(d.date_limite), titre: d.titre, c, href: "#/devoir/" + d.id, ic: d.type === "question" ? "question" : "devoir", fait,
-      etat: S.prof ? `${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""} · ${aCorriger(d)} à corriger` : e.t, k: S.prof ? (aCorriger(d) ? "warn" : "ok") : e.k });
+      etat: S.prof ? `${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""} · ${aCorriger(d)} à corriger` : libEtat(e.t), k: S.prof ? (aCorriger(d) ? "warn" : "ok") : e.k });
   });
   S.quiz.filter(q => vis(q) && q.date_limite && dans(D(q.date_limite))).forEach(q => { const c = cls(q.classe_id), r = S.prof ? null : resultatDe(q, S.user.id);
     items.push({ d: D(q.date_limite), titre: q.titre, c, href: "#/quiz/" + q.id, ic: "quiz", fait: S.prof ? D(q.date_limite) < t : !!r, etat: S.prof ? "Questionnaire" : r ? "Fait" : "À faire", k: r ? "ok" : "" }); });
@@ -428,7 +430,7 @@ VUES_PRO.simulations = function(){
   const groupes = [...SIMS, ...(perso.length ? [{ cat: "Ajoutées par " + nomProfCourt(), l: perso.map(x => ({ ...x, src: x.src || "Lien" })), perso: true }] : [])];
   const filtre = x => !q || sansAccent(x.t + " " + x.src + " " + (x.niv || "")).includes(q);
   return `<div class="page wide"><div class="homehead"><h1>Simulations</h1></div>
-    <p class="muted" style="margin:0">Clique sur une simulation : elle s'ouvre à côté de la page (écran partagé). Sur téléphone, elle s'ouvre dans un nouvel onglet.</p>
+    <p class="muted" style="margin:0"><span class="surordi">Clique sur une simulation : elle s'ouvre à côté de la page (écran partagé).</span><span class="surtel">Touche une simulation pour la lancer.</span></p>
     <div class="simbarre"><div class="simq">${icon("search")}<input type="search" data-simq="1" placeholder="Chercher : pendule, pH, circuit, Tle, SI…" value="${esc(S.simQ || "")}" aria-label="Chercher une simulation"></div></div>
     ${groupes.map(g => { const L = g.l.map((x, i) => ({ ...x, i })).filter(filtre); return L.length ? `<section class="simgroupe"><h2>${esc(g.cat)}</h2><div class="simgrille">${L.map(x => `<div class="simcarte"><button class="simouvrir" data-act="simu" data-t="${esc(x.t)}" data-u="${esc(x.url)}"><span class="simsrc">${esc(x.src)}</span>${x.niv ? `<span class="simniv">${esc(x.niv)}</span>` : ""}<b>${esc(x.t)}</b><span class="simgo">${icon("expand")} Ouvrir à côté</span></button>${g.perso && S.prof ? `<button class="ib sm simsuppr" data-act="simsuppr" data-i="${x.i}" title="Retirer" aria-label="Retirer ${esc(x.t)}">${icon("trash")}</button>` : ""}</div>`).join("")}</div></section>` : ""; }).join("") || `<div class="emptystate"><b>Aucune simulation ne correspond.</b></div>`}
     ${S.prof ? `<section class="edcard"><h2>${icon("plus")} Ajouter une simulation</h2><div class="simajout"><input id="simT" placeholder="Titre (ex. Chute libre)" aria-label="Titre"><input id="simU" type="url" placeholder="https://…" aria-label="Adresse"><button class="btn" data-act="simajout">${icon("plus")} Ajouter</button></div><p class="muted" style="margin:0;font-size:.8rem">Certains sites (Scratch, Tinkercad…) refusent de s'afficher à côté : utilise alors le bouton ↗ du panneau pour les ouvrir dans un onglet.</p></section>` : ""}
@@ -534,7 +536,7 @@ function vueCourbes(){
   return `<div class="cbgrille"><div class="cbdonnees">
       <div class="cbaxes"><label>Abscisse <input data-cb="x" value="${esc(c.x)}" aria-label="Nom de l'abscisse"></label><label>unité <input data-cb="ux" value="${esc(c.ux)}" aria-label="Unité de l'abscisse" placeholder="s"></label>
         <label>Ordonnée <input data-cb="y" value="${esc(c.y)}" aria-label="Nom de l'ordonnée"></label><label>unité <input data-cb="uy" value="${esc(c.uy)}" aria-label="Unité de l'ordonnée" placeholder="m"></label></div>
-      <table class="cbtab"><thead><tr><th>${esc(c.x)}</th><th>${esc(c.y)}</th><th></th></tr></thead><tbody>${c.pts.map((p, i) => `<tr><td><input data-cbp="${i}" data-c="0" value="${esc(p[0])}" inputmode="decimal"></td><td><input data-cbp="${i}" data-c="1" value="${esc(p[1])}" inputmode="decimal"></td><td><button class="ib sm" data-act="cbsuppr" data-i="${i}" aria-label="Supprimer la ligne">${icon("x")}</button></td></tr>`).join("")}</tbody></table>
+      <table class="cbtab"><thead><tr><th>${esc(c.x)}</th><th>${esc(c.y)}</th><th><span class="vh">Supprimer</span></th></tr></thead><tbody>${c.pts.map((p, i) => `<tr><td><input data-cbp="${i}" data-c="0" value="${esc(p[0])}" inputmode="decimal"></td><td><input data-cbp="${i}" data-c="1" value="${esc(p[1])}" inputmode="decimal"></td><td><button class="ib sm" data-act="cbsuppr" data-i="${i}" aria-label="Supprimer la ligne">${icon("x")}</button></td></tr>`).join("")}</tbody></table>
       <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost sm" data-act="cbligne">${icon("plus")} Ligne</button><button class="btn ghost sm" data-act="cbvider">Vider</button></div>
       <p class="muted" style="font-size:.78rem;margin:0">Astuce : copie deux colonnes depuis Excel ou Regressi et colle-les dans la première case (Ctrl+V).</p></div>
     <div class="cbgraphe"><div class="cbmod">${[["lineaire", "Linéaire y = a·x"], ["affine", "Affine y = a·x + b"], ["parabole", "Parabole"], ["expo", "Exponentielle"]].map(([k, l]) => `<button class="thbtn${c.mod === k ? " on" : ""}" data-act="cbmod" data-m="${k}">${l}</button>`).join("")}</div>

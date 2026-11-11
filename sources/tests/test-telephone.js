@@ -442,6 +442,58 @@ async function testsQuatrieme() {
   await ctx.close();
 }
 
+async function testsCinquieme() {
+  console.log("\n— 5e évaluation : rendre sur téléphone, À faire, accueil du prof, logos —");
+  let { ctx, page } = await contexte("iPhone 13");
+  await ouvrir(page); await aller(page, "#/quiz/1", 900);
+  await page.click('[data-qnav="=1"]'); await page.waitForTimeout(300);
+  let e = await page.evaluate(() => { const v = document.querySelector('section.uneq [data-act="valider"]'), p = document.querySelector('section.uneq [data-qnav="-1"]'); if (!v || !p) return null; const rv = v.getBoundingClientRect(), rp = p.getBoundingClientRect(); return { h: Math.round(rv.height), w: Math.round(rv.width), dessus: rv.top < rp.top, vis: getComputedStyle(v).display !== "none" }; });
+  verif("Q Dernière question : grand bouton « Envoyer » (toute la largeur, au-dessus de « Précédente »)", e && e.vis && e.h >= 52 && e.w >= 280 && e.dessus, JSON.stringify(e));
+  await page.click("section.uneq > .q:not([hidden]) .opt"); await page.click('[data-qnav="=0"]'); await page.waitForTimeout(200);
+  await page.click("section.uneq > .q:not([hidden]) .opt"); await page.click('[data-qnav="=1"]'); await page.waitForTimeout(200);
+  await page.click('section.uneq [data-act="valider"]'); await page.waitForTimeout(1200);
+  const vert = await page.evaluate(() => document.getElementById("ppRendu")?.innerText || "");
+  verif("Q Écran vert du questionnaire : la note y est écrite", /Ta note : \d/.test(vert), vert.replace(/\s+/g, " ").slice(0, 80));
+  await page.click("#ppRendu [data-rendu-ok]"); await page.waitForTimeout(400);
+  e = await page.evaluate(() => { const b = document.querySelector(".quizbilan"); return b && { top: Math.round(b.getBoundingClientRect().top), y: Math.round(scrollY), txt: b.innerText.replace(/\s+/g, " ") }; });
+  verif("Q Après l'envoi : le résultat est en haut de la page, visible tout de suite", e && e.top < 500 && e.y < 50 && /Ta note/.test(e.txt), e && e.txt.slice(0, 70));
+  await aller(page, "#/devoir/1", 900);
+  e = await page.evaluate(() => { const w = [...document.querySelectorAll(".dvside > .yourwork")][0], c = document.querySelector(".dvcoms"); return w && c && { w: Math.round(w.getBoundingClientRect().top), c: Math.round(c.getBoundingClientRect().top) }; });
+  verif("Q Page d'un devoir sur téléphone : « Ton travail » avant les commentaires de la classe", e && e.w < e.c, JSON.stringify(e));
+  await aller(page, "#/todo", 800);
+  e = await page.evaluate(() => ({ onglets: [...document.querySelectorAll(".tabs3 button")].map(b => b.innerText.replace(/\s+\d+$/, "").trim()), titres: [...document.querySelectorAll(".workrow .tt")].map(t => t.firstChild.textContent.trim()) }));
+  verif("Q « À faire » : mots simples (À faire, En retard, Terminés)", e.onglets.join(",") === "À faire,En retard,Terminés", e.onglets.join(","));
+  verif("Q « À faire » : l'entraînement de demain est en tête (du plus urgent au moins urgent)", e.titres[0] === "Entraînement : célérité", e.titres.join(" / "));
+  const pill = await page.evaluate(() => { location.hash = "#/accueil"; return new Promise(ok => setTimeout(() => ok([...document.querySelectorAll(".recentrow .pill")].map(p => p.innerText)), 700)); });
+  verif("Q Élève : « À faire » au lieu de « Attribué »", pill.length && !pill.includes("Attribué") && pill.includes("À faire"), pill.join(","));
+  e = await page.evaluate(() => [...document.querySelectorAll(".topbar .ib, .topbar .avatar")].filter(b => b.offsetWidth).map(b => Math.round(Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height))));
+  verif("Q Boutons du haut : 40 px au moins (icônes 44 px)", e.every(x => x >= 40), e.join(","));
+  await ctx.close();
+  for (const dv of ["Pixel 7", "Galaxy S9+"]) {
+    ({ ctx, page } = await contexte(dv)); await ouvrir(page);
+    e = await page.evaluate(() => { const n = document.querySelector(".topbar .quick"), r = n.getBoundingClientRect().right; return [...n.querySelectorAll("a")].filter(a => a.offsetWidth).map(a => a.getBoundingClientRect().right <= r + 0.5); });
+    verif("P " + dv + " : chaque logo du haut est visible en entier", e.length >= 1 && e.every(Boolean), e.length + " logos");
+    await ctx.close();
+  }
+  ({ ctx, page } = await contexte(null, { vue: { width: 1024, height: 700 }, role: "prof" }));
+  await ouvrir(page, "#/accueil");
+  e = await page.evaluate(() => { const n = document.querySelector(".topbar .quick"), r = n.getBoundingClientRect().right, L = [...n.querySelectorAll("a")].filter(a => a.offsetWidth); return { n: L.length, entiers: L.every(a => a.getBoundingClientRect().right <= r + 0.5 && a.getBoundingClientRect().left >= n.getBoundingClientRect().left - 0.5) }; });
+  verif("P Ordinateur 1024 px : les logos du haut visibles le sont en entier", e.n >= 3 && e.entiers, JSON.stringify(e));
+  e = await page.evaluate(() => ({ k: document.querySelector(".kpis .kpi")?.innerText.replace(/\s+/g, " "), h: document.querySelector(".recent h2")?.innerText, r: [...document.querySelectorAll(".recentrow .rrendus")].map(x => x.innerText) }));
+  verif("P Accueil du prof : la 1re tuile dit combien de copies sont à corriger", /cop(ie|ies) à corriger/.test(e.k || ""), e.k);
+  verif("P « Travaux en cours » : rendus et copies à noter", e.h === "Travaux en cours" && e.r.some(x => /tout noté|à noter/.test(x)), e.r.join(" | "));
+  await aller(page, "#/quiz/1", 800);
+  e = await page.evaluate(() => [...document.querySelectorAll("td .pill")].map(p => p.innerText));
+  verif("P Questionnaire (prof) : « À faire » avant l'échéance, pas « Non fait »", e.length && e.every(x => x === "À faire"), e.join(","));
+  await aller(page, "#/devoir/2", 900);
+  await page.click("text=Élève Test"); await page.waitForTimeout(700);
+  const nv = await page.inputValue("#note").catch(() => "");
+  verif("P Case de la note avec une virgule (15,5)", nv === "15,5", nv);
+  await aller(page, "#/classe/tle/travaux", 800);
+  e = await page.evaluate(() => { const h = [...document.querySelectorAll("main.content h1")]; return h.length + ":" + (h[0] ? h[0].innerText : ""); });
+  verif("S Chaque page a un titre principal (onglet Travaux : titre caché pour les lecteurs d'écran)", /^1:/.test(e), e);
+  await ctx.close();
+}
 
 (async () => {
   const srv = await demarrer(0); base = "http://127.0.0.1:" + srv.address().port;
@@ -450,7 +502,9 @@ async function testsQuatrieme() {
     const man = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "manifest.json"), "utf8"));
     verif("D29 Raccourcis de l'icône (À faire, Agenda, Mes notes)", (man.shortcuts || []).map(x => x.name).join(",") === "À faire,Agenda,Mes notes");
     verif("D28 L'appli accepte les partages (share_target)", man.share_target && man.share_target.method === "POST" && man.share_target.params.files[0].accept.includes("image/*"));
-    await testsIPhone(); await testsVisite(); await testsAndroid(); await testsPetitEcran(); await testsTroisieme(); await testsQuatrieme(); await testsAppli();
+    const SEUL = (process.argv.find(x => x.startsWith("--seul=")) || "").slice(7);   /* ex. --seul=testsCinquieme : une seule série, pour corriger vite */
+    const SERIES = { testsIPhone, testsVisite, testsAndroid, testsPetitEcran, testsTroisieme, testsQuatrieme, testsCinquieme, testsAppli };
+    for (const [nom, f] of Object.entries(SERIES)) if (!SEUL || SEUL === nom) await f();
   } catch (e) { verif("Le test a planté", false, String(e && e.stack || e).slice(0, 400)); }
   finally { await nav.close(); srv.close(); }
   const ko = res.filter(x => !x.ok);

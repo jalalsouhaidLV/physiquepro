@@ -106,7 +106,7 @@ function carte(c, archivee){
     }
     if (S.prof && !body) body = `<span class="cvide">${icon("check")} Rien à corriger</span>`;
     const der = dv.filter(d => d.publie_le && new Date(d.publie_le) <= new Date()).sort((a, b) => new Date(b.publie_le) - new Date(a.publie_le))[0];
-    if (der) { const j = Math.floor((Date.now() - new Date(der.publie_le)) / 864e5); body += `<span class="cder">Dernière publication ${j <= 0 ? "aujourd'hui" : j === 1 ? "hier" : "il y a " + j + " jours"} : <a href="#/devoir/${der.id}">${esc(der.titre)}</a></span>`; }
+    if (der) { const j = Math.floor((Date.now() - new Date(der.publie_le)) / 864e5); body += `<span class="cder">Dernière publication ${j <= 0 ? "aujourd'hui" : j === 1 ? "hier" : "il y a " + j + "\u00a0jours"}\u00a0: <a href="#/devoir/${der.id}">${esc(der.titre)}</a></span>`; }
   }
   const menuEleve = !S.prof && !archivee ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">${deplacerMenu(c)}<a href="#" data-act="quitter" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("logout")} Quitter le cours</a></div>` : ""}</div>` : "";
   const menu = !S.prof ? menuEleve : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">
@@ -148,11 +148,11 @@ function blocRecent(){
   items.sort((a, b) => D(a.o.date_limite) - D(b.o.date_limite));
   const ligne = it => { const o = it.o, c = cls(o.classe_id);
     let droite = "";
-    if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
+    if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length, ac = aCorriger(o); droite = `<span class="muted rrendus">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}${nr ? ac ? ` · <b class="rac">${ac} à noter</b>` : " · tout noté ✓" : ""}</span>`; }
     else if (S.prof && it.k === "quiz") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => S.resultats.some(x => x.quiz_id === o.id && (S.profils || {})[x.eleve] === e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
-    else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${e.t}</span>`; }
+    else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${libEtat(e.t)}</span>`; }
     return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
-  return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "À rendre récemment" : "À faire bientôt"}</h2>
+  return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "Travaux en cours" : "À faire bientôt"}</h2>
       <button class="ib" data-act="recent" title="${S.recent ? "Réduire" : "Développer"}" aria-label="${S.recent ? "Réduire" : "Développer"}" aria-expanded="${S.recent}">${icon(S.recent ? "up" : "expand")}</button></div>
     ${S.recent ? (items.length ? `<div class="recentlist">${items.slice(0, 10).map(ligne).join("")}</div>` : `<p class="muted" style="margin:0">Aucun travail avec une date limite cette semaine ou la semaine dernière.</p>`) : ""}</section>`;
 }

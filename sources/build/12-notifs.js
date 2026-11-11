@@ -90,7 +90,7 @@ function admProfil(){
   const off = P.cours_off || [];
   return `<section class="edcard crcard"><h2 class="crbig">Profil</h2>
       <div class="crrow"><b>Photo de profil</b><div class="who2">${avatarP(S.nom, "lg")}<a class="linkbtn" href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Modifier</a></div></div>
-      <div class="crrow"><b>Paramètres du compte</b><span>Modifiez le mot de passe et les options de sécurité de votre compte Microsoft 365 du lycée. <a href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Gérer</a></span></div>
+      <div class="crrow"><b>Paramètres du compte</b><span>${S.prof ? "Modifie" : "Change"} ton mot de passe et les options de sécurité de ton compte Microsoft 365 du lycée. <a href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Gérer</a></span></div>
       <div class="crrow"><b>Changer de nom</b>${S.prof ? `<div class="two" style="align-items:end"><div class="field"><label for="pfNom">Nom affiché aux élèves</label><input id="pfNom" value="${esc(R().prof.nom)}"></div><div><button class="btn sm" data-act="savenom">Enregistrer</button></div></div>`
         : `<span>Ton nom (${esc(S.nom)}) est indiqué par ton professeur. S'il y a une erreur, écris-lui.</span>`}</div>
       <div class="crrow"><b>Adresse</b><span class="muted">${esc(moi())}</span></div>

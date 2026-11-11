@@ -1,4 +1,8 @@
-/* PhysiquePro · service worker : le réseau d'abord (toujours la version à jour), la copie locale si pas de connexion */
+/* PhysiquePro · service worker
+   - la page (index.html) : le réseau d'abord, pour avoir toujours la version à jour ; la copie locale si le réseau ne répond pas en 4 s ;
+   - les fichiers « versionnés » (app.js?v=…, app.css?v=…, config.js?v=…, logos.js?v=…) : la copie locale d'abord (lot R, 5e évaluation) :
+     leur adresse change à chaque mise en ligne, donc une copie gardée est toujours la bonne et le site s'ouvre presque tout de suite ;
+   - le reste du site : le réseau d'abord, la copie locale si pas de connexion. */
 const CACHE = "pp-v1";   /* 11/11/2026 : partage Android, bibliothèques gardées hors connexion */
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(["./", "./index.html", "./manifest.json", "./icon-192.png"]).catch(() => {}))); });
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
@@ -26,11 +30,26 @@ self.addEventListener("fetch", e => {
   if (r.method !== "GET" || !CDN.test(u.hostname)) return;
   e.respondWith(caches.open("pp-cdn").then(c => c.match(r).then(x => x || fetch(r).then(rep => { if (rep.ok || rep.type === "opaque") c.put(r, rep.clone()); return rep; }))));
 });
+const garder = (r, rep) => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(r, copie)); } return rep; };
+/* une seule version gardée par fichier : les anciennes (?v= d'avant) sont effacées */
+const ranger = (c, u) => c.keys().then(L => Promise.all(L.filter(k => { const x = new URL(k.url); return x.pathname === u.pathname && x.search !== u.search; }).map(k => c.delete(k))));
 self.addEventListener("fetch", e => {
   const r = e.request, u = new URL(r.url);
   if (r.method !== "GET" || u.origin !== location.origin) return;   // Supabase, Microsoft, etc. : jamais mis en cache
-  e.respondWith(fetch(r).then(rep => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(r, copie)); } return rep; })
-    .catch(() => caches.match(r).then(x => x || caches.match("./index.html"))));
+  if (u.searchParams.has("v") && /\.(js|css)$/.test(u.pathname)) {
+    e.respondWith(caches.open(CACHE).then(c => c.match(r).then(x => x || fetch(r).then(rep => { if (rep.ok) { c.put(r, rep.clone()); ranger(c, u); } return rep; }))));
+    return;
+  }
+  if (r.mode === "navigate") {
+    e.respondWith(new Promise(ok => {
+      let fini = false; const secours = () => caches.match(r).then(x => x || caches.match("./index.html")).then(x => x || fetch(r));
+      const t = setTimeout(() => secours().then(x => { if (!fini) { fini = true; ok(x); } }), 4000);
+      fetch(r).then(rep => { garder(r, rep); if (!fini) { fini = true; clearTimeout(t); ok(rep); } })
+        .catch(() => { clearTimeout(t); secours().then(x => { if (!fini) { fini = true; ok(x); } }); });
+    }));
+    return;
+  }
+  e.respondWith(fetch(r).then(rep => garder(r, rep)).catch(() => caches.match(r).then(x => x || caches.match("./index.html"))));
 });
 
 /* notifications push (étape 37) : note rendue par le professeur, etc. */

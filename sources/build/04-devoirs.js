@@ -47,8 +47,8 @@ function vDevoir(r){
       <button class="btn" data-act="submit" data-id="${d.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi en cours…" : (S.files.length || S.lien ? "Rendre" : "Marquer comme terminé")}</button>
       <p class="muted" style="margin:0;font-size:.78rem">50 Mo maximum par fichier${d.formats ? " · " + esc(d.formats) : ""}</p>`;
   }
-  return `<div class="page wide" style="--c:var(${k.c})"><div class="dv">
-    <div style="display:grid;gap:16px;min-width:0">
+  return `<div class="page wide" style="--c:var(${k.c})"><div class="dv dveleve">
+    <div class="dvmain" style="display:grid;gap:16px;min-width:0">
       <div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${escTitre(d.titre)}</h1>
         <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}</div>
         <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
@@ -57,8 +57,8 @@ function vDevoir(r){
       ${isQ ? reponsesClasse(d, c, rd, Q) : ""}
       ${blocComsDevoir(d, c)}
     </div>
-    <aside style="display:grid;gap:16px;align-content:start">
-      <div class="yourwork"><header><h2>${isQ ? "Ta réponse" : "Ton travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
+    <aside class="dvside" style="display:grid;gap:16px;align-content:start">
+      <div class="yourwork"><header><h2>${isQ ? "Ta réponse" : "Ton travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : libEtat(e.t)}${e.retard ? " en retard" : ""}</span></header>${work}</div>
       ${vCP(d.id, moi())}${actionsTelDevoir(d, "devoir")}
     </aside></div>${pageFoot()}</div>`;
 }
@@ -207,18 +207,21 @@ function vTodo(){
   }
   const q = S.quiz.filter(x => x.mode === "note" && cls(x.classe_id) && !cls(x.classe_id).archive);
   const dv = S.devoirs.filter(d => cls(d.classe_id) && !cls(d.classe_id).archive);
+  /* 5e évaluation : « À faire » montre aussi les entraînements qui ont une date limite (comme l'accueil et la pastille), du plus urgent au moins urgent */
+  const qEntr = S.quiz.filter(x => x.mode !== "note" && x.date_limite && D(x.date_limite) > now() && cls(x.classe_id) && !cls(x.classe_id).archive && !S.quizRes[x.id]);
+  const lim = it => { const o = it.d || it.q; return o.date_limite ? +D(o.date_limite) : 9e15; };
   const groups = {
-    attribues: [...dv.filter(d => etat(d, moi()).t === "Attribué").map(d => ({d})), ...q.filter(x => !resultatDe(x, S.user.id) && (!x.date_limite || D(x.date_limite) > now())).map(x => ({q:x}))],
+    attribues: [...dv.filter(d => etat(d, moi()).t === "Attribué").map(d => ({d})), ...q.filter(x => !resultatDe(x, S.user.id) && (!x.date_limite || D(x.date_limite) > now())).map(x => ({q:x})), ...qEntr.map(x => ({q:x}))].sort((a, b) => lim(a) - lim(b)),
     manquants: [...dv.filter(d => etat(d, moi()).t === "Manquant").map(d => ({d})), ...q.filter(x => !resultatDe(x, S.user.id) && x.date_limite && D(x.date_limite) <= now()).map(x => ({q:x}))],
     termines: [...dv.filter(d => ["Rendu", "Noté"].includes(etat(d, moi()).t)).map(d => ({d})), ...q.filter(x => resultatDe(x, S.user.id)).map(x => ({q:x}))]
   };
-  const L = {attribues:"Attribués", manquants:"Manquants", termines:"Terminés"}, list = groups[S.todoTab];
+  const L = {attribues:"À faire", manquants:"En retard", termines:"Terminés"}, list = groups[S.todoTab];
   const ligne = it => { const o = it.d || it.q, c = cls(o.classe_id); let right;
     if (it.d) { const e = etat(o, moi()); right = e.t === "Noté" ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(e.note)}/${o.points}</span>` : e.t === "Rendu" ? "Rendu" : dueOf(o).replace("Échéance : ", "") + (e.t === "Attribué" ? relEch(o.date_limite) : ""); }
     else { const r = resultatDe(o, S.user.id); right = r ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(noteQuiz(o, r))}/${o.points}</span>` : o.date_limite ? dueTxt(D(o.date_limite)).replace("Échéance : ", "") + relEch(o.date_limite) : "Aucune date limite"; }
     return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${it.d ? "#/devoir/" : "#/quiz/"}${o.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(it.d ? "devoir" : "quiz", "")}</span><span class="tt">${esc(o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${right}</span></a></div>`; };
   return `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs tabs3" role="tablist">${Object.keys(L).map(k => `<button role="tab" aria-selected="${S.todoTab === k}" data-act="todotab" data-t="${k}">${L[k]} <span class="muted mono">${groups[k].length}</span></button>`).join("")}</div></div>
-  <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(ligne).join("") : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail manquant." : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
+  <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(ligne).join("") : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail en retard. Bravo !" : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
 }
 
 /* ---------- agenda ---------- */

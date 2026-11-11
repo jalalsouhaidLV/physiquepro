@@ -37,20 +37,23 @@ function vQuiz(r){
     return `<div class="page" style="--c:var(${k.c})">${head}
       ${q.mode === "note" ? `<div class="stats"><div><b>${data.res.length}/${el.length}</b><small>Réponses</small></div><div><b>${moy == null ? "–" : fmtNote(Math.round(moy * 10) / 10)}</b><small>Moyenne /${q.points}</small></div></div>
       <div class="tablewrap"><table><thead><tr><th class="first">Élève</th><th>Envoyé le</th><th>Bonnes réponses</th><th>Note /${q.points}</th></tr></thead><tbody>
-      ${el.map(e => { const x = parEmail[e.email]; return `<tr><td class="first">${esc(e.nom)}</td><td class="muted">${x ? fmtShort(D(x.fait_le)) + " " + fmtT(D(x.fait_le)) : ""}</td><td class="mono">${x ? x.score + "/" + x.sur : ""}</td><td class="mono nt">${x ? fmtNote(noteQuiz(q, x)) : `<span class="pill">Non fait</span>`}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Aucun élève dans ce cours.</td></tr>`}</tbody></table></div>`
+      ${el.map(e => { const x = parEmail[e.email]; return `<tr><td class="first">${esc(e.nom)}</td><td class="muted">${x ? fmtShort(D(x.fait_le)) + " " + fmtT(D(x.fait_le)) : ""}</td><td class="mono">${x ? x.score + "/" + x.sur : ""}</td><td class="mono nt">${x ? fmtNote(noteQuiz(q, x)) : q.date_limite && D(q.date_limite) <= now() ? `<span class="pill bad">Non fait</span>` : `<span class="pill">À faire</span>`}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Aucun élève dans ce cours.</td></tr>`}</tbody></table></div>`
         : `<div class="notice">Questionnaire d'entraînement : les réponses des élèves ne sont pas enregistrées.</div>`}
       <section class="card">${qs.map((x, i) => { const t = typeQ(x), b = data.bonnes[i], ok = q.mode === "note" && data.res.length ? Math.round(data.res.filter(r2 => r2.reponses && juste(t, r2.reponses[i], b)).length / data.res.length * 100) : null;
         const estBon = j => t === "cases" ? (b || []).includes(j) : b === j;
         return `<div class="q"><b>${i + 1}. ${sci(x.q)}</b> <span class="pill">${TYPE_LIB[t]}</span>${imgQ(x)}
           ${t === "courte" || t === "num" ? `<div class="opt good">${icon("check")} ${attendue(t, b)}</div>` : x.o.map((o, j) => `<div class="opt ${estBon(j) ? "good" : ""}">${estBon(j) ? icon("check") : `<span style="width:22px"></span>`} ${sci(o)}</div>`).join("")}
-          ${ok != null ? `<span class="muted" style="font-size:.82rem">${ok} % de bonnes réponses</span>` : ""}</div>`; }).join("")}</section>${pageFoot()}</div>`;
+          ${ok != null ? `<div class="qtaux ${ok < 50 ? "bas" : ok < 75 ? "moyen" : "haut"}" title="${ok} % de bonnes réponses"><span class="qtbar"><i style="width:${ok}%"></i></span><span><b>${ok} %</b> de bonnes réponses <span class="muted">(${data.res.length} élève${data.res.length > 1 ? "s" : ""})</span></span></div>` : q.mode === "note" ? `<span class="muted" style="font-size:.82rem">Réussite : s'affichera dès la première réponse.</span>` : ""}</div>`; }).join("")}</section>${pageFoot()}</div>`;
   }
   const deja = resultatDe(q, S.user.id), res = S.quizRes[q.id], rep = S.quizRep[q.id] || {};
   const ferme = q.date_limite && D(q.date_limite) <= now();
   if (q.mode === "note" && deja && !res) return `<div class="page" style="--c:var(${k.c})">${head}<section class="yourwork"><header><h2>Questionnaire envoyé</h2><span class="pill ok">${fmtNote(noteQuiz(q, deja))}/${q.points}</span></header><p class="muted" style="margin:0">Tu as répondu le ${fmtShort(D(deja.fait_le))} à ${fmtT(D(deja.fait_le))} : ${deja.score} bonne${deja.score > 1 ? "s" : ""} réponse${deja.score > 1 ? "s" : ""} sur ${deja.sur}.</p></section>${pageFoot()}</div>`;
   if (ferme && !res) return `<div class="page" style="--c:var(${k.c})">${head}<section class="yourwork"><header><h2>Questionnaire fermé</h2><span class="pill bad">Date limite passée</span></header></section>${pageFoot()}</div>`;
   const b = res && res.bonnes;
-  return `<div class="page" style="--c:var(${k.c})">${head}
+  const noteRes = res ? fmtNote(Math.round(res.score / Math.max(1, res.sur) * q.points * 100) / 100) + "/" + q.points : "";
+  /* 5e évaluation : après l'envoi, le résultat s'affiche en haut (avant, il était tout en bas, sous les questions) */
+  const bilan = res ? `<div class="quizbilan" tabindex="-1" role="status"><span class="grade">${res.score}<small>/${res.sur}</small></span><span><b>${res.score} bonne${res.score > 1 ? "s" : ""} réponse${res.score > 1 ? "s" : ""} sur ${res.sur}</b>${q.mode === "note" ? `<br>Ta note : <b>${noteRes}</b>` : ""}<br><span class="muted">${b ? "La correction est sous chaque question." : "La correction n'est pas affichée pour ce questionnaire."}</span></span>${q.mode !== "note" ? `<button class="btn ghost" data-act="retry" data-q="${q.id}">Recommencer</button>` : ""}</div>` : "";
+  return `<div class="page" style="--c:var(${k.c})">${head}${bilan}
     <section class="card">${(q.melanger ? melangeStable(qs.length, S.user.id + ":" + q.id) : qs.map((_, i) => i)).map((i, rang) => { const x = qs[i], t = typeQ(x), num = rang + 1;
       if (t === "courte" || t === "num") { const ok = res && b ? juste(t, rep[i], b[i]) : null;
         return `<div class="q"><b>${num}. ${sci(x.q)}</b>${btnEcouter("", x.q + (x.o && x.o.length ? ". Réponses possibles : " + x.o.map(String).join(" ; ") : ""), true)}${imgQ(x)}<input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="${t === "num" ? "Ta réponse (ex. 2,4×10^-3)" : "Ta réponse"}" ${t === "num" ? 'inputmode="decimal"' : ""} aria-label="Réponse à la question ${num}" ${res ? "disabled" : ""}>${t === "num" && !res ? clavierPhysique(q.id, i) : ""}${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${attendue(t, b[i])}</span>` : ""}</div>`; }
@@ -75,5 +78,6 @@ async function envoyerQuiz(qid){
   S.quizRes[qid] = data;
   oublierBrouillonQuiz(qid);
   if (q.mode === "note") await rafraichir();
-  render(); if (q.mode === "note") confirmationRendu(q, "Questionnaire envoyé !");
+  render(); window.scrollTo(0, 0);
+  if (q.mode === "note") confirmationRendu(q, "Questionnaire envoyé !", `Ta note : <b>${fmtNote(Math.round(data.score / Math.max(1, data.sur) * q.points * 100) / 100)}/${q.points}</b>`);
 }

@@ -2470,3 +2470,71 @@ main.content:focus{outline:none}
   .topbar .quick.qeleve .ql{display:none}
 }
 @media (min-width:380px) and (max-width:440px){.topbar .quick.qeleve a:nth-child(3){display:flex!important}}
+/* =====================================================================
+   5e évaluation experte (11/11/2026) : lots P, Q, R, S
+   ===================================================================== */
+/* S : texte lu par les lecteurs d'écran mais invisible */
+.vh{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
+/* P : logo du haut qui ne tient pas en entier : rangé (il est dans Applications) */
+.topbar .quick a.qcache,.topbar .quick.qeleve a.qcache{display:none!important}
+/* P : « Travaux en cours » de l'accueil du prof : copies à noter en couleur */
+.recentrow .rrendus .rac{color:var(--warn,#9a5b00);font-weight:600}
+/* P : réussite de chaque question d'un questionnaire (vue du prof) */
+.qtaux{display:flex;align-items:center;gap:10px;font-size:.85rem;margin-top:4px}
+.qtaux .qtbar{flex:0 0 120px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.qtaux .qtbar i{display:block;height:100%;border-radius:inherit;background:var(--ok)}
+.qtaux.moyen .qtbar i{background:#c98a00}.qtaux.bas .qtbar i{background:var(--bad)}
+/* P : cartes de cours : un titre trop long se termine par « … » au lieu d'être coupé net */
+.ccard .body>a,.ccard .body .cder a{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* P : compteur « 0 à corriger » de À corriger dans la police du site */
+.todo .group>header .mono{font-family:var(--body)}
+/* Q : résultat d'un questionnaire en haut de la page, juste après l'envoi */
+.quizbilan{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--ok-soft,#e3f3e8);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent);border-radius:16px;padding:16px 18px;margin-bottom:16px;line-height:1.45}
+.quizbilan:focus{outline:none}
+.quizbilan .grade{font-size:2.2rem}
+.quizbilan .btn{margin-left:auto}
+#ppRendu .rendunote{font-size:1.25rem}
+/* Q : dernière question (une question par écran) : le bouton « Envoyer » prend toute la largeur, en grand */
+section.uneq.qdernier [data-act="valider"]{width:100%;min-height:56px;font-size:1.1rem;justify-content:center}
+section.uneq.qdernier [data-act="valider"]+.muted{display:block;text-align:center;width:100%}
+section.uneq.qdernier .qnavbas{padding-top:2px}
+/* Q : page d'un devoir sur téléphone : « Ton travail » vient juste après la consigne et les fichiers joints,
+   avant les commentaires de la classe (avant, il fallait descendre de plus de 2 écrans) */
+@media (max-width:820px){
+  .dv.dveleve{display:flex;flex-direction:column;gap:16px}
+  .dv.dveleve>.dvmain,.dv.dveleve>.dvside{display:contents!important}
+  .dv.dveleve>.dvmain>*,.dv.dveleve>.dvside>*{order:5}
+  .dv.dveleve>.dvmain>.dvhead{order:1}
+  .dv.dveleve>.dvmain>.dvbody{order:2}
+  .dv.dveleve>.dvside>.yourwork:first-child{order:3}
+}
+/* Q : sur téléphone, cibles tactiles plus grandes (48 px pour les boutons principaux, 44 px en haut) */
+@media (pointer:coarse){
+  .yourwork .btn:not(.sm),[data-act="submit"],[data-act="valider"],.revisions .btn:not(.sm){min-height:48px}
+  .topbar .ib{min-width:44px;min-height:44px}
+  .topbar .avatar{width:40px;height:40px}
+  #ppConc{min-height:44px}
+  .qpuce{min-width:44px;min-height:44px}
+}
+/* S : contrastes (4,5:1) : vert du cours SNT un peu plus foncé ; jours passés et travaux faits de « Ma semaine » estompés mais lisibles */
+:root:not([data-theme="dark"]){--snt:#357A26}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--snt:#86CC69}}
+.smjour.passe{opacity:1}
+.smjour.passe h3{color:var(--muted)}
+.smitem.fait{opacity:1}
+.smitem.fait b,.smitem.fait .smh,.smitem.fait small{color:var(--muted)}
+/* S : menu de gauche : « Mon téléphone est-il prêt ? » sur 2 lignes plutôt que coupé */
+.side .it .lbl,.drawer .it .lbl{white-space:normal;text-overflow:clip;overflow:visible;line-height:1.25}
+/* S : Simulations : texte d'aide court sur téléphone */
+.surtel{display:none}
+@media (max-width:600px){.surordi{display:none}.surtel{display:inline}}
+/* Q : très petits téléphones (320 px) : boutons du haut à 40 px pour garder 2 logos */
+@media (pointer:coarse) and (max-width:359px){
+  .topbar .ib{min-width:40px;min-height:40px}
+  .topbar .avatar{width:36px;height:36px}
+  .topbar .quick.qeleve>a{width:56px!important;min-width:0!important;flex:0 0 56px!important}
+}
+@media (pointer:coarse) and (min-width:360px) and (max-width:440px){
+  .topbar .quick.qeleve{gap:4px!important}
+  .topbar .quick.qeleve>a{width:58px!important;min-width:0!important;flex:0 0 58px!important}
+}

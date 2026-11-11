@@ -184,7 +184,7 @@ function workItem(it){
     right = S.prof ? `<span class="dt">${d.date_limite ? dueOf(d).replace("Échéance : ", "") : "Publié le " + fmtShort(it.date)}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : etat(d, moi()).t === "Noté" ? fmtNote(etat(d, moi()).note) + "/" + d.points : d.date_limite ? dueOf(d).replace("Échéance : ", "") : ""}</span>`;
     const st = etat(d, moi());
     detail = `<div class="wkhead"><div class="wkdl"><b>${d.date_limite ? "Date limite : " + fmtShort(D(d.date_limite)) + " " + fmtT(D(d.date_limite)) : "Aucune date limite"}</b><small>${it.q2 ? (d.question && d.question.format === "choix" ? "Question à choix multiples" : "Question à réponse courte") : d.mode === "binome" ? "Un rendu par binôme" : "Individuel"} · ${pts(d)}</small></div>
-        ${S.prof ? statsDevoir(d) : `<span class="wkright"><span class="wkst ${st.k}">${st.t}</span><a class="wklink wkopen" href="#/devoir/${d.id}">${it.q2 ? "Afficher la question" : "Afficher le devoir"} ${icon("right")}</a></span>`}</div>
+        ${S.prof ? statsDevoir(d) : `<span class="wkright"><span class="wkst ${st.k}">${libEtat(st.t)}</span><a class="wklink wkopen" href="#/devoir/${d.id}">${it.q2 ? "Afficher la question" : "Afficher le devoir"} ${icon("right")}</a></span>`}</div>
       ${texteUtile(d.consigne) ? `<div class="richtext wkdesc">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}
       ${S.prof ? `<div class="wkfoot"><a class="wklink" href="#/devoir/${d.id}">Afficher les instructions</a><a class="btn tonal" href="#/devoir/${d.id}">${it.q2 ? "Voir les réponses" : "Évaluer le travail"}</a></div>` : it.q2 && !renduDe(d, moi()) && depotOuvert(d) ? `<div class="wkfoot"><span></span><a class="btn tonal" href="#/devoir/${d.id}">Répondre</a></div>` : ""}`;
   } else {
@@ -300,9 +300,9 @@ function vNotes(c, data){
 function vMesNotes(c){
   const lignes = [
     ...S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon).map(d => { const e = etat(d, moi()); return { date: D(d.publie_le), titre: d.titre, href: "#/devoir/" + d.id, ic: d.type === "question" ? "question" : "devoir",
-      statut: e.t === "Rendu" && d.type === "question" ? "Envoyée" : e.t, k: e.k, note: e.t === "Noté" && e.note != null && d.points != null ? fmtNote(e.note) + "/" + d.points : d.points == null ? "Non noté" : "—", com: e.t === "Noté" && e.c ? e.c.commentaire : "", due: d.date_limite ? dueOf(d).replace("Échéance : ", "") : "" }; }),
+      statut: e.t === "Rendu" && d.type === "question" ? "Envoyée" : libEtat(e.t), k: e.k, note: e.t === "Noté" && e.note != null && d.points != null ? fmtNote(e.note) + "/" + d.points : d.points == null ? "Non noté" : "—", com: e.t === "Noté" && e.c ? e.c.commentaire : "", due: d.date_limite ? dueOf(d).replace("Échéance : ", "") : "" }; }),
     ...S.quiz.filter(q => q.classe_id === c.id && !q.brouillon && q.mode === "note").map(q => { const r = resultatDe(q, S.user.id), ferme = q.date_limite && D(q.date_limite) <= now();
-      return { date: D(q.publie_le), titre: q.titre, href: "#/quiz/" + q.id, ic: "quiz", statut: r ? "Noté" : ferme ? "Manquant" : "Attribué", k: r ? "ok" : ferme ? "bad" : "", note: r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : "—", com: "", due: q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : "" }; })
+      return { date: D(q.publie_le), titre: q.titre, href: "#/quiz/" + q.id, ic: "quiz", statut: r ? "Noté" : libEtat(ferme ? "Manquant" : "Attribué"), k: r ? "ok" : ferme ? "bad" : "", note: r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : "—", com: "", due: q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : "" }; })
   ].sort((a, b) => b.date - a.date);
   const moy = c.moyenne_visible ? moyenneEleve(c) : null, md = c.moyenne_visible ? moyenneDe(c, moi(), S.user.id, true) : { parCat: [] };
   return `<div class="page" style="max-width:860px;--c:var(${C(c.couleur).c})">

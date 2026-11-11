@@ -24,7 +24,7 @@ function indexDeTest() {
   const avant = h;
   h = h.replace(/\s+integrity="[^"]*"/g, "").replace(/\s+crossorigin(="[^"]*")?/g, "");
   h = h.replace(/<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js[^"]*"><\/script>/, '<script src="sources/tests/faux-supabase.js"></script>');
-  h = h.replace(/<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@azure\/msal-browser[^"]*"><\/script>/, '<script src="sources/tests/faux-msal.js"></script>');
+  h = h.replace(/<script(?: async)? src="https:\/\/cdn\.jsdelivr\.net\/npm\/@azure\/msal-browser[^"]*"( async)?><\/script>/, '<script src="sources/tests/faux-msal.js"></script>');
   if (!h.includes("faux-supabase.js") || !h.includes("faux-msal.js")) throw new Error("index.html : balises supabase-js ou msal-browser introuvables, le bouchon ne peut pas être branché");
   if (h === avant) throw new Error("index.html n'a pas été transformé");
   return h;

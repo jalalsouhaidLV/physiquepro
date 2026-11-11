@@ -151,7 +151,7 @@ function carteFormule(t, dom){
   else res = `<p class="fmuet">Vide la case de la grandeur à calculer.</p>`;
   const k0 = dom + ":" + id, ouv = FOPEN.has(k0) || V.some(v => OV[cle(v[0])] !== undefined && String(OV[cle(v[0])]).trim() !== "");
   return `<article class="fcarte${ouv ? " ouvert" : ""}" data-niv="${esc(niv)}" data-k="${esc(k0)}"><header data-act="fouvre"><span class="simniv">${esc(niv)}</span><h3>${jolie(titre)}</h3><button class="ib" data-act="fclr" data-p="${esc("F_" + dom + "_" + id + "_")}" title="Effacer" aria-label="Effacer">${icon("restore")}</button></header>
-    <div class="fformule">${jolie(formule)}</div>
+    <div class="fformule" tabindex="0">${jolie(formule)}</div>
     <div class="ochamps">${V.map(v => `<label class="ochamp"><span>${jolie(v[1])}</span><span class="ochin"><input id="${cle(v[0])}" data-oi="1" value="${esc(val(v))}" inputmode="decimal" autocomplete="off">${v[2] ? `<em>${esc(v[2])}</em>` : ""}</span></label>`).join("")}</div>
     ${res}${aide ? `<p class="faide">${esc(aide)}</p>` : ""}</article>`;
 }

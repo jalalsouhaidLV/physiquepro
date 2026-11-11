@@ -6,6 +6,8 @@ let msalApp = null;
 const odActif = () => S.prof && !!(R().onedrive);
 async function msalInit(){
   if (msalApp) return msalApp;
+  /* lot R (5e évaluation) : la bibliothèque Microsoft se charge sans retarder l'ouverture du site (async) ; on l'attend ici au besoin */
+  for (let i = 0; !window.msal && i < 100; i++) await new Promise(ok => setTimeout(ok, 100));
   if (!window.msal) throw new Error("la bibliothèque Microsoft n'a pas pu être chargée");
   msalApp = new window.msal.PublicClientApplication(MSAL_CFG); await msalApp.initialize(); return msalApp;
 }

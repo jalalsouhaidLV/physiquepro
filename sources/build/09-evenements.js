@@ -397,7 +397,7 @@ document.addEventListener("input", e => {
   if (t.id === "repQ") { S.reponse = t.value; return; }
   if (t.id === "impTexte" && S.imp) { S.imp.texte = t.value; return; }
   if (S.settings && t.dataset.cat != null) { S.settings.categories[Number(t.dataset.cat)][t.dataset.k] = t.value; return; }
-  if (t.dataset.gr != null) { const ins = [...document.querySelectorAll("[data-gr]")], vals = ins.map(x => Number(String(x.value).replace(",", "."))).filter(x => !isNaN(x) && String(x) !== ""); const n = document.getElementById("note"); if (n) n.value = ins.some(x => x.value !== "") ? Math.round(ins.reduce((a, x) => a + (Number(String(x.value).replace(",", ".")) || 0), 0) * 100) / 100 : ""; return; }
+  if (t.dataset.gr != null) { const ins = [...document.querySelectorAll("[data-gr]")], vals = ins.map(x => Number(String(x.value).replace(",", "."))).filter(x => !isNaN(x) && String(x) !== ""); const n = document.getElementById("note"); if (n) n.value = ins.some(x => x.value !== "") ? String(Math.round(ins.reduce((a, x) => a + (Number(String(x.value).replace(",", ".")) || 0), 0) * 100) / 100).replace(".", ",") : ""; return; }
   if (t.dataset.act === "anstxt") { const id = t.dataset.q; S.quizRep[id] = S.quizRep[id] || {}; S.quizRep[id][Number(t.dataset.i)] = t.value; return; }
   if (S.ed && t.dataset.gr2 != null) { S.ed.grille[Number(t.dataset.gr2)][t.dataset.k] = t.value; if (t.dataset.k === "p") { const tot = document.querySelector(".edcard .muted b"); } return; }
   if (S.ed && t.dataset.qo != null) { S.ed.qoptions[Number(t.dataset.qo)] = t.value; return; }

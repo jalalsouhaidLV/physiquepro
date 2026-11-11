@@ -202,6 +202,8 @@ function etat(d, email){
   if (r) return {t:"Rendu", k:"info", r, c, retard:enRetard(d, r)};
   return !ouvert(d) ? {t:"Manquant", k:"bad"} : {t:"Attribué", k:""};
 }
+/* 5e évaluation (11/11/2026) : l'élève (parfois collégien) lit des mots simples ; le prof garde ceux de Classroom */
+const libEtat = t => S.prof ? t : t === "Attribué" ? "À faire" : t === "Manquant" ? "En retard" : t;
 const resultatDe = (q, uid) => S.resultats.find(x => x.quiz_id === q.id && x.eleve === uid);
 const noteQuiz = (q, r) => r ? Math.round(r.score / Math.max(1, r.sur) * (q.points || 20) * 100) / 100 : null;
 /* ---------- connexion ---------- */
@@ -312,7 +314,7 @@ function carte(c, archivee){
     }
     if (S.prof && !body) body = `<span class="cvide">${icon("check")} Rien à corriger</span>`;
     const der = dv.filter(d => d.publie_le && new Date(d.publie_le) <= new Date()).sort((a, b) => new Date(b.publie_le) - new Date(a.publie_le))[0];
-    if (der) { const j = Math.floor((Date.now() - new Date(der.publie_le)) / 864e5); body += `<span class="cder">Dernière publication ${j <= 0 ? "aujourd'hui" : j === 1 ? "hier" : "il y a " + j + " jours"} : <a href="#/devoir/${der.id}">${esc(der.titre)}</a></span>`; }
+    if (der) { const j = Math.floor((Date.now() - new Date(der.publie_le)) / 864e5); body += `<span class="cder">Dernière publication ${j <= 0 ? "aujourd'hui" : j === 1 ? "hier" : "il y a " + j + "\u00a0jours"}\u00a0: <a href="#/devoir/${der.id}">${esc(der.titre)}</a></span>`; }
   }
   const menuEleve = !S.prof && !archivee ? `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">${deplacerMenu(c)}<a href="#" data-act="quitter" data-c="${esc(c.id)}" style="color:var(--bad)">${icon("logout")} Quitter le cours</a></div>` : ""}</div>` : "";
   const menu = !S.prof ? menuEleve : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="c${esc(c.id)}" aria-label="Options du cours">${icon("more")}</button>${S.menu === "c" + c.id ? `<div class="dd-menu">
@@ -354,11 +356,11 @@ function blocRecent(){
   items.sort((a, b) => D(a.o.date_limite) - D(b.o.date_limite));
   const ligne = it => { const o = it.o, c = cls(o.classe_id);
     let droite = "";
-    if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
+    if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length, ac = aCorriger(o); droite = `<span class="muted rrendus">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}${nr ? ac ? ` · <b class="rac">${ac} à noter</b>` : " · tout noté ✓" : ""}</span>`; }
     else if (S.prof && it.k === "quiz") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => S.resultats.some(x => x.quiz_id === o.id && (S.profils || {})[x.eleve] === e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
-    else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${e.t}</span>`; }
+    else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${libEtat(e.t)}</span>`; }
     return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
-  return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "À rendre récemment" : "À faire bientôt"}</h2>
+  return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "Travaux en cours" : "À faire bientôt"}</h2>
       <button class="ib" data-act="recent" title="${S.recent ? "Réduire" : "Développer"}" aria-label="${S.recent ? "Réduire" : "Développer"}" aria-expanded="${S.recent}">${icon(S.recent ? "up" : "expand")}</button></div>
     ${S.recent ? (items.length ? `<div class="recentlist">${items.slice(0, 10).map(ligne).join("")}</div>` : `<p class="muted" style="margin:0">Aucun travail avec une date limite cette semaine ou la semaine dernière.</p>`) : ""}</section>`;
 }
@@ -554,7 +556,7 @@ function workItem(it){
     right = S.prof ? `<span class="dt">${d.date_limite ? dueOf(d).replace("Échéance : ", "") : "Publié le " + fmtShort(it.date)}</span>` : `<span class="dt">${etat(d, moi()).t === "Manquant" ? `<span style="color:var(--bad)">Manquant</span>` : etat(d, moi()).t === "Noté" ? fmtNote(etat(d, moi()).note) + "/" + d.points : d.date_limite ? dueOf(d).replace("Échéance : ", "") : ""}</span>`;
     const st = etat(d, moi());
     detail = `<div class="wkhead"><div class="wkdl"><b>${d.date_limite ? "Date limite : " + fmtShort(D(d.date_limite)) + " " + fmtT(D(d.date_limite)) : "Aucune date limite"}</b><small>${it.q2 ? (d.question && d.question.format === "choix" ? "Question à choix multiples" : "Question à réponse courte") : d.mode === "binome" ? "Un rendu par binôme" : "Individuel"} · ${pts(d)}</small></div>
-        ${S.prof ? statsDevoir(d) : `<span class="wkright"><span class="wkst ${st.k}">${st.t}</span><a class="wklink wkopen" href="#/devoir/${d.id}">${it.q2 ? "Afficher la question" : "Afficher le devoir"} ${icon("right")}</a></span>`}</div>
+        ${S.prof ? statsDevoir(d) : `<span class="wkright"><span class="wkst ${st.k}">${libEtat(st.t)}</span><a class="wklink wkopen" href="#/devoir/${d.id}">${it.q2 ? "Afficher la question" : "Afficher le devoir"} ${icon("right")}</a></span>`}</div>
       ${texteUtile(d.consigne) ? `<div class="richtext wkdesc">${rich(d.consigne)}</div>` : ""}${ressources(d.ressources, { classe: d.classe_id, devoir: d.id })}
       ${S.prof ? `<div class="wkfoot"><a class="wklink" href="#/devoir/${d.id}">Afficher les instructions</a><a class="btn tonal" href="#/devoir/${d.id}">${it.q2 ? "Voir les réponses" : "Évaluer le travail"}</a></div>` : it.q2 && !renduDe(d, moi()) && depotOuvert(d) ? `<div class="wkfoot"><span></span><a class="btn tonal" href="#/devoir/${d.id}">Répondre</a></div>` : ""}`;
   } else {
@@ -670,9 +672,9 @@ function vNotes(c, data){
 function vMesNotes(c){
   const lignes = [
     ...S.devoirs.filter(d => d.classe_id === c.id && !d.brouillon).map(d => { const e = etat(d, moi()); return { date: D(d.publie_le), titre: d.titre, href: "#/devoir/" + d.id, ic: d.type === "question" ? "question" : "devoir",
-      statut: e.t === "Rendu" && d.type === "question" ? "Envoyée" : e.t, k: e.k, note: e.t === "Noté" && e.note != null && d.points != null ? fmtNote(e.note) + "/" + d.points : d.points == null ? "Non noté" : "—", com: e.t === "Noté" && e.c ? e.c.commentaire : "", due: d.date_limite ? dueOf(d).replace("Échéance : ", "") : "" }; }),
+      statut: e.t === "Rendu" && d.type === "question" ? "Envoyée" : libEtat(e.t), k: e.k, note: e.t === "Noté" && e.note != null && d.points != null ? fmtNote(e.note) + "/" + d.points : d.points == null ? "Non noté" : "—", com: e.t === "Noté" && e.c ? e.c.commentaire : "", due: d.date_limite ? dueOf(d).replace("Échéance : ", "") : "" }; }),
     ...S.quiz.filter(q => q.classe_id === c.id && !q.brouillon && q.mode === "note").map(q => { const r = resultatDe(q, S.user.id), ferme = q.date_limite && D(q.date_limite) <= now();
-      return { date: D(q.publie_le), titre: q.titre, href: "#/quiz/" + q.id, ic: "quiz", statut: r ? "Noté" : ferme ? "Manquant" : "Attribué", k: r ? "ok" : ferme ? "bad" : "", note: r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : "—", com: "", due: q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : "" }; })
+      return { date: D(q.publie_le), titre: q.titre, href: "#/quiz/" + q.id, ic: "quiz", statut: r ? "Noté" : libEtat(ferme ? "Manquant" : "Attribué"), k: r ? "ok" : ferme ? "bad" : "", note: r ? fmtNote(noteQuiz(q, r)) + "/" + q.points : "—", com: "", due: q.date_limite ? dueTxt(D(q.date_limite)).replace("Échéance : ", "") : "" }; })
   ].sort((a, b) => b.date - a.date);
   const moy = c.moyenne_visible ? moyenneEleve(c) : null, md = c.moyenne_visible ? moyenneDe(c, moi(), S.user.id, true) : { parCat: [] };
   return `<div class="page" style="max-width:860px;--c:var(${C(c.couleur).c})">
@@ -740,8 +742,8 @@ function vDevoir(r){
       <button class="btn" data-act="submit" data-id="${d.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi en cours…" : (S.files.length || S.lien ? "Rendre" : "Marquer comme terminé")}</button>
       <p class="muted" style="margin:0;font-size:.78rem">50 Mo maximum par fichier${d.formats ? " · " + esc(d.formats) : ""}</p>`;
   }
-  return `<div class="page wide" style="--c:var(${k.c})"><div class="dv">
-    <div style="display:grid;gap:16px;min-width:0">
+  return `<div class="page wide" style="--c:var(${k.c})"><div class="dv dveleve">
+    <div class="dvmain" style="display:grid;gap:16px;min-width:0">
       <div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${escTitre(d.titre)}</h1>
         <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}</div>
         <div class="dvmeta"><b>${pts(d)}</b><span>${dueOf(d)}</span></div></div></div>
@@ -750,8 +752,8 @@ function vDevoir(r){
       ${isQ ? reponsesClasse(d, c, rd, Q) : ""}
       ${blocComsDevoir(d, c)}
     </div>
-    <aside style="display:grid;gap:16px;align-content:start">
-      <div class="yourwork"><header><h2>${isQ ? "Ta réponse" : "Ton travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
+    <aside class="dvside" style="display:grid;gap:16px;align-content:start">
+      <div class="yourwork"><header><h2>${isQ ? "Ta réponse" : "Ton travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : libEtat(e.t)}${e.retard ? " en retard" : ""}</span></header>${work}</div>
       ${vCP(d.id, moi())}${actionsTelDevoir(d, "devoir")}
     </aside></div>${pageFoot()}</div>`;
 }
@@ -900,18 +902,21 @@ function vTodo(){
   }
   const q = S.quiz.filter(x => x.mode === "note" && cls(x.classe_id) && !cls(x.classe_id).archive);
   const dv = S.devoirs.filter(d => cls(d.classe_id) && !cls(d.classe_id).archive);
+  /* 5e évaluation : « À faire » montre aussi les entraînements qui ont une date limite (comme l'accueil et la pastille), du plus urgent au moins urgent */
+  const qEntr = S.quiz.filter(x => x.mode !== "note" && x.date_limite && D(x.date_limite) > now() && cls(x.classe_id) && !cls(x.classe_id).archive && !S.quizRes[x.id]);
+  const lim = it => { const o = it.d || it.q; return o.date_limite ? +D(o.date_limite) : 9e15; };
   const groups = {
-    attribues: [...dv.filter(d => etat(d, moi()).t === "Attribué").map(d => ({d})), ...q.filter(x => !resultatDe(x, S.user.id) && (!x.date_limite || D(x.date_limite) > now())).map(x => ({q:x}))],
+    attribues: [...dv.filter(d => etat(d, moi()).t === "Attribué").map(d => ({d})), ...q.filter(x => !resultatDe(x, S.user.id) && (!x.date_limite || D(x.date_limite) > now())).map(x => ({q:x})), ...qEntr.map(x => ({q:x}))].sort((a, b) => lim(a) - lim(b)),
     manquants: [...dv.filter(d => etat(d, moi()).t === "Manquant").map(d => ({d})), ...q.filter(x => !resultatDe(x, S.user.id) && x.date_limite && D(x.date_limite) <= now()).map(x => ({q:x}))],
     termines: [...dv.filter(d => ["Rendu", "Noté"].includes(etat(d, moi()).t)).map(d => ({d})), ...q.filter(x => resultatDe(x, S.user.id)).map(x => ({q:x}))]
   };
-  const L = {attribues:"Attribués", manquants:"Manquants", termines:"Terminés"}, list = groups[S.todoTab];
+  const L = {attribues:"À faire", manquants:"En retard", termines:"Terminés"}, list = groups[S.todoTab];
   const ligne = it => { const o = it.d || it.q, c = cls(o.classe_id); let right;
     if (it.d) { const e = etat(o, moi()); right = e.t === "Noté" ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(e.note)}/${o.points}</span>` : e.t === "Rendu" ? "Rendu" : dueOf(o).replace("Échéance : ", "") + (e.t === "Attribué" ? relEch(o.date_limite) : ""); }
     else { const r = resultatDe(o, S.user.id); right = r ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(noteQuiz(o, r))}/${o.points}</span>` : o.date_limite ? dueTxt(D(o.date_limite)).replace("Échéance : ", "") + relEch(o.date_limite) : "Aucune date limite"; }
     return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${it.d ? "#/devoir/" : "#/quiz/"}${o.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(it.d ? "devoir" : "quiz", "")}</span><span class="tt">${esc(o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${right}</span></a></div>`; };
   return `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs tabs3" role="tablist">${Object.keys(L).map(k => `<button role="tab" aria-selected="${S.todoTab === k}" data-act="todotab" data-t="${k}">${L[k]} <span class="muted mono">${groups[k].length}</span></button>`).join("")}</div></div>
-  <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(ligne).join("") : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail manquant." : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
+  <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(ligne).join("") : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail en retard. Bravo !" : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
 }
 
 /* ---------- agenda ---------- */
@@ -1212,20 +1217,23 @@ function vQuiz(r){
     return `<div class="page" style="--c:var(${k.c})">${head}
       ${q.mode === "note" ? `<div class="stats"><div><b>${data.res.length}/${el.length}</b><small>Réponses</small></div><div><b>${moy == null ? "–" : fmtNote(Math.round(moy * 10) / 10)}</b><small>Moyenne /${q.points}</small></div></div>
       <div class="tablewrap"><table><thead><tr><th class="first">Élève</th><th>Envoyé le</th><th>Bonnes réponses</th><th>Note /${q.points}</th></tr></thead><tbody>
-      ${el.map(e => { const x = parEmail[e.email]; return `<tr><td class="first">${esc(e.nom)}</td><td class="muted">${x ? fmtShort(D(x.fait_le)) + " " + fmtT(D(x.fait_le)) : ""}</td><td class="mono">${x ? x.score + "/" + x.sur : ""}</td><td class="mono nt">${x ? fmtNote(noteQuiz(q, x)) : `<span class="pill">Non fait</span>`}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Aucun élève dans ce cours.</td></tr>`}</tbody></table></div>`
+      ${el.map(e => { const x = parEmail[e.email]; return `<tr><td class="first">${esc(e.nom)}</td><td class="muted">${x ? fmtShort(D(x.fait_le)) + " " + fmtT(D(x.fait_le)) : ""}</td><td class="mono">${x ? x.score + "/" + x.sur : ""}</td><td class="mono nt">${x ? fmtNote(noteQuiz(q, x)) : q.date_limite && D(q.date_limite) <= now() ? `<span class="pill bad">Non fait</span>` : `<span class="pill">À faire</span>`}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Aucun élève dans ce cours.</td></tr>`}</tbody></table></div>`
         : `<div class="notice">Questionnaire d'entraînement : les réponses des élèves ne sont pas enregistrées.</div>`}
       <section class="card">${qs.map((x, i) => { const t = typeQ(x), b = data.bonnes[i], ok = q.mode === "note" && data.res.length ? Math.round(data.res.filter(r2 => r2.reponses && juste(t, r2.reponses[i], b)).length / data.res.length * 100) : null;
         const estBon = j => t === "cases" ? (b || []).includes(j) : b === j;
         return `<div class="q"><b>${i + 1}. ${sci(x.q)}</b> <span class="pill">${TYPE_LIB[t]}</span>${imgQ(x)}
           ${t === "courte" || t === "num" ? `<div class="opt good">${icon("check")} ${attendue(t, b)}</div>` : x.o.map((o, j) => `<div class="opt ${estBon(j) ? "good" : ""}">${estBon(j) ? icon("check") : `<span style="width:22px"></span>`} ${sci(o)}</div>`).join("")}
-          ${ok != null ? `<span class="muted" style="font-size:.82rem">${ok} % de bonnes réponses</span>` : ""}</div>`; }).join("")}</section>${pageFoot()}</div>`;
+          ${ok != null ? `<div class="qtaux ${ok < 50 ? "bas" : ok < 75 ? "moyen" : "haut"}" title="${ok} % de bonnes réponses"><span class="qtbar"><i style="width:${ok}%"></i></span><span><b>${ok} %</b> de bonnes réponses <span class="muted">(${data.res.length} élève${data.res.length > 1 ? "s" : ""})</span></span></div>` : q.mode === "note" ? `<span class="muted" style="font-size:.82rem">Réussite : s'affichera dès la première réponse.</span>` : ""}</div>`; }).join("")}</section>${pageFoot()}</div>`;
   }
   const deja = resultatDe(q, S.user.id), res = S.quizRes[q.id], rep = S.quizRep[q.id] || {};
   const ferme = q.date_limite && D(q.date_limite) <= now();
   if (q.mode === "note" && deja && !res) return `<div class="page" style="--c:var(${k.c})">${head}<section class="yourwork"><header><h2>Questionnaire envoyé</h2><span class="pill ok">${fmtNote(noteQuiz(q, deja))}/${q.points}</span></header><p class="muted" style="margin:0">Tu as répondu le ${fmtShort(D(deja.fait_le))} à ${fmtT(D(deja.fait_le))} : ${deja.score} bonne${deja.score > 1 ? "s" : ""} réponse${deja.score > 1 ? "s" : ""} sur ${deja.sur}.</p></section>${pageFoot()}</div>`;
   if (ferme && !res) return `<div class="page" style="--c:var(${k.c})">${head}<section class="yourwork"><header><h2>Questionnaire fermé</h2><span class="pill bad">Date limite passée</span></header></section>${pageFoot()}</div>`;
   const b = res && res.bonnes;
-  return `<div class="page" style="--c:var(${k.c})">${head}
+  const noteRes = res ? fmtNote(Math.round(res.score / Math.max(1, res.sur) * q.points * 100) / 100) + "/" + q.points : "";
+  /* 5e évaluation : après l'envoi, le résultat s'affiche en haut (avant, il était tout en bas, sous les questions) */
+  const bilan = res ? `<div class="quizbilan" tabindex="-1" role="status"><span class="grade">${res.score}<small>/${res.sur}</small></span><span><b>${res.score} bonne${res.score > 1 ? "s" : ""} réponse${res.score > 1 ? "s" : ""} sur ${res.sur}</b>${q.mode === "note" ? `<br>Ta note : <b>${noteRes}</b>` : ""}<br><span class="muted">${b ? "La correction est sous chaque question." : "La correction n'est pas affichée pour ce questionnaire."}</span></span>${q.mode !== "note" ? `<button class="btn ghost" data-act="retry" data-q="${q.id}">Recommencer</button>` : ""}</div>` : "";
+  return `<div class="page" style="--c:var(${k.c})">${head}${bilan}
     <section class="card">${(q.melanger ? melangeStable(qs.length, S.user.id + ":" + q.id) : qs.map((_, i) => i)).map((i, rang) => { const x = qs[i], t = typeQ(x), num = rang + 1;
       if (t === "courte" || t === "num") { const ok = res && b ? juste(t, rep[i], b[i]) : null;
         return `<div class="q"><b>${num}. ${sci(x.q)}</b>${btnEcouter("", x.q + (x.o && x.o.length ? ". Réponses possibles : " + x.o.map(String).join(" ; ") : ""), true)}${imgQ(x)}<input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="${t === "num" ? "Ta réponse (ex. 2,4×10^-3)" : "Ta réponse"}" ${t === "num" ? 'inputmode="decimal"' : ""} aria-label="Réponse à la question ${num}" ${res ? "disabled" : ""}>${t === "num" && !res ? clavierPhysique(q.id, i) : ""}${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${attendue(t, b[i])}</span>` : ""}</div>`; }
@@ -1250,7 +1258,8 @@ async function envoyerQuiz(qid){
   S.quizRes[qid] = data;
   oublierBrouillonQuiz(qid);
   if (q.mode === "note") await rafraichir();
-  render(); if (q.mode === "note") confirmationRendu(q, "Questionnaire envoyé !");
+  render(); window.scrollTo(0, 0);
+  if (q.mode === "note") confirmationRendu(q, "Questionnaire envoyé !", `Ta note : <b>${fmtNote(Math.round(data.score / Math.max(1, data.sur) * q.points * 100) / 100)}/${q.points}</b>`);
 }
 /* ---------- paramètres du cours ---------- */
 function initParametres(c){
@@ -1687,7 +1696,7 @@ function admOutilsSection(A, inp, outilsBtns){
 function admCours(){
   const list = [...actives(), ...S.classes.filter(c => c.archive)];
   return `<div class="travhead"><button class="btn" data-act="newclass">${icon("plus")} Créer un cours</button><span class="spacer"></span><span class="muted" style="font-size:.85rem">L'ordre ici est celui de l'accueil et du menu.</span></div>
-    <div class="tablewrap"><table class="admtable"><thead><tr><th>Ordre</th><th class="first">Cours</th><th>Élèves</th><th>Code</th><th>Visio</th><th>OneDrive</th><th>Statut</th><th></th></tr></thead><tbody>
+    <div class="tablewrap"><table class="admtable"><thead><tr><th>Ordre</th><th class="first">Cours</th><th>Élèves</th><th>Code</th><th>Visio</th><th>OneDrive</th><th>Statut</th><th><span class="vh">Actions</span></th></tr></thead><tbody>
     ${list.map(c => { const act = actives(), i = act.indexOf(c);
       return `<tr><td>${c.archive ? "" : `<span class="adbtns">${i > 0 ? `<button class="ib sm" data-act="moveclasse" data-c="${esc(c.id)}" data-dir="-1" aria-label="Monter ${esc(c.nom)}" title="Monter">${icon("up")}</button>` : ""}${i < act.length - 1 ? `<button class="ib sm" data-act="moveclasse" data-c="${esc(c.id)}" data-dir="1" aria-label="Descendre ${esc(c.nom)}" title="Descendre">${icon("down")}</button>` : ""}</span>`}</td>
         <td class="first"><a class="who2" href="#/classe/${esc(c.id)}" style="text-decoration:none;color:inherit"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span><b>${esc(c.nom)}</b><small class="muted" style="display:block">${esc(c.section)}</small></span></a></td>
@@ -1719,7 +1728,7 @@ function admEleves(){
       <div class="field filt"><label for="admF">Afficher</label><select id="admF" data-adf="1"><option value="">Tous les élèves (${tous.length})</option>${act.map(c => `<option value="${esc(c.id)}" ${f === c.id ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}<option value="aucun" ${f === "aucun" ? "selected" : ""}>Inscrits dans aucun cours</option><option value="jamais" ${f === "jamais" ? "selected" : ""}>Jamais connectés</option></select></div>
       <span class="spacer"></span><button class="btn ghost sm" data-act="exporteleves">${icon("down")} Exporter (CSV)</button></div>
     <p class="muted" style="margin:0;font-size:.85rem">Coche une case pour inscrire un élève dans un cours, décoche-la pour le retirer. Tu peux inscrire les élèves avant leur première connexion : il suffit de leur adresse Microsoft 365.</p>
-    ${list.length ? `<div class="tablewrap"><table class="admtable"><thead><tr><th class="first">Élève</th>${act.map(c => `<th class="cc" title="${esc(c.nom)}"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span></th>`).join("")}<th>Compte</th><th></th></tr></thead><tbody>
+    ${list.length ? `<div class="tablewrap"><table class="admtable"><thead><tr><th class="first">Élève</th>${act.map(c => `<th class="cc" title="${esc(c.nom)}"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span></th>`).join("")}<th>Compte</th><th><span class="vh">Actions</span></th></tr></thead><tbody>
       ${list.map(e => `<tr><td class="first"><span class="who2">${avatarP(e.nom, "sm")}<span style="min-width:0"><b>${esc(e.nom)}</b><small class="muted" style="display:block;overflow-wrap:anywhere">${esc(e.email)}</small></span></span></td>
         ${act.map(c => `<td class="cc"><input type="checkbox" data-act="inscr" data-e="${esc(e.email)}" data-n="${esc(e.nom)}" data-c="${esc(c.id)}" ${e.classes.has(c.id) ? "checked" : ""} aria-label="${esc(e.nom)} inscrit en ${esc(c.nom)}"></td>`).join("")}
         <td>${e.compte ? `<span class="pill ok">Connecté</span>` : `<span class="pill">Jamais connecté</span>`}</td>
@@ -2148,7 +2157,7 @@ function admProfil(){
   const off = P.cours_off || [];
   return `<section class="edcard crcard"><h2 class="crbig">Profil</h2>
       <div class="crrow"><b>Photo de profil</b><div class="who2">${avatarP(S.nom, "lg")}<a class="linkbtn" href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Modifier</a></div></div>
-      <div class="crrow"><b>Paramètres du compte</b><span>Modifiez le mot de passe et les options de sécurité de votre compte Microsoft 365 du lycée. <a href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Gérer</a></span></div>
+      <div class="crrow"><b>Paramètres du compte</b><span>${S.prof ? "Modifie" : "Change"} ton mot de passe et les options de sécurité de ton compte Microsoft 365 du lycée. <a href="https://myaccount.microsoft.com/" target="_blank" rel="noopener">Gérer</a></span></div>
       <div class="crrow"><b>Changer de nom</b>${S.prof ? `<div class="two" style="align-items:end"><div class="field"><label for="pfNom">Nom affiché aux élèves</label><input id="pfNom" value="${esc(R().prof.nom)}"></div><div><button class="btn sm" data-act="savenom">Enregistrer</button></div></div>`
         : `<span>Ton nom (${esc(S.nom)}) est indiqué par ton professeur. S'il y a une erreur, écris-lui.</span>`}</div>
       <div class="crrow"><b>Adresse</b><span class="muted">${esc(moi())}</span></div>
@@ -2196,7 +2205,7 @@ function blocNotation(d, rd, cr){
   const G = d.grille && d.grille.length ? d.grille : null, gv = (cr && cr.grille) || [];
   const rem = (R().remarques || []).length ? R().remarques : REMARQUES_DEFAUT;
   return `${G ? `<div class="grille"><b>Grille d'évaluation</b>${G.map((g, i) => `<label class="grow"><span>${esc(g.c)}</span><input id="gr-${i}" data-gr="${i}" type="number" min="0" max="${g.p}" step="0.25" inputmode="decimal" value="${gv[i] != null ? gv[i] : ""}" aria-label="${esc(g.c)}"><span class="muted">/${g.p}</span></label>`).join("")}</div>` : ""}
-    ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="number" min="0" max="${d.points}" step="0.25" inputmode="decimal" value="${cr && cr.note != null ? cr.note : ""}" ${G ? "readonly" : ""}><span class="muted">/${d.points}</span>${G ? `<small class="muted">calculée avec la grille</small>` : ""}</div>` : ""}
+    ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9]+([,.][0-9]+)?" aria-describedby="noteErr" value="${cr && cr.note != null ? String(cr.note).replace(".", ",") : ""}" ${G ? "readonly" : ""}><span class="muted">/${d.points}</span>${G ? `<small class="muted">calculée avec la grille</small>` : ""}</div>` : ""}
     <div class="field"><label for="noteCom">Commentaire pour l'élève <span class="muted">(visible quand tu rends le travail)</span></label><textarea id="noteCom" rows="2" placeholder="ex. Bon raisonnement, attention aux unités.">${esc(cr && cr.commentaire || "")}</textarea>
       ${rem.length ? `<div class="chips">${rem.map(t => `<button class="chip" data-act="remarque" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}</div>
     ${blocCompetences(cr)}${blocVocal(rd, cr)}
@@ -2362,6 +2371,8 @@ let msalApp = null;
 const odActif = () => S.prof && !!(R().onedrive);
 async function msalInit(){
   if (msalApp) return msalApp;
+  /* lot R (5e évaluation) : la bibliothèque Microsoft se charge sans retarder l'ouverture du site (async) ; on l'attend ici au besoin */
+  for (let i = 0; !window.msal && i < 100; i++) await new Promise(ok => setTimeout(ok, 100));
   if (!window.msal) throw new Error("la bibliothèque Microsoft n'a pas pu être chargée");
   msalApp = new window.msal.PublicClientApplication(MSAL_CFG); await msalApp.initialize(); return msalApp;
 }
@@ -3883,7 +3894,9 @@ function blocTableauDeBord(){
     const crs = S.rdv ? S.rdv.creneaux.filter(c => aujourdhui(c.debut)) : [], rdvJour = S.rdv ? S.rdv.resa.filter(r => crs.some(c => c.id === r.creneau_id)).length : null;
     const tps = (S.demandes || []).filter(x => x.date_tp && D(x.date_tp) >= new Date(+t - 864e5 / 2) && D(x.date_tp) <= dans7);
     const prochain = dvs.filter(d => d.date_limite && D(d.date_limite) > t).sort((a, b) => D(a.date_limite) - D(b.date_limite))[0];
-    tuiles = tuile(premier ? `#/classe/${esc(premier.id)}/corriger` : "#/todo", "check", acor, acor > 1 ? "copies à corriger" : "copie à corriger", acor ? "warn" : "ok", premier && acor ? esc(premier.nom) : acor ? "" : "Tout est corrigé")
+    /* 5e évaluation : la tuile des copies est toujours là, en premier (« Tout est corrigé ✓ » quand il n'y a rien) ; le clic ouvre le premier devoir à corriger */
+    const dvAcor = dvs.filter(d => aCorriger(d) > 0).sort((a, b) => (a.date_limite ? +D(a.date_limite) : 9e15) - (b.date_limite ? +D(b.date_limite) : 9e15))[0];
+    tuiles = tuile(dvAcor ? `#/devoir/${dvAcor.id}` : "#/todo", "check", acor || "0", acor > 1 ? "copies à corriger" : "copie à corriger", acor ? "warn" : "ok", dvAcor ? esc(dvAcor.titre) + (premier ? " · " + esc(premier.nom) : "") : "Tout est corrigé ✓")
       + tuile("#/urgences", "urgent", urg, urg > 1 ? "messages urgents" : "message urgent", urg ? "bad" : "ok", urg ? "non lu" + (urg > 1 ? "s" : "") : "Rien de nouveau")
       + tuile("#/rendezvous", "rdv", rdvJour == null ? "…" : rdvJour, "rendez-vous aujourd'hui", rdvJour ? "info" : "", crs.length ? crs.length + " créneau" + (crs.length > 1 ? "x" : "") + " prévu" + (crs.length > 1 ? "s" : "") : "")
       + tuile("#/suivi", "alerte", alertes, alertes > 1 ? "élèves à surveiller" : "élève à surveiller", alertes ? "warn" : "ok", alertes ? "décrochage possible" : "Tout va bien")
@@ -4006,7 +4019,7 @@ VUES_PRO.semaine = function(){
     const c = cls(d.classe_id), e = S.prof ? null : etat(d, moi());
     const fait = S.prof ? aCorriger(d) === 0 && rendusDe(d).length > 0 : !!(e && (e.t === "Rendu" || e.t === "Noté"));
     items.push({ d: D(d.date_limite), titre: d.titre, c, href: "#/devoir/" + d.id, ic: d.type === "question" ? "question" : "devoir", fait,
-      etat: S.prof ? `${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""} · ${aCorriger(d)} à corriger` : e.t, k: S.prof ? (aCorriger(d) ? "warn" : "ok") : e.k });
+      etat: S.prof ? `${rendusDe(d).length} rendu${rendusDe(d).length > 1 ? "s" : ""} · ${aCorriger(d)} à corriger` : libEtat(e.t), k: S.prof ? (aCorriger(d) ? "warn" : "ok") : e.k });
   });
   S.quiz.filter(q => vis(q) && q.date_limite && dans(D(q.date_limite))).forEach(q => { const c = cls(q.classe_id), r = S.prof ? null : resultatDe(q, S.user.id);
     items.push({ d: D(q.date_limite), titre: q.titre, c, href: "#/quiz/" + q.id, ic: "quiz", fait: S.prof ? D(q.date_limite) < t : !!r, etat: S.prof ? "Questionnaire" : r ? "Fait" : "À faire", k: r ? "ok" : "" }); });
@@ -4247,7 +4260,7 @@ VUES_PRO.simulations = function(){
   const groupes = [...SIMS, ...(perso.length ? [{ cat: "Ajoutées par " + nomProfCourt(), l: perso.map(x => ({ ...x, src: x.src || "Lien" })), perso: true }] : [])];
   const filtre = x => !q || sansAccent(x.t + " " + x.src + " " + (x.niv || "")).includes(q);
   return `<div class="page wide"><div class="homehead"><h1>Simulations</h1></div>
-    <p class="muted" style="margin:0">Clique sur une simulation : elle s'ouvre à côté de la page (écran partagé). Sur téléphone, elle s'ouvre dans un nouvel onglet.</p>
+    <p class="muted" style="margin:0"><span class="surordi">Clique sur une simulation : elle s'ouvre à côté de la page (écran partagé).</span><span class="surtel">Touche une simulation pour la lancer.</span></p>
     <div class="simbarre"><div class="simq">${icon("search")}<input type="search" data-simq="1" placeholder="Chercher : pendule, pH, circuit, Tle, SI…" value="${esc(S.simQ || "")}" aria-label="Chercher une simulation"></div></div>
     ${groupes.map(g => { const L = g.l.map((x, i) => ({ ...x, i })).filter(filtre); return L.length ? `<section class="simgroupe"><h2>${esc(g.cat)}</h2><div class="simgrille">${L.map(x => `<div class="simcarte"><button class="simouvrir" data-act="simu" data-t="${esc(x.t)}" data-u="${esc(x.url)}"><span class="simsrc">${esc(x.src)}</span>${x.niv ? `<span class="simniv">${esc(x.niv)}</span>` : ""}<b>${esc(x.t)}</b><span class="simgo">${icon("expand")} Ouvrir à côté</span></button>${g.perso && S.prof ? `<button class="ib sm simsuppr" data-act="simsuppr" data-i="${x.i}" title="Retirer" aria-label="Retirer ${esc(x.t)}">${icon("trash")}</button>` : ""}</div>`).join("")}</div></section>` : ""; }).join("") || `<div class="emptystate"><b>Aucune simulation ne correspond.</b></div>`}
     ${S.prof ? `<section class="edcard"><h2>${icon("plus")} Ajouter une simulation</h2><div class="simajout"><input id="simT" placeholder="Titre (ex. Chute libre)" aria-label="Titre"><input id="simU" type="url" placeholder="https://…" aria-label="Adresse"><button class="btn" data-act="simajout">${icon("plus")} Ajouter</button></div><p class="muted" style="margin:0;font-size:.8rem">Certains sites (Scratch, Tinkercad…) refusent de s'afficher à côté : utilise alors le bouton ↗ du panneau pour les ouvrir dans un onglet.</p></section>` : ""}
@@ -4353,7 +4366,7 @@ function vueCourbes(){
   return `<div class="cbgrille"><div class="cbdonnees">
       <div class="cbaxes"><label>Abscisse <input data-cb="x" value="${esc(c.x)}" aria-label="Nom de l'abscisse"></label><label>unité <input data-cb="ux" value="${esc(c.ux)}" aria-label="Unité de l'abscisse" placeholder="s"></label>
         <label>Ordonnée <input data-cb="y" value="${esc(c.y)}" aria-label="Nom de l'ordonnée"></label><label>unité <input data-cb="uy" value="${esc(c.uy)}" aria-label="Unité de l'ordonnée" placeholder="m"></label></div>
-      <table class="cbtab"><thead><tr><th>${esc(c.x)}</th><th>${esc(c.y)}</th><th></th></tr></thead><tbody>${c.pts.map((p, i) => `<tr><td><input data-cbp="${i}" data-c="0" value="${esc(p[0])}" inputmode="decimal"></td><td><input data-cbp="${i}" data-c="1" value="${esc(p[1])}" inputmode="decimal"></td><td><button class="ib sm" data-act="cbsuppr" data-i="${i}" aria-label="Supprimer la ligne">${icon("x")}</button></td></tr>`).join("")}</tbody></table>
+      <table class="cbtab"><thead><tr><th>${esc(c.x)}</th><th>${esc(c.y)}</th><th><span class="vh">Supprimer</span></th></tr></thead><tbody>${c.pts.map((p, i) => `<tr><td><input data-cbp="${i}" data-c="0" value="${esc(p[0])}" inputmode="decimal"></td><td><input data-cbp="${i}" data-c="1" value="${esc(p[1])}" inputmode="decimal"></td><td><button class="ib sm" data-act="cbsuppr" data-i="${i}" aria-label="Supprimer la ligne">${icon("x")}</button></td></tr>`).join("")}</tbody></table>
       <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost sm" data-act="cbligne">${icon("plus")} Ligne</button><button class="btn ghost sm" data-act="cbvider">Vider</button></div>
       <p class="muted" style="font-size:.78rem;margin:0">Astuce : copie deux colonnes depuis Excel ou Regressi et colle-les dans la première case (Ctrl+V).</p></div>
     <div class="cbgraphe"><div class="cbmod">${[["lineaire", "Linéaire y = a·x"], ["affine", "Affine y = a·x + b"], ["parabole", "Parabole"], ["expo", "Exponentielle"]].map(([k, l]) => `<button class="thbtn${c.mod === k ? " on" : ""}" data-act="cbmod" data-m="${k}">${l}</button>`).join("")}</div>
@@ -5286,7 +5299,7 @@ function carteFormule(t, dom){
   else res = `<p class="fmuet">Vide la case de la grandeur à calculer.</p>`;
   const k0 = dom + ":" + id, ouv = FOPEN.has(k0) || V.some(v => OV[cle(v[0])] !== undefined && String(OV[cle(v[0])]).trim() !== "");
   return `<article class="fcarte${ouv ? " ouvert" : ""}" data-niv="${esc(niv)}" data-k="${esc(k0)}"><header data-act="fouvre"><span class="simniv">${esc(niv)}</span><h3>${jolie(titre)}</h3><button class="ib" data-act="fclr" data-p="${esc("F_" + dom + "_" + id + "_")}" title="Effacer" aria-label="Effacer">${icon("restore")}</button></header>
-    <div class="fformule">${jolie(formule)}</div>
+    <div class="fformule" tabindex="0">${jolie(formule)}</div>
     <div class="ochamps">${V.map(v => `<label class="ochamp"><span>${jolie(v[1])}</span><span class="ochin"><input id="${cle(v[0])}" data-oi="1" value="${esc(val(v))}" inputmode="decimal" autocomplete="off">${v[2] ? `<em>${esc(v[2])}</em>` : ""}</span></label>`).join("")}</div>
     ${res}${aide ? `<p class="faide">${esc(aide)}</p>` : ""}</article>`;
 }
@@ -6663,17 +6676,17 @@ function progressionEnvoi(i, n, frac, nom, essai){
 }
 
 /* ---------------------------------------------------------------- A4. Confirmation géante « C'est rendu ! » */
-function confirmationRendu(o, titre){
+function confirmationRendu(o, titre, ligne){
   vibrer([60, 40, 60]);
   const t = now(), x = document.createElement("div");
   x.id = "ppRendu"; x.setAttribute("role", "alertdialog"); x.setAttribute("aria-label", titre);
   x.innerHTML = `<div class="rendubox"><svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg>
     <h2>${esc(titre === "Devoir rendu !" ? "C'est rendu !" : titre)}</h2><p><b>${esc(o.titre || "")}</b></p>
-    <p>Envoyé le ${fmtShort(t)} à ${fmtT(t)}. Ton professeur le voit déjà.</p>
+    ${ligne ? `<p class="rendunote">${ligne}</p>` : ""}<p>Envoyé le ${fmtShort(t)} à ${fmtT(t)}. Ton professeur le voit déjà.</p>
     <button class="btn" data-rendu-ok="1">OK</button></div>`;
   document.getElementById("ppRendu")?.remove();
   document.body.appendChild(x);
-  x.addEventListener("click", e => { if (e.target.closest("[data-rendu-ok]") || e.target === x) x.remove(); });
+  x.addEventListener("click", e => { if (e.target.closest("[data-rendu-ok]") || e.target === x) { x.remove(); if (o && o.questions) { window.scrollTo(0, 0); document.querySelector(".quizbilan")?.focus({ preventScroll: true }); } } });
   setTimeout(() => x.querySelector("button")?.focus(), 50);
   setTimeout(() => { if (x.isConnected) x.classList.add("fin"); }, 7000);
   setTimeout(() => x.remove(), 7500);
@@ -7004,7 +7017,9 @@ function unParEcran(){
   const bas = document.createElement("div"); bas.className = "qnavbas";
   bas.innerHTML = `<div class="qboutons"><button class="btn ghost" data-qnav="-1" ${pos === 0 ? "disabled" : ""}>‹ Précédente</button>${pos < N - 1 ? `<button class="btn" data-qnav="1">Suivante ›</button>` : ""}</div>
     <button class="linkbtn" data-qnav="tout">Voir toutes les questions</button>`;
-  qs[pos].after(bas);
+  /* 5e évaluation : à la dernière question, le gros bouton « Envoyer » vient juste sous la question, « Précédente » passe dessous */
+  sec.classList.toggle("qdernier", pos === N - 1);
+  (pos === N - 1 ? qs[N] : qs[pos]).after(bas);
 }
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("[data-qnav]"); if (!b) return; e.preventDefault();
@@ -7346,6 +7361,53 @@ document.addEventListener("click", e => {
   const m = document.querySelector("main.content"); if (!m) return;
   m.setAttribute("tabindex", "-1"); m.focus(); m.scrollIntoView({ block: "start" });
 });
+/* =====================================================================
+   PhysiquePro · module 33 · 5e évaluation experte (11/11/2026)
+   Lot P : les logos du haut qui ne tiennent pas en entier se rangent (ils restent dans Applications).
+   Lot S : chaque page a un titre principal (h1, caché s'il n'y en a pas de visible) et des niveaux de titres réguliers.
+   ===================================================================== */
+
+/* ---------- P : logos du haut, seulement ceux qui tiennent en entier (ordinateur 1024 px, zoom, petits Android) */
+function logosQuiTiennent(){
+  document.querySelectorAll(".topbar .quick").forEach(nav => {
+    const L = [...nav.querySelectorAll(":scope > a")];
+    L.forEach(a => a.classList.remove("qcache"));
+    if (!nav.offsetWidth) return;
+    const bord = () => nav.getBoundingClientRect().right + 0.5;
+    const visibles = () => L.filter(a => a.offsetWidth && !a.classList.contains("qcache"));
+    for (let v = visibles(), i = 0; v.length > 1 && i < L.length && (nav.scrollWidth > nav.clientWidth + 1 || v[v.length - 1].getBoundingClientRect().right > bord()); v = visibles(), i++)
+      v[v.length - 1].classList.add("qcache");
+  });
+}
+let _logosT = null;
+window.addEventListener("resize", () => { clearTimeout(_logosT); _logosT = setTimeout(logosQuiTiennent, 120); });
+
+/* ---------- S : titres de la page */
+function titresDeLaPage(){
+  const m = document.querySelector("main.content"); if (!m) return;
+  m.querySelectorAll("h1.vh[data-auto]").forEach(h => h.remove());
+  if (![...m.querySelectorAll("h1")].some(h => h.offsetWidth || h.offsetHeight)) {
+    const fil = document.querySelector(".topbar .curnom");
+    const onglet = document.querySelector('.tabsbar [role="tab"][aria-selected="true"]');
+    const t = [fil && fil.textContent.trim(), onglet && onglet.textContent.replace(/\s+\d+$/, "").trim()].filter(Boolean).join(" · ") || document.title || "PhysiquePro";
+    const h = document.createElement("h1"); h.className = "vh"; h.dataset.auto = "1"; h.textContent = t;
+    m.insertBefore(h, m.firstChild);
+  }
+  /* un titre ne saute pas de niveau (h1 puis h3) : on lui donne le niveau attendu pour les lecteurs d'écran */
+  let prec = 0; const niv = {};
+  m.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach(h => {
+    if (h.dataset.niv) { h.removeAttribute("aria-level"); delete h.dataset.niv; }
+    if (!h.getClientRects().length) return;           /* titre caché : ignoré */
+    const n = Number(h.tagName[1]);
+    for (const k in niv) if (Number(k) > n) delete niv[k];
+    const eff = niv[n] != null ? Math.min(niv[n], prec + 1) : Math.min(n, prec + 1);
+    niv[n] = eff;
+    if (eff !== n) { h.setAttribute("aria-level", String(eff)); h.dataset.niv = "1"; }
+    prec = eff;
+  });
+}
+
+APRES_RENDU.push(() => { logosQuiTiennent(); titresDeLaPage(); });
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
@@ -7745,7 +7807,7 @@ document.addEventListener("input", e => {
   if (t.id === "repQ") { S.reponse = t.value; return; }
   if (t.id === "impTexte" && S.imp) { S.imp.texte = t.value; return; }
   if (S.settings && t.dataset.cat != null) { S.settings.categories[Number(t.dataset.cat)][t.dataset.k] = t.value; return; }
-  if (t.dataset.gr != null) { const ins = [...document.querySelectorAll("[data-gr]")], vals = ins.map(x => Number(String(x.value).replace(",", "."))).filter(x => !isNaN(x) && String(x) !== ""); const n = document.getElementById("note"); if (n) n.value = ins.some(x => x.value !== "") ? Math.round(ins.reduce((a, x) => a + (Number(String(x.value).replace(",", ".")) || 0), 0) * 100) / 100 : ""; return; }
+  if (t.dataset.gr != null) { const ins = [...document.querySelectorAll("[data-gr]")], vals = ins.map(x => Number(String(x.value).replace(",", "."))).filter(x => !isNaN(x) && String(x) !== ""); const n = document.getElementById("note"); if (n) n.value = ins.some(x => x.value !== "") ? String(Math.round(ins.reduce((a, x) => a + (Number(String(x.value).replace(",", ".")) || 0), 0) * 100) / 100).replace(".", ",") : ""; return; }
   if (t.dataset.act === "anstxt") { const id = t.dataset.q; S.quizRep[id] = S.quizRep[id] || {}; S.quizRep[id][Number(t.dataset.i)] = t.value; return; }
   if (S.ed && t.dataset.gr2 != null) { S.ed.grille[Number(t.dataset.gr2)][t.dataset.k] = t.value; if (t.dataset.k === "p") { const tot = document.querySelector(".edcard .muted b"); } return; }
   if (S.ed && t.dataset.qo != null) { S.ed.qoptions[Number(t.dataset.qo)] = t.value; return; }

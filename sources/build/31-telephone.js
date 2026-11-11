@@ -140,17 +140,17 @@ function progressionEnvoi(i, n, frac, nom, essai){
 }
 
 /* ---------------------------------------------------------------- A4. Confirmation géante « C'est rendu ! » */
-function confirmationRendu(o, titre){
+function confirmationRendu(o, titre, ligne){
   vibrer([60, 40, 60]);
   const t = now(), x = document.createElement("div");
   x.id = "ppRendu"; x.setAttribute("role", "alertdialog"); x.setAttribute("aria-label", titre);
   x.innerHTML = `<div class="rendubox"><svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg>
     <h2>${esc(titre === "Devoir rendu !" ? "C'est rendu !" : titre)}</h2><p><b>${esc(o.titre || "")}</b></p>
-    <p>Envoyé le ${fmtShort(t)} à ${fmtT(t)}. Ton professeur le voit déjà.</p>
+    ${ligne ? `<p class="rendunote">${ligne}</p>` : ""}<p>Envoyé le ${fmtShort(t)} à ${fmtT(t)}. Ton professeur le voit déjà.</p>
     <button class="btn" data-rendu-ok="1">OK</button></div>`;
   document.getElementById("ppRendu")?.remove();
   document.body.appendChild(x);
-  x.addEventListener("click", e => { if (e.target.closest("[data-rendu-ok]") || e.target === x) x.remove(); });
+  x.addEventListener("click", e => { if (e.target.closest("[data-rendu-ok]") || e.target === x) { x.remove(); if (o && o.questions) { window.scrollTo(0, 0); document.querySelector(".quizbilan")?.focus({ preventScroll: true }); } } });
   setTimeout(() => x.querySelector("button")?.focus(), 50);
   setTimeout(() => { if (x.isConnected) x.classList.add("fin"); }, 7000);
   setTimeout(() => x.remove(), 7500);
@@ -481,7 +481,9 @@ function unParEcran(){
   const bas = document.createElement("div"); bas.className = "qnavbas";
   bas.innerHTML = `<div class="qboutons"><button class="btn ghost" data-qnav="-1" ${pos === 0 ? "disabled" : ""}>‹ Précédente</button>${pos < N - 1 ? `<button class="btn" data-qnav="1">Suivante ›</button>` : ""}</div>
     <button class="linkbtn" data-qnav="tout">Voir toutes les questions</button>`;
-  qs[pos].after(bas);
+  /* 5e évaluation : à la dernière question, le gros bouton « Envoyer » vient juste sous la question, « Précédente » passe dessous */
+  sec.classList.toggle("qdernier", pos === N - 1);
+  (pos === N - 1 ? qs[N] : qs[pos]).after(bas);
 }
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("[data-qnav]"); if (!b) return; e.preventDefault();
