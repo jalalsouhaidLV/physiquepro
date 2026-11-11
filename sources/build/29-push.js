@@ -41,7 +41,7 @@ function blocPush(){
     : typeof Notification !== "undefined" && Notification.permission === "denied" ? `<p class="muted" style="margin:0">Les notifications sont bloquées pour ce site : autorise-les dans les réglages du téléphone ou du navigateur, puis reviens ici.</p>`
     : `<div><button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications sur cet appareil</button></div>`;
   return `${S.prof ? "" : `<h3 class="crsub">Sur ce téléphone ou cet ordinateur</h3>
-      <p class="muted" style="margin:0">Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès que ton professeur rend une note. À faire une fois sur chaque appareil.</p>
+      <p class="muted" style="margin:0">Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès que ton professeur rend une note ou t'envoie un message d'urgence. À faire une fois sur chaque appareil.</p>
       ${etat}`}
       ${S.prof ? `<h3 class="crsub">Quand je rends une note</h3>
       <label class="switch crsw"><span>Envoyer aussi un e-mail à l'élève (depuis mon Outlook)</span><input type="checkbox" data-pref="mail_notes" ${prefs().mail_notes !== false ? "checked" : ""}><i aria-hidden="true"></i></label>

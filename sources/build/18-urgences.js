@@ -78,7 +78,7 @@ function modalUrgProf(m){
       <div class="field"><label for="upEleve">Élève</label><select id="upEleve">${avec.length ? avec.map(e => `<option value="${esc(e.p.id)}" ${m.eleve === e.p.id ? "selected" : ""}>${esc(e.nom)}</option>`).join("") : `<option value="">Aucun élève connecté dans ce cours</option>`}</select></div></div>
     ${sans.length ? `<p class="muted" style="margin:0;font-size:.8rem">${sans.length} élève${sans.length > 1 ? "s" : ""} de ce cours ne ${sans.length > 1 ? "se sont" : "s'est"} jamais connecté${sans.length > 1 ? "s" : ""} au site : ${sans.length > 1 ? "ils" : "il"} ne peu${sans.length > 1 ? "vent" : "t"} pas encore recevoir de message.</p>` : ""}
     <div class="field"><label for="upTexte">Ton message</label><textarea id="upTexte" rows="5" maxlength="2000" style="width:100%;resize:vertical" placeholder="ex. Passe me voir à la récréation pour ton TP.">${esc(m.texte || "")}</textarea></div>
-    <p class="muted" style="margin:0;font-size:.82rem">L'élève voit une grande alerte « MESSAGE D'URGENCE REÇU » au centre de son écran dès qu'il est sur le site, et peut te répondre par un message urgent.</p>`;
+    <p class="muted" style="margin:0;font-size:.82rem">L'élève voit une grande alerte « MESSAGE D'URGENCE REÇU » au centre de son écran dès qu'il est sur le site. S'il a activé les notifications (Profil &gt; Notifications), il reçoit aussi une notification sur son téléphone, même site fermé.</p>`;
 }
 async function envoyerUrgProf(){
   const v = id => ((document.getElementById(id) || {}).value || "").trim();
@@ -88,7 +88,16 @@ async function envoyerUrgProf(){
   const { data, error } = await sb.from("messages_urgents").insert({ classe_id: cid, eleve: uid, eleve_email: p.email, eleve_nom: (e && e.nom) || p.nom || nomDepuisEmail(p.email), texte: t, de_prof: true }).select().single();
   if (error) throw error;
   S.urgents = [data, ...(S.urgents || [])]; signalerNouveautes();
-  return (e && e.nom) || p.email;
+  const c = cls(cid), avis = await pousserUrgent([p.email], "⚠ Message d'urgence de " + nomProfCourt(), (c ? c.nom + " · " : "") + t, cid, "urg-" + data.id);
+  return ((e && e.nom) || p.email) + avis;
+}
+/* notification push sur le téléphone de l'élève (fonction Supabase pp-push), même site fermé ; renvoie un complément pour le message de confirmation */
+async function pousserUrgent(emails, titre, texte, cid, tag){
+  try {
+    const { data, error } = await sb.functions.invoke("pp-push", { body: { action: "envoyer", emails: emails.map(x => String(x).toLowerCase()), titre, texte: String(texte).slice(0, 180), url: "./#/classe/" + cid, tag } });
+    if (error || !data) return " (notification sur le téléphone non envoyée)";
+    return data.eleves ? " · notification envoyée sur son téléphone" : " · l'élève n'a pas activé les notifications sur son téléphone : il verra l'alerte en ouvrant le site";
+  } catch (_) { return " (notification sur le téléphone non envoyée)"; }
 }
 
 async function actionUrgence(act, a){
@@ -98,7 +107,9 @@ async function actionUrgence(act, a){
   if (act === "urglu") { const on = a.dataset.on === "1"; const { error } = await sb.from("messages_urgents").update({ lu: on }).eq("id", m.id); if (error) return toast("Action impossible : " + error.message); m.lu = on; render(); return; }
   if (act === "urgsend") { const t = ((document.getElementById("urgRep" + m.id) || {}).value || "").trim(); if (!t) return toast("Écris ta réponse.");
     const patch = { reponse: t, repondu_le: now().toISOString(), lu: true }; const { error } = await sb.from("messages_urgents").update(patch).eq("id", m.id); if (error) return toast("Envoi impossible : " + error.message);
-    Object.assign(m, patch); S.urgRep = null; toast("Réponse envoyée à " + (m.eleve_nom || m.eleve_email)); render(); return; }
+    Object.assign(m, patch); S.urgRep = null; render();
+    const c = cls(m.classe_id), avis = await pousserUrgent([m.eleve_email], "Réponse de " + nomProfCourt(), (c ? c.nom + " · " : "") + t, m.classe_id, "urgrep-" + m.id);
+    toast("Réponse envoyée à " + (m.eleve_nom || m.eleve_email) + avis); return; }
   if (act === "urgsuppr") { const { error } = await sb.from("messages_urgents").delete().eq("id", m.id); if (error) return toast("Suppression impossible : " + error.message); S.urgents = S.urgents.filter(x => x !== m); toast("Message supprimé"); render(); return; }
 }
 
