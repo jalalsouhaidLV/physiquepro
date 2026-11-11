@@ -36,7 +36,7 @@
 > 1. Cloner le dépôt jalalsouhaidLV/physiquepro (ou git pull).
 > 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
 > 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
-> 4. git push sur main : GitHub Pages en 1-2 min. Netlify : le dimanche 18 h UTC, ou tout de suite via Actions > « Publication Netlify du dimanche » > Run workflow.
+> 4. git push sur main : GitHub Pages en 1-2 min. Netlify : le dimanche 18 h UTC, et en dehors du dimanche UNIQUEMENT si Jalal le demande (Actions > « Publication Netlify du dimanche » > Run workflow ; consigne du 11/11/2026).
 > 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 37 existent ; le prochain est 38), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql (77/77) et 30-test-fichiers.sql (13/13).
 > 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment ou Netlify), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
 >
@@ -115,7 +115,7 @@
 2. Tester localement avec Playwright (bouchons dans `sources/tests/`, mode d'emploi `sources/tests/LISEZMOI-tests.md`).
 3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
 4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
-5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : GitHub > Actions > « Publication Netlify du dimanche » > Run workflow.
+5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : seulement sur demande de Jalal (GitHub > Actions > « Publication Netlify du dimanche » > Run workflow).
 6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 37). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
 
 ---
