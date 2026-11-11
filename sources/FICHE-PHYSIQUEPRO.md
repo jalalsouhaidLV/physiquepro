@@ -143,6 +143,7 @@
 - Netlify publié **une seule fois par semaine** pour économiser les crédits ; GitHub Pages reste la version toujours à jour.
 - Le calendrier dynamique est **un lien** vers le fichier Google Drive de la direction (pas un fichier envoyé).
 - Pas d'intervention de l'administrateur réseau du lycée.
+- Après la connexion, l'élève arrive **toujours sur l'accueil**, même s'il n'a qu'un seul cours (11/11/2026, ancienne redirection automatique vers le cours unique retirée). Seul un lien direct vers un cours (carte de cours de la page publique, lien partagé, code d'invitation) ouvre ce cours après la connexion.
 
 ---
 
