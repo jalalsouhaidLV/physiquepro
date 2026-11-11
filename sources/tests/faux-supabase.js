@@ -58,7 +58,7 @@
       { id: 3, classe_id: "tle", theme_id: 2, titre: "ZZ support brouillon", description: "", ressources: [], publie_le: jour(-4), brouillon: true, eleves: null, position: 2 }
     ],
     devoirs: [
-      { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "Faire les exercices 3 et 4.", ressources: [{ type: "DOCX", label: "Fiche ondes.docx", url: "https://exemple.sharepoint.com/:w:/g/fiche", od: { id: "OD-FICHE", web: "https://exemple.sharepoint.com/fiche.docx" } }, { type: "Fichier", label: "Schéma à compléter.png", path: "tle/schema.png" }], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
+      { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "<p>Faire les exercices 3 et 4.</p><ol><li>Lire l'énoncé</li><li>Faire le schéma</li><li>Rédiger la réponse</li></ol>", ressources: [{ type: "DOCX", label: "Fiche ondes.docx", url: "https://exemple.sharepoint.com/:w:/g/fiche", od: { id: "OD-FICHE", web: "https://exemple.sharepoint.com/fiche.docx" } }, { type: "Fichier", label: "Schéma à compléter.png", path: "tle/schema.png" }], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
       { id: 2, classe_id: "tle", theme_id: 2, titre: "Compte rendu de TP", consigne: "Rendre le compte rendu du dosage.", ressources: [], date_limite: jour(-1), mode: "binome", formats: "", points: 20, publie_le: jour(-8), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: false, position: 1, accepte: true },
       { id: 3, classe_id: "snt", theme_id: 3, titre: "Question : qu'est-ce qu'un routeur ?", consigne: "Réponds en deux phrases.", ressources: [], date_limite: jour(6), mode: "individuel", formats: "", points: null, publie_le: jour(-1), brouillon: false, eleves: null, type: "question", question: { type: "courte" }, categorie: "", grille: null, retard_ok: true, position: 1, accepte: true }
     ],
@@ -70,9 +70,11 @@
     ],
     quiz: [
       { id: 1, classe_id: "tle", theme_id: 1, titre: "Questionnaire : ondes", mode: "note", consigne: "", points: 4, date_limite: jour(5), publie_le: jour(-1), brouillon: false, eleves: null, montrer_correction: true, categorie: "", melanger: false, position: 3,
-        questions: [{ q: "Une onde mécanique transporte-t-elle de la matière ?", t: "choix", o: ["Oui", "Non"] }, { q: "Unité de la célérité ?", t: "choix", o: ["m/s", "Hz", "s"] }] }
+        questions: [{ q: "Une onde mécanique transporte-t-elle de la matière ?", t: "choix", o: ["Oui", "Non"] }, { q: "Unité de la célérité ?", t: "choix", o: ["m/s", "Hz", "s"] }] },
+      { id: 2, classe_id: "tle", theme_id: 1, titre: "Entraînement : célérité", mode: "entrainement", consigne: "", points: 3, date_limite: jour(1), publie_le: jour(-1), brouillon: false, eleves: null, montrer_correction: true, categorie: "", melanger: false, position: 4,
+        questions: [{ q: "Calcule la célérité (en m/s) : d = 3,0 m en t = 2,0×10^-3 s.", t: "num", o: [] }, { q: "Une onde transporte de l'énergie.", t: "choix", o: ["Vrai", "Faux"] }, { q: "Grandeurs à mesurer ?", t: "cases", o: ["Distance", "Durée", "Masse"] }] }
     ],
-    quiz_solutions: [{ quiz_id: 1, bonnes: [1, 0] }],
+    quiz_solutions: [{ quiz_id: 1, bonnes: [1, 0] }, { quiz_id: 2, bonnes: [{ v: "1500", tol: "5" }, 0, [0, 1]] }],
     resultats_quiz: [],
     annonces: [{ id: 1, classe_id: "tle", auteur: PROF.id, auteur_nom: PROF.nom, texte: "Bienvenue dans le cours (annonce de test).", ressources: [], cree_le: jour(-4), publie_le: jour(-4), epingle: true },
       { id: 2, classe_id: "tle", auteur: PROF.id, auteur_nom: PROF.nom, texte: "Annonce programmée (test).", ressources: [], cree_le: jour(-1), publie_le: jour(2), epingle: false }],
@@ -236,7 +238,8 @@
       }
       return res;
     }
-    then(ok, ko) { return new Promise(r => setTimeout(r, 5)).then(() => this.executer()).then(ok, ko); }
+    /* hors connexion (navigateur « offline ») : même réponse que supabase-js quand le réseau manque */
+    then(ok, ko) { return new Promise(r => setTimeout(r, 5)).then(() => navigator.onLine === false ? { data: null, error: { name: "TypeError", message: "TypeError: Failed to fetch" } } : this.executer()).then(ok, ko); }
     catch(ko) { return this.then(undefined, ko); }
     finally(f) { return this.then(v => { f(); return v; }, e => { f(); throw e; }); }
   }
@@ -246,15 +249,17 @@
   const stockage = bucket => {
     const a = (op, data) => { APPELS.push({ bucket, op }); return Promise.resolve(ok(data)); };
     return {
-      upload: (chemin) => a("upload", { path: chemin, fullPath: bucket + "/" + chemin }),
+      /* window.__PP_PANNE = n : les n prochains envois échouent comme une coupure de réseau (test de l'envoi fiable) */
+      upload: (chemin, f) => { if (window.__PP_PANNE > 0) { window.__PP_PANNE--; APPELS.push({ bucket, op: "upload-panne" }); return Promise.resolve({ data: null, error: { name: "TypeError", message: "Failed to fetch" } }); }
+        APPELS.push({ bucket, op: "upload", chemin, taille: f && f.size, type: f && f.type }); return Promise.resolve(ok({ path: chemin, fullPath: bucket + "/" + chemin })); },
       remove: (L) => a("remove", (L || []).map(name => ({ name }))),
       list: () => a("list", []),
       copy: (de, vers) => a("copy", { path: vers }),
       move: (de, vers) => a("move", { path: vers }),
       download: () => a("download", new Blob(["Fichier fictif"], { type: "text/plain" })),
       /* une image fictive (vraie image du site) pour les fichiers .png/.jpg : sert à l'annotation par l'élève */
+      createSignedUrls: (L) => a("createSignedUrls", (L || []).map(p => ({ path: p, signedUrl: /\.(png|jpe?g)$/i.test(p || "") ? location.origin + "/icon-512.png" : FICHIER_TEST }))),
       createSignedUrl: (p) => a("createSignedUrl", { signedUrl: /\.(png|jpe?g)$/i.test(p || "") ? location.origin + "/icon-512.png" : FICHIER_TEST }),
-      createSignedUrls: (L) => a("createSignedUrls", (L || []).map(path => ({ path, signedUrl: FICHIER_TEST, error: null }))),
       getPublicUrl: () => ({ data: { publicUrl: FICHIER_TEST } })
     };
   };

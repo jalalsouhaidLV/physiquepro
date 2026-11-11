@@ -103,6 +103,7 @@ function admProfil(){
       <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, l)).join("")}
       <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Cours dont vous êtes élève"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
       ${blocPush()}
+      ${blocTelephoneProfil()}
       <details class="crdet"><summary><span><b>Notifications de cours</b><small class="muted">Ces paramètres s'appliquent aux notifications pour chaque cours</small></span>${icon("down")}</summary>
         ${actives().map(c => `<label class="switch crsw"><span class="who2"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span>${esc(c.nom)}</span><input type="checkbox" data-prefc="${esc(c.id)}" ${off.includes(c.id) ? "" : "checked"}><i aria-hidden="true"></i></label>`).join("")}</details>
     </section>`;

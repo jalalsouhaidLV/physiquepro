@@ -9,8 +9,8 @@ async function chargerCP(did, email, force){
 function vCP(did, email){
   const list = (S.cp || {})[cpKey(did, email)] || [];
   return `<div class="yourwork"><header><h2 style="font-size:1rem">${icon("comment")} Commentaires privés</h2></header>
-    ${list.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div></div>`).join("") || `<span class="muted" style="font-size:.85rem">${S.prof ? "Aucun échange avec cet élève." : "Pose une question à ton professeur : seul lui verra ce message."}</span>`}
-    <div class="comform"><input id="cpIn" placeholder="${S.prof ? "Écrire à l'élève…" : "Écrire au professeur…"}" aria-label="Commentaire privé"><button class="ib" data-act="cpsend" data-d="${did}" data-e="${esc(email)}" aria-label="Envoyer">${icon("send")}</button></div></div>`;
+    ${list.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div>${x.photo ? photoCP(x.photo) : ""}</div></div>`).join("") || `<span class="muted" style="font-size:.85rem">${S.prof ? "Aucun échange avec cet élève." : "Pose une question à ton professeur : seul lui verra ce message."}</span>`}
+    <div class="comform"><input id="cpIn" placeholder="${S.prof ? "Écrire à l'élève…" : "Écrire au professeur…"}" aria-label="Commentaire privé">${boutonPhotoCP(did, email)}<button class="ib" data-act="cpsend" data-d="${did}" data-e="${esc(email)}" aria-label="Envoyer">${icon("send")}</button></div></div>`;
 }
 
 /* ---------- devoir côté élève ---------- */
@@ -41,7 +41,7 @@ function vDevoir(r){
       <div class="dd"><button class="btn ghost" data-act="menu" data-m="ajouter" style="width:100%">${icon("plus")} Ajouter ou créer</button>${S.menu === "ajouter" ? `<div class="dd-menu" style="left:0;right:auto;width:100%"><a href="#" data-act="pickfile">${icon("upload")} Fichier</a><a href="#" data-act="lienopen">${icon("links")} Lien</a></div>` : ""}</div>
       <input type="file" id="fileIn" multiple hidden>
       ${!ouvert(d) ? `<p class="notice" style="margin:0;font-size:.85rem">La date limite est passée : ton travail sera marqué <b>en retard</b>.</p>` : ""}
-      <div id="depErr" class="err" hidden></div>
+      <div id="depErr" class="err" hidden></div>${quiRend()}
       <button class="btn" data-act="submit" data-id="${d.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi en cours…" : (S.files.length || S.lien ? "Rendre" : "Marquer comme terminé")}</button>
       <p class="muted" style="margin:0;font-size:.78rem">50 Mo maximum par fichier${d.formats ? " · " + esc(d.formats) : ""}</p>`;
   }
@@ -57,7 +57,7 @@ function vDevoir(r){
     </div>
     <aside style="display:grid;gap:16px;align-content:start">
       <div class="yourwork"><header><h2>${isQ ? "Votre réponse" : "Votre travail"}</h2><span class="pill ${e.k}">${e.t === "Rendu" && isQ ? "Envoyée" : e.t}${e.retard ? " en retard" : ""}</span></header>${work}</div>
-      ${vCP(d.id, moi())}
+      ${vCP(d.id, moi())}${actionsTelDevoir(d, "devoir")}
     </aside></div>${pageFoot()}</div>`;
 }
 function travailQuestion(d, c, e, rd, open, Q){
@@ -68,7 +68,7 @@ function travailQuestion(d, c, e, rd, open, Q){
   if (!open) return `<p style="margin:0" class="muted">${d.accepte === false ? "Ton professeur n'accepte plus de réponses pour cette question." : "La date limite est passée : tu ne peux plus répondre."}</p>`;
   const champ = Q.format === "choix" ? `<div class="qopts" style="padding:0">${(Q.options || []).map(o => `<label class="opt"><input type="radio" name="repQ" data-act="repchoix" value="${esc(o)}" ${S.reponse === o ? "checked" : ""}> ${esc(o)}</label>`).join("")}</div>`
     : `<textarea id="repQ" rows="4" placeholder="Ta réponse" aria-label="Ta réponse">${esc(S.reponse || "")}</textarea>`;
-  return `${champ}<div id="depErr" class="err" hidden></div>
+  return `${champ}<div id="depErr" class="err" hidden></div>${quiRend()}
     <button class="btn" data-act="submit" data-id="${d.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi…" : "Rendre"}</button>
     ${Q.voir ? `<p class="muted" style="margin:0;font-size:.78rem">Après ta réponse, tu verras celles de tes camarades.</p>` : ""}`;
 }
@@ -94,25 +94,33 @@ async function rendreDevoir(d){
   if (!depotOuvert(d)) return fail(d.accepte === false ? "Ton professeur n'accepte plus de devoirs pour ce travail." : "La date limite est passée.");
   if (d.type === "question") {
     const rep2 = (S.reponse || "").trim(); if (!rep2) return fail("Écris ou choisis ta réponse avant de rendre.");
+    if (!enLigne()) return fail("Pas de connexion Internet : ta réponse reste gardée sur ce téléphone. Réessaie dès que le réseau revient.");
     S.sending = true; render();
-    const { error } = await sb.from("rendus").insert({ devoir_id: d.id, auteur: S.user.id, auteur_email: moi(), fichiers: [], reponse: rep2 });
+    const { error } = await envoiAvecEssais(() => sb.from("rendus").insert({ devoir_id: d.id, auteur: S.user.id, auteur_email: moi(), fichiers: [], reponse: rep2 }));
     if (error) return fail("Envoi impossible : " + error.message);
-    S.reponse = ""; S.sending = false; await rafraichir(); render(); toast("Réponse envoyée"); celebrer("Réponse envoyée !"); return;
+    S.reponse = ""; S.sending = false; await rafraichir(); render(); confirmationRendu(d, "Réponse envoyée !"); return;
   }
   if (d.mode === "binome" && !S.partenaire) return fail("Choisis ton binôme avant de rendre.");
   if (S.lien && !/^https:\/\//.test(S.lien)) return fail("Le lien doit commencer par https://");
+  if (!enLigne()) return fail("Pas de connexion Internet : ton travail reste gardé sur ce téléphone. Réessaie dès que le réseau revient.");
   S.sending = true; render();
-  const fichiers = [];
-  for (const f of S.files) {
+  const fichiers = [], aEnvoyer = [];
+  for (const f0 of S.files) aEnvoyer.push(await alleger(f0));
+  const total = aEnvoyer.reduce((a, f) => a + (f.size || 0), 0) || 1; let fait = 0;
+  for (let i = 0; i < aEnvoyer.length; i++) {
+    const f = aEnvoyer[i];
+    progressionEnvoi(i + 1, aEnvoyer.length, fait / total, f.name);
     const chemin = d.id + "/" + S.user.id + "/" + Date.now() + "-" + safeName(f.name);
-    const { error } = await sb.storage.from("rendus").upload(chemin, f);
-    if (error) { if (fichiers.length) await sb.storage.from("rendus").remove(fichiers.map(x => x.chemin)); return fail("Envoi de « " + f.name + " » impossible : " + error.message); }
-    fichiers.push({ chemin, nom: f.name, taille: f.size });
+    const { error } = await envoiAvecEssais(() => sb.storage.from("rendus").upload(chemin, f), n => progressionEnvoi(i + 1, aEnvoyer.length, fait / total, f.name, n));
+    if (error) { progressionEnvoi(); if (fichiers.length) await sb.storage.from("rendus").remove(fichiers.map(x => x.chemin)); return fail("Envoi de « " + f.name + " » impossible : " + (estErreurReseau(error) ? "le réseau a coupé. Ton travail reste gardé sur ce téléphone : réessaie dans un instant." : error.message)); }
+    fichiers.push({ chemin, nom: f.name, taille: f.size }); fait += f.size || 0;
   }
-  const { error } = await sb.from("rendus").insert({ devoir_id: d.id, auteur: S.user.id, auteur_email: moi(), binome_email: d.mode === "binome" ? S.partenaire : null, fichiers, lien: S.lien || null });
+  progressionEnvoi(aEnvoyer.length, aEnvoyer.length, 1, "");
+  const { error } = await envoiAvecEssais(() => sb.from("rendus").insert({ devoir_id: d.id, auteur: S.user.id, auteur_email: moi(), binome_email: d.mode === "binome" ? S.partenaire : null, fichiers, lien: S.lien || null }));
+  progressionEnvoi();
   if (error) { if (fichiers.length) await sb.storage.from("rendus").remove(fichiers.map(x => x.chemin)); return fail(/row-level|policy/i.test(error.message) ? "Rendu impossible : le dépôt est fermé, ou ton binôme a déjà rendu ce devoir." : "Rendu impossible : " + error.message); }
   S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; S.sending = false;
-  await rafraichir(); render(); toast("Devoir rendu"); celebrer("Devoir rendu !");
+  await rafraichir(); render(); confirmationRendu(d, "Devoir rendu !");
 }
 
 /* ---------- devoir côté professeur ---------- */

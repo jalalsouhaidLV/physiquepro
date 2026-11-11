@@ -105,6 +105,8 @@ select pg_temp.lire('Lire', 'Commentaire de classe sous le devoir réservé à B
 select pg_temp.lire('Lire', 'Commentaires de classe sous un devoir d''une autre classe', $$select * from commentaires_devoirs where devoir_id = (select v::bigint from t_ids where k = 'D3')$$);
 select pg_temp.lire('Lire', 'Annonce programmée pas encore publiée', $$select * from annonces where texte = 'ZZ annonce programmée'$$);
 select pg_temp.lire('Lire', 'Profils des autres utilisateurs', $$select * from profiles where id <> auth.uid()$$);
+select pg_temp.lire('Lire', 'Clé secrète des rappels (pp_rappels_cle)', $$select * from pp_rappels_cle$$);
+select pg_temp.lire('Lire', 'Journal des rappels envoyés (pp_rappels_envoyes)', $$select * from pp_rappels_envoyes$$);
 
 -- 2. MODIFIER ou SUPPRIMER les données de B
 select pg_temp.ecrire('Modifier', 'Modifier la copie de B', $$update rendus set lien = 'pirate' where auteur_email = 'lv.zz.testb@lycee-verdun.edu.lb'$$);

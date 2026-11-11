@@ -72,6 +72,7 @@ function drawer(r){
     <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
     <a class="it" href="#" data-act="azerty">${icon("clavier")}<span class="lbl">Raccourcis AZERTY</span></a>
     <hr><a class="it" href="#/admin/profil" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>
+    <a class="it" href="#/telephone" ${cur("telephone")}>${icon("phone")}<span class="lbl">Mon téléphone est-il prêt ?</span></a>
     ${S.prof ? `<a class="it" href="#/corbeille" ${cur("corbeille")}>${icon("trash")}<span class="lbl">Corbeille et sauvegardes</span></a>` : ""}
   </nav>${S.drawer && window.innerWidth < 1100 ? `<div class="scrim" data-act="drawer"></div>` : ""}`;
 }

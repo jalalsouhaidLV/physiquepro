@@ -72,7 +72,7 @@ async function render(){
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + navMobile(r) + (S.modal ? vModal() : "");
     { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
-      Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
+      Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées", telephone: "Mon téléphone", partage: "Partager", mesnotes: "Mes notes" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
       document.title = (dv0 ? dv0.titre + (cd0 ? " · " + cd0.nom : "") + " · " : r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
     { const pg = app.querySelector("main.content > .page"); if (pg && !dansVueEleve(r) && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
     const fi = document.getElementById("fileIn"); if (fi) fi.onchange = () => { S.files.push(...[...fi.files].filter(f => { if (f.size > 50e6) { toast("« " + f.name + " » dépasse 50 Mo : mets-le dans ton OneDrive et ajoute le lien."); return false; } return true; })); fi.value = ""; render(); };
@@ -516,6 +516,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   else if (suite && /^#\/[\w%\-\/.]*$/.test(suite) && route().v === "accueil") history.replaceState(null, "", ICI + suite);
   S.user = session.user;
   const { data: profil, error } = await sb.from("profiles").select("*").eq("id", S.user.id).maybeSingle();
+  if ((error && estErreurReseau(error)) || (!profil && !enLigne())) { if (await demarrerHorsLigne(session)) return; }
   if (error || !profil) { vLogin("Ton profil n'a pas pu être chargé. Déconnecte-toi puis reconnecte-toi."); await sb.auth.signOut(); return; }
   S.profil = profil; S.prof = profil.role === "prof";
   if (S.prof) S.nom = R().prof.nom;
@@ -523,7 +524,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
     const { data: ins } = await sb.from("inscriptions").select("nom").eq("email", profil.email).limit(1);
     S.nom = (ins && ins[0] && ins[0].nom) || (profil.nom && !profil.nom.includes("@") ? profil.nom : nomDepuisEmail(profil.email));
   }
-  try { await chargerTout(); } catch (e) { app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger tes données : ${esc(e.message)}</div></div>`; return; }
+  try { await chargerTout(); } catch (e) { if ((estErreurReseau(e) || !enLigne()) && await demarrerHorsLigne(session)) return; app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger tes données : ${esc(e.message)}</div></div>`; return; }
   if (S.prof) S.nom = R().prof.nom;
   try { S.recent = localStorage.getItem("pp_recent") !== "0"; S.swTri = localStorage.getItem("pp_tri") || "statut"; } catch (_) {}
   /* juste après la connexion : un élève inscrit dans un seul cours arrive directement dans ce cours */

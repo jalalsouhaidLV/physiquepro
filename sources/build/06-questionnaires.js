@@ -18,7 +18,7 @@ function juste(t, rep, bon){
 }
 const typeQ = x => x.t || "choix";
 const TYPE_LIB = { choix: "Choix unique", cases: "Cases à cocher", courte: "Réponse courte", num: "Réponse numérique" };
-const imgQ = x => x.img && S.urls && S.urls[x.img] ? `<img class="qpic" src="${esc(S.urls[x.img])}" alt="Illustration de la question" loading="lazy">` : "";
+const imgQ = x => x.img && S.urls && S.urls[x.img] ? (ecoActive() ? boutonEco(esc(S.urls[x.img]), "qpic") : `<img class="qpic" src="${esc(S.urls[x.img])}" alt="Illustration de la question" loading="lazy">`) : "";
 const attendue = (t, b) => t === "num" ? (b ? fmtNote(nombre(b.v)) + (Number(b.tol) ? " (± " + fmtNote(b.tol) + " %)" : "") : "") : (b || []).map(esc).join(" ou ");
 function vQuiz(r){
   const q = S.quiz.find(x => String(x.id) === r.a);
@@ -53,24 +53,26 @@ function vQuiz(r){
   return `<div class="page" style="--c:var(${k.c})">${head}
     <section class="card">${(q.melanger ? melangeStable(qs.length, S.user.id + ":" + q.id) : qs.map((_, i) => i)).map((i, rang) => { const x = qs[i], t = typeQ(x), num = rang + 1;
       if (t === "courte" || t === "num") { const ok = res && b ? juste(t, rep[i], b[i]) : null;
-        return `<div class="q"><b>${num}. ${sci(x.q)}</b>${btnEcouter("", x.q + (x.o && x.o.length ? ". Réponses possibles : " + x.o.map(String).join(" ; ") : ""), true)}${imgQ(x)}<input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="${t === "num" ? "Ta réponse (ex. 2,4×10^-3)" : "Ta réponse"}" ${t === "num" ? 'inputmode="decimal"' : ""} aria-label="Réponse à la question ${num}" ${res ? "disabled" : ""}>${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${attendue(t, b[i])}</span>` : ""}</div>`; }
+        return `<div class="q"><b>${num}. ${sci(x.q)}</b>${btnEcouter("", x.q + (x.o && x.o.length ? ". Réponses possibles : " + x.o.map(String).join(" ; ") : ""), true)}${imgQ(x)}<input class="qans ${ok === true ? "good" : ok === false ? "wrong" : ""}" data-act="anstxt" data-q="${q.id}" data-i="${i}" value="${esc(rep[i] || "")}" placeholder="${t === "num" ? "Ta réponse (ex. 2,4×10^-3)" : "Ta réponse"}" ${t === "num" ? 'inputmode="decimal"' : ""} aria-label="Réponse à la question ${num}" ${res ? "disabled" : ""}>${t === "num" && !res ? clavierPhysique(q.id, i) : ""}${res && b && !ok ? `<span class="muted" style="font-size:.85rem">Réponse attendue : ${attendue(t, b[i])}</span>` : ""}</div>`; }
       const coche = j => t === "cases" ? (rep[i] || []).includes(j) : rep[i] === j, bonne = j => t === "cases" ? ((b && b[i]) || []).includes(j) : b && j === b[i];
       const ordreO = q.melanger ? melangeStable(x.o.length, S.user.id + ":" + q.id + ":" + i) : x.o.map((_, j) => j);
       return `<div class="q"><b>${num}. ${sci(x.q)}</b>${btnEcouter("", x.q + (x.o && x.o.length ? ". Réponses possibles : " + x.o.map(String).join(" ; ") : ""), true)}${imgQ(x)}${t === "cases" ? `<span class="muted" style="font-size:.8rem">Plusieurs réponses possibles</span>` : ""}${ordreO.map(j => { const o = x.o[j]; let cl = ""; if (res && b) { if (bonne(j)) cl = "good"; else if (coche(j)) cl = "wrong"; }
         return `<label class="opt ${cl}"><input type="${t === "cases" ? "checkbox" : "radio"}" name="q${i}" data-act="${t === "cases" ? "anscase" : "ans"}" data-q="${q.id}" data-i="${i}" data-j="${j}" ${coche(j) ? "checked" : ""} ${res ? "disabled" : ""}> ${sci(o)}</label>`; }).join("")}</div>`; }).join("")}
       <div class="q">${res ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="grade">${res.score}<small>/${res.sur}</small></span>${q.mode === "note" ? `<span>Note : <b>${fmtNote(Math.round(res.score / Math.max(1, res.sur) * q.points * 100) / 100)}/${q.points}</b></span>` : `<button class="btn ghost" data-act="retry" data-q="${q.id}">Recommencer</button>`}${!b ? `<span class="muted">La correction n'est pas affichée pour ce questionnaire.</span>` : ""}</div>`
-        : `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-act="valider" data-q="${q.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi…" : "Envoyer"}</button>${q.mode === "note" ? `<span class="muted" style="font-size:.85rem">Une seule tentative : vérifie tes réponses avant d'envoyer.</span>` : ""}</div>`}</div>
-    </section>${pageFoot()}</div>`;
+        : `${quiRend()}<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-act="valider" data-q="${q.id}" ${S.sending ? "disabled" : ""}>${S.sending ? "Envoi…" : "Envoyer"}</button>${q.mode === "note" ? `<span class="muted" style="font-size:.85rem">Une seule tentative : vérifie tes réponses avant d'envoyer.</span>` : ""}</div>`}</div>
+    </section>${actionsTelDevoir(q, "quiz")}${pageFoot()}</div>`;
 }
 async function envoyerQuiz(qid){
   const q = S.quiz.find(x => x.id === qid), rep = S.quizRep[qid] || {}, n = (q.questions || []).length;
   const vide = i => { const v = rep[i], t = typeQ(q.questions[i]); return v == null || (t === "cases" && !v.length) || ((t === "courte" || t === "num") && !String(v).trim()); };
   if ([...Array(n)].some((_, i) => vide(i))) { toast("Réponds à toutes les questions avant d'envoyer."); return; }
+  if (!enLigne()) { toast("Pas de connexion Internet : tes réponses restent gardées sur ce téléphone. Réessaie dès que le réseau revient."); return; }
   S.sending = true; render();
-  const { data, error } = await sb.rpc("soumettre_quiz", { qid, reponses: [...Array(n)].map((_, i) => { const v = rep[i], t = typeQ(q.questions[i]); return v == null ? null : t === "cases" ? v.slice().sort((a, b2) => a - b2) : t === "courte" ? String(v).trim() : t === "num" ? (nombre(v) != null ? String(nombre(v)) : String(v).trim()) : v; }) });
+  const { data, error } = await envoiAvecEssais(() => sb.rpc("soumettre_quiz", { qid, reponses: [...Array(n)].map((_, i) => { const v = rep[i], t = typeQ(q.questions[i]); return v == null ? null : t === "cases" ? v.slice().sort((a, b2) => a - b2) : t === "courte" ? String(v).trim() : t === "num" ? (nombre(v) != null ? String(nombre(v)) : String(v).trim()) : v; }) }));
   S.sending = false;
   if (error) { render(); toast(error.message); return; }
   S.quizRes[qid] = data;
+  oublierBrouillonQuiz(qid);
   if (q.mode === "note") await rafraichir();
-  render();
+  render(); if (q.mode === "note") confirmationRendu(q, "Questionnaire envoyé !");
 }

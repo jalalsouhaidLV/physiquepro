@@ -199,7 +199,7 @@ async function chargerFichiers(force){
   return S.fich = { fichiers: f.data || [], supports: su.data || [], annonces: an.data || [] };
 }
 /* fichiers privés du professeur (calendrier dynamique…) : jamais considérés comme inutilisés */
-const estPrive = x => x.bucket === "documents" && /^prof\//.test(x.chemin);
+const estPrive = x => (x.bucket === "documents" && /^prof\//.test(x.chemin)) || (x.bucket === "rendus" && /\/question-/.test(x.chemin));   /* photos jointes aux questions privées (étape 39) */
 function analyseFichiers(){
   const F = S.fich, refs = new Map(), heure = new Date(now() - 3600e3);
   const ajoute = (list, k, lib) => (list || []).forEach(o => (o.ressources || []).forEach(x => x.path && refs.set(x.path, { k, o, lib: lib(o) })));
