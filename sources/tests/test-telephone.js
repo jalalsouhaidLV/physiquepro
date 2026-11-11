@@ -318,6 +318,37 @@ async function testsAppli() {
   await ctx.close();
 }
 
+/* 2e évaluation (11/11/2026) : menu du bas, petit écran de 320 px, message du questionnaire */
+async function testsPetitEcran() {
+  console.log("\n— Petit Android (320 px) et menu du bas, élève —");
+  const { ctx, page } = await contexte("Galaxy S9+");
+  for (const h of ["#/accueil", "#/todo"]) {
+    await ouvrir(page, h);
+    await page.tap('.navbas [data-act="drawer"]'); await page.waitForTimeout(700);
+    const m = await page.evaluate(() => { const d = document.querySelector(".drawer"); return { vu: !!d && !d.hidden && d.getBoundingClientRect().width > 100, h: location.hash }; });
+    verif("E Menu du bas : il s'ouvre et reste ouvert (" + h + ")", m.vu && m.h === h, m.h);
+    await capture(page, "E-menu" + h.replace(/[#/]/g, "-"));
+    await page.tap('.drawer a[href="#/revisions"]'); await page.waitForTimeout(700);
+    verif("E Menu du bas : un lien du menu ouvre la page et referme le menu (" + h + ")", await page.evaluate(() => location.hash === "#/revisions" && document.querySelector(".drawer").hidden));
+  }
+  for (const h of ["#/accueil", "#/todo", "#/classe/tle", "#/classe/tle/travaux", "#/devoir/1", "#/quiz/1", "#/simulations", "#/semaine", "#/revisions"]) {
+    await aller(page, h, 900);
+    const w = await page.evaluate(() => document.documentElement.scrollWidth);
+    verif("F 320 px : rien ne dépasse sur le côté (" + h + ")", w <= 320, w + " px");
+  }
+  await aller(page, "#/todo", 900);
+  const tt = await page.evaluate(() => Math.min(...[...document.querySelectorAll(".work .workrow .tt")].map(e => e.getBoundingClientRect().width)));
+  verif("F 320 px : « À faire », titres sur une largeur lisible (pas coupés lettre par lettre)", tt >= 160, Math.round(tt) + " px");
+  await capture(page, "F-a-faire-320");
+  await aller(page, "#/quiz/2", 1200);
+  await page.click('[data-qnav="=2"]').catch(() => {}); await page.waitForTimeout(400);
+  await page.click('[data-act="valider"]').catch(() => {}); await page.waitForTimeout(500);
+  const t = await page.evaluate(() => document.getElementById("toast")?.textContent || "");
+  verif("G Questionnaire : le message nomme les questions sans réponse", /question/.test(t) && /\d/.test(t), t);
+  verif("Aucune erreur JavaScript (petit écran)", !page.erreurs.length, page.erreurs.slice(0, 3).join(" | "));
+  await ctx.close();
+}
+
 (async () => {
   const srv = await demarrer(0); base = "http://127.0.0.1:" + srv.address().port;
   nav = await chromium.launch({ headless: !VOIR });
@@ -325,7 +356,7 @@ async function testsAppli() {
     const man = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "manifest.json"), "utf8"));
     verif("D29 Raccourcis de l'icône (À faire, Agenda, Mes notes)", (man.shortcuts || []).map(x => x.name).join(",") === "À faire,Agenda,Mes notes");
     verif("D28 L'appli accepte les partages (share_target)", man.share_target && man.share_target.method === "POST" && man.share_target.params.files[0].accept.includes("image/*"));
-    await testsIPhone(); await testsVisite(); await testsAndroid(); await testsAppli();
+    await testsIPhone(); await testsVisite(); await testsAndroid(); await testsPetitEcran(); await testsAppli();
   } catch (e) { verif("Le test a planté", false, String(e && e.stack || e).slice(0, 400)); }
   finally { await nav.close(); srv.close(); }
   const ko = res.filter(x => !x.ok);

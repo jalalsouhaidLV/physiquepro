@@ -279,7 +279,7 @@ function vNotes(c, data){
   if (!cols.length || !el.length) return `<div class="page">${`<div class="emptystate"><b>${!el.length ? "Aucun élève dans ce cours." : "Aucun travail noté pour l'instant."}</b><span>${!el.length ? "Les élèves apparaîtront ici dès qu'ils auront rejoint le cours avec le code." : "Les devoirs notés et les questionnaires notés apparaîtront ici en colonnes."}</span></div>`}${pageFoot()}</div>`;
   const uidDe = email => Object.keys(S.profils).find(id => S.profils[id] === email);
   const cell = (col, e) => {
-    if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? `<td class="cell"><span class="nv">${fmtNote(noteQuiz(col.o, r))}</span><span class="muted">/${col.o.points}</span></td>` : `<td class="cell"><span class="s muted">Non fait</span></td>`; }
+    if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? `<td class="cell"><span class="nv">${fmtNote(noteQuiz(col.o, r))}</span><span class="muted">/${col.o.points}</span></td>` : (col.o.date_limite && D(col.o.date_limite) > now() ? `<td class="cell"><span class="s muted">À faire</span></td>` : `<td class="cell"><span class="s" style="color:var(--bad)">Non fait</span></td>`); }
     const d = col.o; if (d.eleves && !d.eleves.includes(e.email)) return `<td class="cell na"></td>`;
     const r = renduDe(d, e.email), cr = correctionDe(r);
     if (!r) return `<td class="cell">${ouvert(d) ? "" : `<span class="s" style="color:var(--bad)">Manquant</span>`}</td>`;

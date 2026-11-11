@@ -208,7 +208,7 @@ function ouvrirCote(cle, url, nom){
   const logo = LOGOS_RAPIDES[cle] || "";
   p.innerHTML = `<div class="sidegrip" title="Glisse pour changer la largeur" aria-hidden="true"></div>
     <div class="sidehead">${logo ? `<img src="${esc(logo)}" alt="" width="22" height="22">` : ""}<b>${esc(o.titre || nom)}</b>
-      ${o.remplacer && S.prof ? `<label class="ib sm" title="Remplacer le fichier Excel" aria-label="Remplacer le fichier Excel" style="cursor:pointer">${icon("upload")}<input type="file" accept=".xlsx,.xls" data-calfile="1" hidden></label>` : ""}
+      ${o.remplacer && S.prof ? `<label class="ib sm" title="Remplacer le fichier Excel" style="cursor:pointer">${icon("upload")}<span class="pp-sr">Remplacer le fichier Excel</span><input type="file" accept=".xlsx,.xls" data-calfile="1" hidden></label>` : ""}
       <button class="ib sm" data-sp="cote" title="Mettre de l'autre côté" aria-label="Mettre le panneau de l'autre côté">${icon("swap")}</button>
       <a class="ib sm" href="${esc(o.lienExt || url)}" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet">${icon("ext")}</a>
       <button class="ib sm" data-sp="fermer" title="Fermer" aria-label="Fermer ${esc(o.titre)}">${icon("x")}</button></div>

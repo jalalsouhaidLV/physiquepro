@@ -38,7 +38,7 @@ function blocNotation(d, rd, cr){
 }
 function grilleEleve(d, c){
   if (!d.grille || !d.grille.length || !c || !c.grille) return "";
-  return `<div class="grille lue">${d.grille.map((g, i) => `<div class="grow"><span>${esc(g.c)}</span><b class="mono">${c.grille[i] != null ? fmtNote(c.grille[i]) : "–"}</b><span class="muted">/${g.p}</span></div>`).join("")}</div>`;
+  return `<div class="grille lue">${d.grille.map((g, i) => `<div class="grow"><span>${esc(g.c)}</span><b class="mono nt">${c.grille[i] != null ? fmtNote(c.grille[i]) : "–"}</b><span class="muted">/${g.p}</span></div>`).join("")}</div>`;
 }
 
 /* ---------- images des questionnaires ---------- */

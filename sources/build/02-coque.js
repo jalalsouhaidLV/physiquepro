@@ -68,7 +68,7 @@ function drawer(r){
     ${liensUtilesEleve()}<div class="sect">${icon("flask")} Ressources</div>
     <a class="it" href="#/revisions" ${cur("revisions")}>${icon("cards")}<span class="lbl">Révisions et flashcards</span></a>
     <a class="it" href="#/simulations" ${cur("simulations")}>${icon("atom")}<span class="lbl">Simulations</span></a>
-    <a class="it" href="#/physique" ${cur("physique")}>${icon("ruler")}<span class="lbl">Outils Scientifiques Importants</span></a>
+    <a class="it" href="#/physique" ${cur("physique")}>${icon("ruler")}<span class="lbl" title="Outils Scientifiques Importants">Outils Scientifiques</span></a>
     <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
     <a class="it" href="#" data-act="azerty">${icon("clavier")}<span class="lbl">Raccourcis AZERTY</span></a>
     <hr><a class="it" href="#/admin/profil" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>

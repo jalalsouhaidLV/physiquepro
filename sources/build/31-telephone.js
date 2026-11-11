@@ -530,7 +530,7 @@ document.addEventListener("change", e => {
 
 /* ---------------------------------------------------------------- C21. Poser une question avec une photo (commentaire privé, étape 39) */
 function boutonPhotoCP(did, email){
-  return `<label class="ib cpphotobtn" title="Joindre une photo" aria-label="Joindre une photo">${icon("camera")}<input type="file" accept="image/*" data-cpphoto="1" data-d="${did}" data-e="${esc(email)}" hidden></label>`;
+  return `<label class="ib cpphotobtn" title="Joindre une photo">${icon("camera")}<span class="pp-sr">Joindre une photo</span><input type="file" accept="image/*" data-cpphoto="1" data-d="${did}" data-e="${esc(email)}" hidden></label>`;
 }
 const photoCP = p => p && p.chemin ? `<img class="cpphoto" data-rpath="${esc(p.chemin)}" alt="Photo jointe" loading="lazy">` : "";
 async function signerPhotosCP(){

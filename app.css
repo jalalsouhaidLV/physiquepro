@@ -2394,3 +2394,22 @@ details.autresrendus .autresliste{display:grid;gap:10px;padding-bottom:12px}
 }
 /* Lot D de l'évaluation (11/11/2026) : contraste suffisant (4,5:1) du petit texte gris sur le bleu de l'élément choisi dans le menu */
 .drawer .it[aria-current="page"] small,.drawer a[aria-current="page"] small{color:#455A64}
+/* Lots E-F-G de la 2e évaluation (11/11/2026) */
+.pp-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* notes : chiffres à largeur égale, mais sans les grands espaces de la police à chasse fixe autour de la virgule (« 15 , 5 ») */
+.grade,.mono.nt,.gradebook .nv{font-family:var(--body);font-variant-numeric:tabular-nums}
+/* questionnaire en plein écran : le bouton « Quitter » reste en haut de la page au lieu de flotter sur les questions */
+#ppConc{position:absolute}
+/* Simulations : les cartes du labo tiennent dans un écran de 320 px */
+.labgrille{grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))}
+/* petits téléphones : listes de travaux, tuiles de l'accueil, ligne « Connecté » */
+@media (max-width:400px){
+  .work a.workrow,.work .workrow>a,.work .workrow>button{flex-wrap:wrap;row-gap:2px}
+  .work .workrow .tt{flex:1 1 calc(100% - 64px);overflow-wrap:break-word}
+  .work .workrow .dt{flex:1 1 100%;max-width:none;text-align:left;padding-left:52px}
+  .kpi .kpiic{display:none}
+  .kpi{padding:10px 12px}
+  .telqui{display:block}
+  .telqui .i{vertical-align:-3px;margin-right:4px}
+}
+.simq,.simq input{min-width:0}

@@ -37,7 +37,7 @@ function vQuiz(r){
     return `<div class="page" style="--c:var(${k.c})">${head}
       ${q.mode === "note" ? `<div class="stats"><div><b>${data.res.length}/${el.length}</b><small>Réponses</small></div><div><b>${moy == null ? "–" : fmtNote(Math.round(moy * 10) / 10)}</b><small>Moyenne /${q.points}</small></div></div>
       <div class="tablewrap"><table><thead><tr><th class="first">Élève</th><th>Envoyé le</th><th>Bonnes réponses</th><th>Note /${q.points}</th></tr></thead><tbody>
-      ${el.map(e => { const x = parEmail[e.email]; return `<tr><td class="first">${esc(e.nom)}</td><td class="muted">${x ? fmtShort(D(x.fait_le)) + " " + fmtT(D(x.fait_le)) : ""}</td><td class="mono">${x ? x.score + "/" + x.sur : ""}</td><td class="mono">${x ? fmtNote(noteQuiz(q, x)) : `<span class="pill">Non fait</span>`}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Aucun élève dans ce cours.</td></tr>`}</tbody></table></div>`
+      ${el.map(e => { const x = parEmail[e.email]; return `<tr><td class="first">${esc(e.nom)}</td><td class="muted">${x ? fmtShort(D(x.fait_le)) + " " + fmtT(D(x.fait_le)) : ""}</td><td class="mono">${x ? x.score + "/" + x.sur : ""}</td><td class="mono nt">${x ? fmtNote(noteQuiz(q, x)) : `<span class="pill">Non fait</span>`}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Aucun élève dans ce cours.</td></tr>`}</tbody></table></div>`
         : `<div class="notice">Questionnaire d'entraînement : les réponses des élèves ne sont pas enregistrées.</div>`}
       <section class="card">${qs.map((x, i) => { const t = typeQ(x), b = data.bonnes[i], ok = q.mode === "note" && data.res.length ? Math.round(data.res.filter(r2 => r2.reponses && juste(t, r2.reponses[i], b)).length / data.res.length * 100) : null;
         const estBon = j => t === "cases" ? (b || []).includes(j) : b === j;
@@ -65,7 +65,8 @@ function vQuiz(r){
 async function envoyerQuiz(qid){
   const q = S.quiz.find(x => x.id === qid), rep = S.quizRep[qid] || {}, n = (q.questions || []).length;
   const vide = i => { const v = rep[i], t = typeQ(q.questions[i]); return v == null || (t === "cases" && !v.length) || ((t === "courte" || t === "num") && !String(v).trim()); };
-  if ([...Array(n)].some((_, i) => vide(i))) { toast("Réponds à toutes les questions avant d'envoyer."); return; }
+  const manque = [...Array(n)].map((_, i) => i).filter(vide).map(i => i + 1);
+  if (manque.length) { toast(manque.length === 1 ? "Il manque ta réponse à la question " + manque[0] + "." : "Il manque tes réponses aux questions " + manque.slice(0, -1).join(", ") + " et " + manque[manque.length - 1] + "."); return; }
   if (!enLigne()) { toast("Pas de connexion Internet : tes réponses restent gardées sur ce téléphone. Réessaie dès que le réseau revient."); return; }
   S.sending = true; render();
   const { data, error } = await envoiAvecEssais(() => sb.rpc("soumettre_quiz", { qid, reponses: [...Array(n)].map((_, i) => { const v = rep[i], t = typeQ(q.questions[i]); return v == null ? null : t === "cases" ? v.slice().sort((a, b2) => a - b2) : t === "courte" ? String(v).trim() : t === "num" ? (nombre(v) != null ? String(nombre(v)) : String(v).trim()) : v; }) }));

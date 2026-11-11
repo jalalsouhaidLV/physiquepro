@@ -107,7 +107,7 @@ document.addEventListener("click", async e => {
     case "pubconnect": e.preventDefault(); connecter(); return;
     case "pubcours": e.preventDefault(); connecter("#/classe/" + encodeURIComponent(a.dataset.c)); return;
     case "pubretour": e.preventDefault(); try { localStorage.removeItem("pp_next"); } catch (_) {} if (location.hash && location.hash !== "#/") location.hash = "/"; else renderPublic(); return;
-    case "drawer": S.drawer = !S.drawer; render(); return;
+    case "drawer": e.preventDefault(); S.drawer = !S.drawer; render(); return;
     case "bell": { const o = !S.bell; fermerMenus(); S.bell = o; render(); if (o) chargerNotifs(); return; }
     case "toutlu": { const { data, error } = await sb.rpc("pp_vu"); if (error) { toast("Action impossible : " + error.message); return; } S.profil.vu_le = data || now().toISOString();
       const ech = (S.notifs || []).filter(x => x.k === "echeances").map(cleNotifLue); await marquerNotifsLues(ech, false); await chargerNotifs(); return; }

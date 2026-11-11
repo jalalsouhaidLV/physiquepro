@@ -37,7 +37,7 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 /* ---------- #8 Tableau de bord (accueil) ---------- */
 IC.search = '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/>';
 IC.flask = IC.flask || '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/>';
-IC.week = '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2"/>';
+IC.week = '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14M15 5v14"/>';
 const premierPrenom = () => { const n = String(S.nom || "").trim().split(/\s+/); const p = n.find(x => x !== x.toUpperCase()) || n[0] || ""; return p; };
 const salut = () => { const h = now().getHours(); return h < 5 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir"; };
 let tdbCharge = false;
@@ -279,7 +279,7 @@ function statsAvancees(d){
   const comp = COMP.map(([k, l]) => { const v = cors.map(c => c.competences && c.competences[k]).filter(Boolean); if (!v.length) return null; const sc = v.reduce((a, x) => a + ({ A: 4, B: 3, C: 2, D: 1 }[x] || 0), 0) / v.length; return { k, l, sc, n: v.length, faibles: v.filter(x => x === "C" || x === "D").length }; }).filter(Boolean).sort((a, b) => a.sc - b.sc);
   return `<details class="statsav" open><summary>${icon("chart")} <b>Statistiques</b> <span class="muted">${n} note${n > 1 ? "s" : ""} saisie${n > 1 ? "s" : ""}</span></summary>
     ${n ? `<div class="statchiffres"><div><b>${fmtNote(Math.round(moy * 100) / 100)}</b><small>moyenne /${sur}</small></div><div><b>${fmtNote(med)}</b><small>médiane</small></div><div><b>${fmtNote(tri[0])} – ${fmtNote(tri[n - 1])}</b><small>min – max</small></div><div><b>${fmtNote(Math.round(et * 100) / 100)}</b><small>écart-type</small></div><div><b>${Math.round(tri.filter(x => x >= sur / 2).length / n * 100)} %</b><small>≥ la moyenne</small></div></div>${histo}` : ""}
-    ${crit.length ? `<div class="statbloc"><b>Critères de la grille</b>${crit.map(x => `<div class="critligne"><span>${esc(x.c)}</span><span class="critbar"><i style="width:${x.r == null ? 0 : Math.round(x.r * 100)}%" class="${x.r != null && x.r < .5 ? "bas" : ""}"></i></span><span class="mono">${x.m == null ? "–" : fmtNote(Math.round(x.m * 100) / 100)}/${x.p}</span></div>`).join("")}</div>` : ""}
+    ${crit.length ? `<div class="statbloc"><b>Critères de la grille</b>${crit.map(x => `<div class="critligne"><span>${esc(x.c)}</span><span class="critbar"><i style="width:${x.r == null ? 0 : Math.round(x.r * 100)}%" class="${x.r != null && x.r < .5 ? "bas" : ""}"></i></span><span class="mono nt">${x.m == null ? "–" : fmtNote(Math.round(x.m * 100) / 100)}/${x.p}</span></div>`).join("")}</div>` : ""}
     ${comp.length ? `<div class="statbloc"><b>Compétences (de la moins à la plus acquise)</b>${comp.map(x => `<div class="critligne"><span>${esc(x.l)}</span><span class="critbar"><i style="width:${Math.round((x.sc - 1) / 3 * 100)}%" class="${x.sc < 2.5 ? "bas" : ""}"></i></span><span class="muted" style="font-size:.78rem">${x.faibles ? x.faibles + " élève(s) en C/D" : "acquise"}</span></div>`).join("")}
       ${comp[0].sc < 2.5 ? `<p class="statconseil">${icon("alerte")} Remédiation conseillée : <b>${esc(comp[0].l)}</b>.</p>` : ""}</div>` : ""}
     <div class="statactions"><button class="btn ghost sm" data-act="pronotecopier" data-d="${d.id}">${icon("copy")} Copier les notes pour Pronote</button><button class="btn ghost sm" data-act="pronotecsv" data-d="${d.id}">${icon("down")} Exporter (Excel)</button></div>
@@ -610,7 +610,7 @@ VUES_PRO.revisions = function(r){
       <div class="field filt"><label for="fcC">Cours</label><select id="fcC" data-fcc="1">${act.map(x => `<option value="${esc(x.id)}" ${x.id === cid ? "selected" : ""}>${esc(x.nom)}</option>`).join("")}</select></div></div>
     <p class="muted" style="margin:0">${S.prof ? "Crée des cartes question/réponse pour chaque chapitre : les élèves les révisent, les cartes ratées reviennent jusqu'à ce qu'elles soient sues." : "Choisis un chapitre et révise : retourne la carte, puis dis si tu savais. Les cartes ratées reviennent jusqu'à ce que tu les saches."}</p>
     ${d.err ? `<p class="err">${esc(d.err)}</p>` : ""}
-    ${d.l.length ? `<div><button class="btn" data-act="fcrev" data-t="tout">${icon("cards")} Réviser tout le cours (${d.l.length} cartes)</button></div>` : ""}
+    ${d.l.length ? `<div><button class="btn" data-act="fcrev" data-t="tout">${icon("cards")} Réviser tout le cours (${d.l.length} carte${d.l.length > 1 ? "s" : ""})</button></div>` : ""}
     <div class="fcgrille">${groupes.filter(g => S.prof || g.cartes.length).map(g => { const m = maitrise(g.cartes); return `<section class="fcchap"><div class="fcchaph"><h2>${esc(g.titre)}</h2>${g.cartes.length ? `<span class="fcmaitr" title="Cartes sues"><i style="width:${m}%"></i></span><small>${m} %</small>` : ""}</div>
         <p class="muted" style="margin:0;font-size:.85rem">${g.cartes.length} carte${g.cartes.length > 1 ? "s" : ""}${g.docs.length ? ` · ${g.docs.length} fiche${g.docs.length > 1 ? "s" : ""} de cours` : ""}</p>
         ${g.docs.length ? `<div class="fcdocs">${g.docs.slice(0, 4).map(s => `<a href="#/classe/${esc(cid)}/travaux">${icon("support")} ${esc(s.titre)}</a>`).join("")}</div>` : ""}
