@@ -1799,7 +1799,7 @@ button.cpt.enligne:hover{box-shadow:0 0 0 2px var(--ok),var(--shadow)}
 .sest.off{background:var(--surface-2,#f1f3f4);color:var(--muted)}
 .sest.attente{background:#fde8e8;color:#a50e0e}
 .sesmoi{font-size:.78rem;white-space:nowrap}
-@media (max-width:600px){.sesl{flex-wrap:wrap}.sest{order:3}.sesl .btn{order:4;margin-left:auto}}
+@media (max-width:600px){.sesl{flex-wrap:wrap}.sesl .sesinfo{flex:1 1 calc(100% - 52px);min-width:0}.sest{order:3}.sesl .btn{order:4;margin-left:auto}}
 
 /* ===== Sous-titre sous PhysiquePro ===== */
 .brandtx{display:flex;flex-direction:column;line-height:1.05;min-width:0}

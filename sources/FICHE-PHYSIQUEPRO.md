@@ -39,7 +39,7 @@
 > 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
 > 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
 > 4. git push sur main : GitHub Pages en 1-2 min. Netlify : uniquement le dimanche 18 h UTC (automatique), ou via Actions > « Publication Netlify du dimanche » > Run workflow UNIQUEMENT si Jalal le demande.
-> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 42 existaient au 11/11/2026 ; vérifier le dernier numéro dans le dossier avant d'en créer un), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql et 30-test-fichiers.sql.
+> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 43 existaient au 11/11/2026 ; vérifier le dernier numéro dans le dossier avant d'en créer un), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql et 30-test-fichiers.sql.
 > 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
 >
 > ## 5. Construction technique
@@ -119,7 +119,7 @@
 3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
 4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
 5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : seulement sur demande de Jalal (GitHub > Actions > « Publication Netlify du dimanche » > Run workflow).
-6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 42 ; 42 = « En ligne » seulement si la page est au premier plan (fenêtre utilisée ou application ouverte), signe de vie < 90 s et activité < 5 min ; 41 = le compteur « restés connectés » ne compte que les ordinateurs, pas les téléphones fermés ; 40 = « Se déconnecter » efface la présence de tout l’appareil, pp_fin_appareil). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
+6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 43 ; 43 = trois statuts En ligne / Inactif (jusqu’à 7 jours) / Déconnecté, pp_eleves_deconnectes, une seule ligne par appareil ; 42 = « En ligne » seulement si la page est au premier plan (fenêtre utilisée ou application ouverte), signe de vie < 90 s et activité < 5 min ; 41 = le compteur « restés connectés » ne compte que les ordinateurs, pas les téléphones fermés ; 40 = « Se déconnecter » efface la présence de tout l’appareil, pp_fin_appareil). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
 
 ---
 
@@ -177,7 +177,7 @@
 - **Netlify** : branche de production `netlify` ; seules les publications de production sont construites ; aperçus de déploiement désactivés.
 - **GitHub Actions** : « Publication Netlify du dimanche » (`netlify-dimanche.yml`), « Garder Supabase actif » (empêche la mise en pause du projet gratuit après 7 jours), pages-build-deployment.
 - **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache sur Netlify `sources/*`, `verification.html`, `test-connexion.html`, `README.md`), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
-- **Sauvegarde du code** : `sources/build/` (35 modules + build.sh), `sources/supabase/` (scripts 01 à 42), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
+- **Sauvegarde du code** : `sources/build/` (35 modules + build.sh), `sources/supabase/` (scripts 01 à 43), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
 
 ## 10. Travailler depuis le projet (procédure)
 

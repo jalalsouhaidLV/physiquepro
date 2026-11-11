@@ -5,7 +5,7 @@ const SES = { liste: null, err: "", q: "", t: null, arme: null };
 const heureCourte = d => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 /* téléphone ou tablette : l'élève ferme l'application sans se déconnecter, c'est normal */
 const estMobile = x => /^(iPhone|iPad|Android)\b/.test(x.appareil || "");
-const ilYa = d => { const m = Math.round((Date.now() - new Date(d)) / 60000); return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : `il y a ${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`; };
+const ilYa = d => { const m = Math.round((Date.now() - new Date(d)) / 60000); return m < 1 ? "à l'instant" : m >= 1440 ? `il y a ${Math.round(m / 1440)} jour${Math.round(m / 1440) > 1 ? "s" : ""}` : m < 60 ? `il y a ${m} min` : `il y a ${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`; };
 async function chargerSessions(){
   const { data, error } = await sb.rpc("pp_sessions");
   if (error) { SES.err = /pp_sessions|function/i.test(error.message) ? "La liste détaillée n'est pas encore installée (étape 23 de la base de données)." : error.message; SES.liste = []; }
@@ -13,13 +13,15 @@ async function chargerSessions(){
     /* un même navigateur peut avoir plusieurs onglets : on n'en garde qu'un (le plus récent, visible en priorité) */
     brut.sort((a, b) => (b.visible && b.en_ligne) - (a.visible && a.en_ligne) || new Date(b.vu_le) - new Date(a.vu_le)).forEach(x => { const k = x.email + "|" + x.appareil; if (!vus.has(k)) vus.set(k, x); });
     SES.liste = [...vus.values()]; }
+  /* élèves des cours sans aucune connexion ouverte (étape 43) */
+  try { const r = await sb.rpc("pp_eleves_deconnectes"); SES.deco = r.error ? null : (typeof r.data === "string" ? JSON.parse(r.data) : (r.data || [])); } catch (_) { SES.deco = null; }
   dessinerSessions();
 }
 function ligneSession(x){
   if (!x.nom || x.nom.includes("@")) x.nom = nomDepuisEmail(x.email || x.nom || "?");
   const st = x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
   const etat = st === "attente" ? `<span class="sest attente">Déconnexion demandée…</span>` : st === "actif" ? (x.visible ? `<span class="sest on">En ligne</span>` : `<span class="sest fond">En ligne · onglet en arrière-plan</span>`)
-    : st === "expiree" ? `<span class="sest exp">Déconnecté automatiquement</span>` : estMobile(x) ? `<span class="sest off">Fermé · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>` : `<span class="sest inact">Resté connecté · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>`;
+    : st === "expiree" ? `<span class="sest exp">Déconnecté automatiquement</span>` : estMobile(x) ? `<span class="sest off">Inactif · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>` : `<span class="sest inact">Inactif · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>`;
   const btn = x.moi ? `<span class="muted sesmoi">${x.id === idSession() ? "Toi (cette page)" : "Toi (autre appareil)"}</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
   return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted">${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
 }
@@ -32,8 +34,10 @@ function dessinerSessions(){
   const on = L.filter(x => stx(x) === "actif"), horsLigne = L.filter(x => stx(x) === "inactif" || stx(x) === "attente"),
     off = horsLigne.filter(x => !estMobile(x)), tel = horsLigne.filter(estMobile), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter && stx(x) !== "expiree").length;
   z.innerHTML = `<section><h4><i class="pt vert"></i>En ligne maintenant · ${on.length}</h4><p class="muted sesaide">L'élève travaille sur le site en ce moment : page ouverte devant lui (ordinateur) ou application ouverte (téléphone), avec une activité dans les 5 dernières minutes.</p>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
-    <section><h4><i class="pt orange"></i>Ordinateurs restés connectés · ${off.length}</h4><p class="muted sesaide">Sans activité depuis plus de 5 minutes sur un ordinateur : l'élève a sans doute oublié de se déconnecter (ordinateur du lycée, par exemple). À déconnecter.</p>${off.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
-    <section><h4><i class="pt gris"></i>Téléphones et tablettes fermés · ${tel.length}</h4><p class="muted sesaide">L'élève a fermé l'application ou le navigateur de son téléphone. C'est normal : il n'a pas à se déconnecter, rien à faire.</p>${tel.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
+    <section><h4><i class="pt orange"></i>Inactifs sur un ordinateur · ${off.length}</h4><p class="muted sesaide">Toujours connecté sur un ordinateur, mais ne travaille pas sur le site : il a sans doute oublié de se déconnecter (ordinateur du lycée, par exemple). À déconnecter.</p>${off.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
+    <section><h4><i class="pt gris"></i>Inactifs sur un téléphone ou une tablette · ${tel.length}</h4><p class="muted sesaide">Toujours connecté sur son téléphone, mais l'application est fermée ou en arrière-plan. C'est normal : il n'a pas à se déconnecter, rien à faire.</p>${tel.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
+    ${SES.deco ? (() => { const D = SES.deco.filter(x => !q || sansAccent([x.nom, x.email, x.classes].join(" ")).includes(q));
+      return `<section><details${q ? " open" : ""}><summary style="cursor:pointer"><h4 style="display:inline;margin-left:4px"><i class="pt gris"></i>Déconnectés · ${D.length}</h4></summary><p class="muted sesaide">Élèves de tes cours qui ne sont connectés sur aucun appareil.</p>${D.map(x => `<div class="sesl inactif">${avatarP(x.nom || x.email, "")}<div class="sesinfo"><b>${esc(x.nom || nomDepuisEmail(x.email))}</b><small>${esc(x.classes || "")}</small>${x.derniere_visite ? `<small class="muted">Dernière visite ${ilYa(x.derniere_visite)}</small>` : `<small class="muted">Jamais connecté</small>`}</div><span class="sest off">Déconnecté</span></div>`).join("") || `<p class="muted">Aucun.</p>`}</details></section>`; })() : ""}
 `;
   const tous = document.querySelector('#sesPanel [data-act="sesdecotous"]'); if (tous) { tous.disabled = !nbEl; tous.className = "btn sm " + (SES.arme === "tous" ? "danger" : "ghost"); tous.innerHTML = `${icon("logout")} ${SES.arme === "tous" ? `Confirmer : déconnecter ${nbEl} session${nbEl > 1 ? "s" : ""} d'élèves ?` : "Déconnecter tous les élèves"}`; }
 }

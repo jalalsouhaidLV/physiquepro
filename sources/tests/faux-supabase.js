@@ -124,6 +124,7 @@
     pp_deconnecter: () => null,
     pp_fin_session: () => null,
     pp_fin_appareil: () => null,
+    pp_eleves_deconnectes: () => [{ email: "eleve.absent@lycee-verdun.edu.lb", nom: "Élève Absent", classes: "Tle spé PC (test)", derniere_visite: jour(-2) }],
     pp_quitter_cours: () => null,
     pp_restaurer: () => null,
     pp_sauvegarde: () => ({}),
