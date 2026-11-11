@@ -28,7 +28,7 @@ async function render(){
     if (r.v === "classe") {
       if (!S.cache[r.a]) app.innerHTML = chargement(r);
       const data = cls(r.a) ? await chargerClasse(r.a) : null; if (id !== renderId) return;
-      content = enVueEleve(() => vClasse(r, data), r);
+      content = enVueEleve(() => vClasse(r, data && (S.cache[r.a] || data)), r);
     } else if (r.v === "devoir") {
       const d = S.devoirs.find(x => String(x.id) === r.a);
       if (d) { if (!S.cache[d.classe_id]) app.innerHTML = chargement(r); await chargerClasse(d.classe_id); const em = S.prof ? S.sel : moi(); if (em) await chargerCP(d.id, em); await chargerComsDevoir(d.id); }

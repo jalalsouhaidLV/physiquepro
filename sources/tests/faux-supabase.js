@@ -54,7 +54,8 @@
     ],
     supports: [
       { id: 1, classe_id: "tle", theme_id: 1, titre: "Cours : ondes progressives", description: "Lire le cours avant la séance.", ressources: [{ type: "lien", url: "https://example.org/cours", titre: "Cours en ligne" }], publie_le: jour(-5), brouillon: false, eleves: null, position: 1 },
-      { id: 2, classe_id: "snt", theme_id: 3, titre: "Fiche : adresses IP", description: "", ressources: [], publie_le: jour(-3), brouillon: false, eleves: null, position: 1 }
+      { id: 2, classe_id: "snt", theme_id: 3, titre: "Fiche : adresses IP", description: "", ressources: [], publie_le: jour(-3), brouillon: false, eleves: null, position: 1 },
+      { id: 3, classe_id: "tle", theme_id: 2, titre: "ZZ support brouillon", description: "", ressources: [], publie_le: jour(-4), brouillon: true, eleves: null, position: 2 }
     ],
     devoirs: [
       { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "Faire les exercices 3 et 4.", ressources: [{ type: "DOCX", label: "Fiche ondes.docx", url: "https://exemple.sharepoint.com/:w:/g/fiche", od: { id: "OD-FICHE", web: "https://exemple.sharepoint.com/fiche.docx" } }, { type: "Fichier", label: "Schéma à compléter.png", path: "tle/schema.png" }], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
