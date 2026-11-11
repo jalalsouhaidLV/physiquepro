@@ -93,6 +93,7 @@ const fermerMenus = () => { S.dd = false; S.me = false; S.menu = null; S.bell = 
 document.addEventListener("click", async e => {
   const a = e.target.closest("[data-act]");
   if (!a) {
+    const nl = e.target.closest(".belllist a[data-nk]"); if (nl) marquerNotifsLues([nl.dataset.nk]);
     if ((S.dd || S.me || S.menu || S.bell || S.apps) && !e.target.closest(".dd")) { fermerMenus(); render(); }
     return;
   }
@@ -104,7 +105,9 @@ document.addEventListener("click", async e => {
     case "pubretour": e.preventDefault(); try { localStorage.removeItem("pp_next"); } catch (_) {} if (location.hash && location.hash !== "#/") location.hash = "/"; else renderPublic(); return;
     case "drawer": S.drawer = !S.drawer; render(); return;
     case "bell": { const o = !S.bell; fermerMenus(); S.bell = o; render(); if (o) chargerNotifs(); return; }
-    case "toutlu": { const { data, error } = await sb.rpc("pp_vu"); if (error) { toast("Action impossible : " + error.message); return; } S.profil.vu_le = data || now().toISOString(); await chargerNotifs(); return; }
+    case "toutlu": { const { data, error } = await sb.rpc("pp_vu"); if (error) { toast("Action impossible : " + error.message); return; } S.profil.vu_le = data || now().toISOString();
+      const ech = (S.notifs || []).filter(x => x.k === "echeances").map(cleNotifLue); await marquerNotifsLues(ech, false); await chargerNotifs(); return; }
+    case "notiflu": e.preventDefault(); e.stopPropagation(); await marquerNotifsLues([a.dataset.nk]); return;
     case "savenom": { const n = ((document.getElementById("pfNom") || {}).value || "").trim(); if (!n) { toast("Le nom ne peut pas être vide."); return; }
       const data = { ...reglagesData(), prof: { nom: n, titre: R().prof.titre } };
       const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() }); if (error) { toast("Enregistrement impossible : " + error.message); return; }

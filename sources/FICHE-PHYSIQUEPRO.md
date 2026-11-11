@@ -44,7 +44,7 @@
 > - Site statique (HTML/CSS/JS sans framework) sur GitHub Pages, à la racine du dépôt.
 > - app.js est assemblé, ne pas l'éditer : modifier sources/build/*.js (32 modules) ; build.sh met 09-evenements.js en dernier et n'écrit app.js que si node --check réussit.
 > - config.js = liens et icônes du haut, nom/email du prof, URL Supabase et clé publishable.
-> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611110800).
+> - Anti-cache : ?v=AAAAMMJJHHMM dans index.html (actuellement 202611110830).
 > - supabase-js 2.117.2 et msal-browser 3.28.1 via jsDelivr avec SRI.
 > - Connexion Microsoft 365 via Supabase Auth (Azure), domaine @lycee-verdun.edu.lb ; prof = jalal.souhaid@lycee-verdun.edu.lb.
 > - 26 tables, toutes avec RLS, aucune lisible par anon ; est_prof() pour les fonctions prof ; pp_accueil_public est la seule fonction ouverte aux visiteurs (voulu).
@@ -101,7 +101,7 @@
 - **Site statique** (HTML + CSS + JavaScript sans framework) hébergé sur GitHub Pages, à la racine du dépôt : `index.html`, `app.js` (assemblé, ne pas modifier à la main), `app.css`, `config.js`, `logos.js`, logos `logo-*.png/svg`, icônes `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
 - **`config.js`** est le seul fichier à modifier pour changer un lien, une icône du haut, le nom ou l'email du prof : il contient aussi l'adresse Supabase et la clé *publishable* (publique par nature, sans danger).
 - **Code source découpé** dans `sources/build/` (32 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
-- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611110800`).
+- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611110830`).
 - **Bibliothèques** chargées depuis jsDelivr avec vérification d'intégrité (SRI) : supabase-js 2.117.2 et msal-browser 3.28.1.
 - **Connexion** : Microsoft 365 du lycée via Supabase Auth (Azure). Seule restriction : adresse en `@lycee-verdun.edu.lb` (élèves `lv.prenom.nom@…`, profs `prenom.nom@…`). Le prof est `jalal.souhaid@lycee-verdun.edu.lb` (rôle « prof » donné automatiquement).
 - **Base de données** Supabase (PostgreSQL) : toutes les tables ont des règles RLS ; les visiteurs non connectés n'ont aucun accès direct ; les fonctions réservées au prof vérifient `est_prof()`.
@@ -209,3 +209,4 @@
 - **Tests Playwright** : servir `index.html` sans les attributs `integrity` (sinon SRI bloque les bouchons), remplacer `rpc:async n=>` pour simuler les fonctions.
 - **20 octobre 2026** : le fichier du calendrier a été effacé par le bouton « Supprimer les fichiers inutilisés ». Corrigé : les fichiers du dossier `prof/` ne sont plus jamais comptés comme inutilisés, et le calendrier est devenu un lien Google Drive.
 - **Ménage du 4 novembre 2026** : anciens doublons supprimés de la racine du dépôt (16 scripts SQL 06 à 22, dossiers `build/`, `site/`, `supabase/` du 18 octobre) — les bonnes versions sont dans `sources/`. Récupérables dans l'historique Git si besoin.
+- **Cloche des notifications (11 novembre 2026)** : chaque notification non lue a une coche « Marquer comme lu », et l'ouvrir la marque aussi comme lue. Les notifications lues une à une sont gardées dans `profiles.prefs.lus` (enregistré par `pp_prefs`, donc pareil sur tous les appareils, pas de nouveau script SQL) ; « Tout marquer comme lu » garde `pp_vu` (date `vu_le`). Sur téléphone (≤ 600 px), le menu prend toute la largeur de l'écran : avant, il dépassait à gauche et le texte paraissait coupé.

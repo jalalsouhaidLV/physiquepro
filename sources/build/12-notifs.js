@@ -8,6 +8,18 @@ const prefs = () => (S.profil && S.profil.prefs) || {};
 const notifOn = k => prefs().bell !== false && prefs()[k] !== false;
 const coursOn = cid => !cid || !(prefs().cours_off || []).includes(cid);
 const vuLe = () => S.profil && S.profil.vu_le ? D(S.profil.vu_le) : new Date(now() - 7 * 864e5);
+/* lecture d'une seule notification : ses clés sont gardées dans prefs.lus (synchronisé entre appareils) */
+const cleNotifLue = x => x.k + "|" + x.href + "|" + (+x.date);
+const notifsLues = () => Array.isArray(prefs().lus) ? prefs().lus : [];
+const estNouvelle = x => (x.k === "echeances" || x.date > vuLe()) && !notifsLues().includes(cleNotifLue(x));
+async function marquerNotifsLues(cles, garderAnciennes){
+  if (!S.profil) return;
+  const vu = +vuLe(), anciennes = garderAnciennes === false ? [] : notifsLues().filter(c => !cles.includes(c) && (c.startsWith("echeances|") || +c.split("|").pop() > vu - 864e5));
+  S.profil.prefs = { ...prefs(), lus: [...anciennes, ...cles].slice(-200) };
+  S.nbNotifs = (S.notifs || []).filter(estNouvelle).length; majCloche();
+  const { error } = await sb.rpc("pp_prefs", { p: S.profil.prefs });
+  if (error) toast("Notification non marquée comme lue : " + error.message);
+}
 function progListe(){ try { return JSON.parse(localStorage.getItem("pp_prog") || "[]"); } catch (_) { return []; } }
 function progAjoute(k, id){ try { const l = progListe().filter(x => x !== k + ":" + id); l.push(k + ":" + id); localStorage.setItem("pp_prog", JSON.stringify(l.slice(-50))); } catch (_) {} }
 
@@ -48,7 +60,7 @@ async function chargerNotifs(){
     S.devoirs.filter(d => d.date_limite && D(d.date_limite) > now() && D(d.date_limite) - now() < 864e5 && etat(d, moi()).t === "Attribué").forEach(d => add("echeances", D(d.date_limite), "À rendre " + dueTxt(D(d.date_limite)).toLowerCase() + " : « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id));
   }
   L.sort((a, b) => b.date - a.date);
-  S.notifs = L; S.nbNotifs = L.filter(x => x.k === "echeances" || x.date > vu).length;
+  S.notifs = L; S.nbNotifs = L.filter(estNouvelle).length;
   majCloche();
 }
 function cloche(){
@@ -56,7 +68,7 @@ function cloche(){
   const n = S.nbNotifs || 0, L = S.notifs || [];
   return `<div class="dd bellwrap"><button class="ib" data-act="bell" title="Notifications" aria-label="Notifications${n ? " (" + n + " nouvelles)" : ""}" aria-expanded="${!!S.bell}">${icon("bell")}${n ? `<span class="badge">${n > 99 ? "99+" : n}</span>` : ""}</button>
     ${S.bell ? `<div class="dd-menu bellmenu"><div class="bellhead"><b>Notifications</b>${n ? `<button class="linkbtn" data-act="toutlu">Tout marquer comme lu</button>` : ""}</div>
-      ${L.length ? `<div class="belllist">${L.slice(0, 40).map(x => { const c = cls(x.cid); return `<a href="${x.href}" class="${x.k === "echeances" || x.date > vuLe() ? "new" : ""}"><span class="ini" style="--bb:var(${C(c && c.couleur).b})">${esc(c ? (c.symbole || c.nom).slice(0, 3) : "•")}</span><span><span class="bt">${x.titre}</span><small class="muted">${esc(c ? c.nom : "")} · ${fmtQuand(x.date)}</small></span></a>`; }).join("")}</div>` : `<p class="muted" style="margin:8px 10px">Aucune nouvelle notification.</p>`}
+      ${L.length ? `<div class="belllist">${L.slice(0, 40).map(x => { const c = cls(x.cid); const nv = estNouvelle(x), cle = esc(cleNotifLue(x)); return `<div class="bitem${nv ? " new" : ""}"><a href="${x.href}" data-nk="${cle}"><span class="ini" style="--bb:var(${C(c && c.couleur).b})">${esc(c ? (c.symbole || c.nom).slice(0, 3) : "•")}</span><span><span class="bt">${x.titre}</span><small class="muted">${esc(c ? c.nom : "")} · ${fmtQuand(x.date)}</small></span></a>${nv ? `<button class="ib blu" data-act="notiflu" data-nk="${cle}" title="Marquer comme lu" aria-label="Marquer comme lu">${icon("check")}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="muted" style="margin:8px 10px">Aucune nouvelle notification.</p>`}
       <a class="bellfoot" href="#/admin/profil">${icon("gear")} Paramètres des notifications</a></div>` : ""}</div>`;
 }
 function majCloche(){ const w = document.querySelector(".bellwrap"); if (w) w.outerHTML = cloche(); }
