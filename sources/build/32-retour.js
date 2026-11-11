@@ -9,17 +9,24 @@
    la retire et referme la couche. Si la couche a été fermée autrement
    (voile, croix, Échap), Retour saute cette étape devenue inutile.
    Lot K : lien « Aller au contenu » (clavier, lecteurs d'écran).
+   Lot N (4e évaluation) : la visite guidée est aussi une couche.
    ===================================================================== */
 const COUCHE = { etat: null };
-const coucheOuverte = () => !!((S.drawer && window.innerWidth < 1100) || S.bell || S.dd || S.me || S.menu || S.apps || (S.modal && !S.modal.busy) || S.viewer);
+const coucheOuverte = () => !!((typeof VIS !== "undefined" && VIS.on) || (S.drawer && window.innerWidth < 1100) || S.bell || S.dd || S.me || S.menu || S.apps || (S.modal && !S.modal.busy) || S.viewer);
 const surCouche = () => !!(history.state && history.state.ppCouche);
+function ajouterCouche(){
+  if (!surCouche()) { try { history.pushState({ ...(history.state || {}), ppCouche: true }, "", location.href); } catch (_) {} }
+  COUCHE.etat = { c: surCouche(), h: location.href };
+}
 APRES_RENDU.push(() => {
-  if (coucheOuverte() && !surCouche()) { try { history.pushState({ ...(history.state || {}), ppCouche: true }, "", location.href); } catch (_) {} }
+  if (coucheOuverte()) ajouterCouche();
   COUCHE.etat = { c: surCouche(), h: location.href };
 });
 window.addEventListener("popstate", () => {
   const avant = COUCHE.etat; COUCHE.etat = { c: surCouche(), h: location.href };
   if (coucheOuverte()) {
+    /* Lot N (4e évaluation) : Retour pendant la visite guidée la ferme (elle reste disponible dans Mon profil) */
+    if (typeof VIS !== "undefined" && VIS.on) { finirVisite(); return; }
     if (window.innerWidth < 1100) S.drawer = false;
     fermerMenus(); if (S.modal && !S.modal.busy) S.modal = null; S.viewer = null;
     render(); return;

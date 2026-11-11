@@ -2433,9 +2433,22 @@ main.content:focus{outline:none}
   .topbar .bellwrap .badge{top:-2px;right:-6px}
   /* K : liens des cartes de cours et des Révisions : 24 px de haut au moins */
   .ccard .body .cder a,.fcdocs a{min-height:24px;padding-block:2px}
+  /* Lot N (4e évaluation) : les travaux listés dans les cartes de cours font aussi 24 px de haut */
+  .ccard .body>a{min-height:24px;line-height:24px}
 }
 /* K : les 3 onglets de « À faire » tiennent sur un petit écran (320 px) */
 @media (max-width:400px){
   .tabsbar .tabs.tabs3{-webkit-mask-image:none;mask-image:none;display:flex}
   .tabsbar .tabs.tabs3 button{flex:1 1 auto;padding:14px 6px 11px;font-size:.84rem}
+}
+/* Lot M (4e évaluation, 11/11/2026) : tous les téléphones tournés (paysage), même étroits (iPhone 750 px, petits Android 658 px) :
+   pas de logos du haut (ils sont dans Applications), pas de bande de présentation, titres plus petits pour garder de la place */
+@media (pointer:coarse) and (max-height:500px){
+  .topbar .quick,.topbar .topmid{display:none!important}
+  .page>.foot.headband{display:none}
+  .dvhead h1{font-size:1.35rem}
+}
+/* Lot M : tablette (iPad portrait 761-1099 px) : les logos qui ne tiennent pas s'estompent au bord (ils défilent, et tous sont dans Applications) */
+@media (pointer:coarse) and (min-width:761px) and (max-width:1099px){
+  .topbar .quick{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}
 }

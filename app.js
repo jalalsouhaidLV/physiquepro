@@ -6746,7 +6746,7 @@ const ETAPES_VISITE = [
   { sel: '.topbar .avatar[data-act="me"]', t: "Ton compte", x: "Ici, ton nom. Vérifie toujours que c'est bien toi avant de rendre un travail." }
 ];
 const VIS = { i: 0, on: false };
-function lancerVisite(){ VIS.i = 0; VIS.on = true; fermerMenus(); if (route().v !== "accueil") { go("/"); setTimeout(etapeVisite, 600); } else etapeVisite(); }
+function lancerVisite(){ VIS.i = 0; VIS.on = true; fermerMenus(); if (typeof ajouterCouche === "function") ajouterCouche(); if (route().v !== "accueil") { go("/"); setTimeout(etapeVisite, 600); } else etapeVisite(); }
 function finirVisite(){ VIS.on = false; ecrireLS(cleTel("visite"), 1); document.getElementById("ppVisite")?.remove(); }
 function etapeVisite(){
   if (!VIS.on) return;
@@ -6766,6 +6766,8 @@ function etapeVisite(){
   setTimeout(() => o.querySelector('[data-vis="suivant"]')?.focus(), 30);
 }
 window.addEventListener("resize", () => { if (VIS.on) etapeVisite(); });
+/* Lot N (4e évaluation) : la visite montre l'accueil ; si l'élève change de page (notification, lien, Retour), elle s'arrête au lieu d'entourer un autre élément */
+window.addEventListener("hashchange", () => { if (VIS.on && route().v !== "accueil") finirVisite(); });
 ACTIONS_PLUS.visite = (a, e) => { e.preventDefault(); S.modal = null; lancerVisite(); };
 
 /* ---------------------------------------------------------------- B9. Installation guidée à la 1re connexion */
@@ -7276,17 +7278,24 @@ document.addEventListener("toggle", e => {
    la retire et referme la couche. Si la couche a été fermée autrement
    (voile, croix, Échap), Retour saute cette étape devenue inutile.
    Lot K : lien « Aller au contenu » (clavier, lecteurs d'écran).
+   Lot N (4e évaluation) : la visite guidée est aussi une couche.
    ===================================================================== */
 const COUCHE = { etat: null };
-const coucheOuverte = () => !!((S.drawer && window.innerWidth < 1100) || S.bell || S.dd || S.me || S.menu || S.apps || (S.modal && !S.modal.busy) || S.viewer);
+const coucheOuverte = () => !!((typeof VIS !== "undefined" && VIS.on) || (S.drawer && window.innerWidth < 1100) || S.bell || S.dd || S.me || S.menu || S.apps || (S.modal && !S.modal.busy) || S.viewer);
 const surCouche = () => !!(history.state && history.state.ppCouche);
+function ajouterCouche(){
+  if (!surCouche()) { try { history.pushState({ ...(history.state || {}), ppCouche: true }, "", location.href); } catch (_) {} }
+  COUCHE.etat = { c: surCouche(), h: location.href };
+}
 APRES_RENDU.push(() => {
-  if (coucheOuverte() && !surCouche()) { try { history.pushState({ ...(history.state || {}), ppCouche: true }, "", location.href); } catch (_) {} }
+  if (coucheOuverte()) ajouterCouche();
   COUCHE.etat = { c: surCouche(), h: location.href };
 });
 window.addEventListener("popstate", () => {
   const avant = COUCHE.etat; COUCHE.etat = { c: surCouche(), h: location.href };
   if (coucheOuverte()) {
+    /* Lot N (4e évaluation) : Retour pendant la visite guidée la ferme (elle reste disponible dans Mon profil) */
+    if (typeof VIS !== "undefined" && VIS.on) { finirVisite(); return; }
     if (window.innerWidth < 1100) S.drawer = false;
     fermerMenus(); if (S.modal && !S.modal.busy) S.modal = null; S.viewer = null;
     render(); return;

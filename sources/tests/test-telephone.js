@@ -406,6 +406,36 @@ async function testsTroisieme() {
   await ctx.close();
 }
 
+async function testsQuatrieme() {
+  console.log("\n— 4e évaluation : paysage étroit, visite guidée —");
+  for (const dv of ["iPhone 13 landscape", "Galaxy S9+ landscape"]) {
+    const { ctx, page } = await contexte(dv);
+    await ouvrir(page, "#/accueil");
+    const e = await page.evaluate(() => ({ nb: getComputedStyle(document.querySelector(".navbas")).display, quick: [...document.querySelectorAll(".topbar .quick")].every(q => getComputedStyle(q).display === "none"), bande: [...document.querySelectorAll(".page > .headband")].every(b => getComputedStyle(b).display === "none"), w: document.documentElement.scrollWidth - innerWidth, larg: innerWidth }));
+    verif("M " + dv + " : barre du bas, pas de logos ni de bande en haut, rien ne dépasse", e.nb !== "none" && e.quick && e.bande && e.w <= 0, JSON.stringify(e));
+    await capture(page, "M-" + dv.replace(/\W+/g, "-"));
+    await ctx.close();
+  }
+  let { ctx, page } = await contexte("Pixel 7", { flags: { installvu: "1" } });
+  await ouvrir(page, "#/accueil"); await page.waitForTimeout(1200);
+  const vis = () => page.evaluate(() => ({ h: location.hash, v: !!document.getElementById("ppVisite") }));
+  let e = await vis();
+  verif("N La visite guidée démarre sur l'accueil", e.v && e.h === "#/accueil", JSON.stringify(e));
+  await page.goBack(); await page.waitForTimeout(800); e = await vis();
+  verif("N Touche Retour pendant la visite : la visite se ferme, on reste sur l'accueil", !e.v && e.h === "#/accueil", JSON.stringify(e));
+  await ctx.close();
+  ({ ctx, page } = await contexte("Pixel 7", { flags: { installvu: "1" } }));
+  await ouvrir(page, "#/accueil"); await page.waitForTimeout(1200);
+  await aller(page, "#/devoir/1", 900); e = await vis();
+  verif("N Changement de page pendant la visite : la visite s'arrête", !e.v && e.h === "#/devoir/1", JSON.stringify(e));
+  await ctx.close();
+  ({ ctx, page } = await contexte("iPhone 13"));
+  await ouvrir(page, "#/accueil");
+  const hmin = await page.evaluate(() => Math.round(Math.min(...[...document.querySelectorAll(".ccard .body > a")].map(a => a.getBoundingClientRect().height))));
+  verif("N Travaux des cartes de cours : 24 px de haut au moins", hmin >= 24, hmin + " px");
+  await ctx.close();
+}
+
 
 (async () => {
   const srv = await demarrer(0); base = "http://127.0.0.1:" + srv.address().port;
@@ -414,7 +444,7 @@ async function testsTroisieme() {
     const man = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "manifest.json"), "utf8"));
     verif("D29 Raccourcis de l'icône (À faire, Agenda, Mes notes)", (man.shortcuts || []).map(x => x.name).join(",") === "À faire,Agenda,Mes notes");
     verif("D28 L'appli accepte les partages (share_target)", man.share_target && man.share_target.method === "POST" && man.share_target.params.files[0].accept.includes("image/*"));
-    await testsIPhone(); await testsVisite(); await testsAndroid(); await testsPetitEcran(); await testsTroisieme(); await testsAppli();
+    await testsIPhone(); await testsVisite(); await testsAndroid(); await testsPetitEcran(); await testsTroisieme(); await testsQuatrieme(); await testsAppli();
   } catch (e) { verif("Le test a planté", false, String(e && e.stack || e).slice(0, 400)); }
   finally { await nav.close(); srv.close(); }
   const ko = res.filter(x => !x.ok);

@@ -243,7 +243,7 @@ const ETAPES_VISITE = [
   { sel: '.topbar .avatar[data-act="me"]', t: "Ton compte", x: "Ici, ton nom. Vérifie toujours que c'est bien toi avant de rendre un travail." }
 ];
 const VIS = { i: 0, on: false };
-function lancerVisite(){ VIS.i = 0; VIS.on = true; fermerMenus(); if (route().v !== "accueil") { go("/"); setTimeout(etapeVisite, 600); } else etapeVisite(); }
+function lancerVisite(){ VIS.i = 0; VIS.on = true; fermerMenus(); if (typeof ajouterCouche === "function") ajouterCouche(); if (route().v !== "accueil") { go("/"); setTimeout(etapeVisite, 600); } else etapeVisite(); }
 function finirVisite(){ VIS.on = false; ecrireLS(cleTel("visite"), 1); document.getElementById("ppVisite")?.remove(); }
 function etapeVisite(){
   if (!VIS.on) return;
@@ -263,6 +263,8 @@ function etapeVisite(){
   setTimeout(() => o.querySelector('[data-vis="suivant"]')?.focus(), 30);
 }
 window.addEventListener("resize", () => { if (VIS.on) etapeVisite(); });
+/* Lot N (4e évaluation) : la visite montre l'accueil ; si l'élève change de page (notification, lien, Retour), elle s'arrête au lieu d'entourer un autre élément */
+window.addEventListener("hashchange", () => { if (VIS.on && route().v !== "accueil") finirVisite(); });
 ACTIONS_PLUS.visite = (a, e) => { e.preventDefault(); S.modal = null; lancerVisite(); };
 
 /* ---------------------------------------------------------------- B9. Installation guidée à la 1re connexion */
