@@ -19,7 +19,7 @@ let actMv = 0; window.addEventListener("mousemove", () => { const n = Date.now()
 
 const _signalerPresence = signalerPresence;
 signalerPresence = async function(){
-  if (!S.user) return;
+  if (!S.user || S.sortie) return;
   const id = idSession();
   if (!ACT.rpc2 || !id) return _signalerPresence();
   const inactif = Math.max(0, Math.round((Date.now() - derniereActivite()) / 1000));

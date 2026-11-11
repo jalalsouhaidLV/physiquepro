@@ -4502,7 +4502,7 @@ function nomAppareil(){
   return os + " · " + nav + (window.matchMedia && matchMedia("(display-mode: standalone)").matches ? " (application)" : "");
 }
 async function signalerPresence(){
-  if (!S.user) return;
+  if (!S.user || S.sortie) return;   // pendant « Se déconnecter » : ne pas recréer la ligne effacée
   const id = idSession();
   if (presenceRpc && id) {
     const { data, error } = await sb.rpc("pp_presence", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible" });
@@ -6182,7 +6182,7 @@ let actMv = 0; window.addEventListener("mousemove", () => { const n = Date.now()
 
 const _signalerPresence = signalerPresence;
 signalerPresence = async function(){
-  if (!S.user) return;
+  if (!S.user || S.sortie) return;
   const id = idSession();
   if (!ACT.rpc2 || !id) return _signalerPresence();
   const inactif = Math.max(0, Math.round((Date.now() - derniereActivite()) / 1000));
@@ -7544,7 +7544,11 @@ document.addEventListener("click", async e => {
     case "favori": { e.preventDefault(); e.stopPropagation(); basculerFavori(a.dataset.nom); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
-    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); sessionStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut({ scope: "local" }); location.replace(ICI); return;
+    case "logout": e.preventDefault(); S.sortie = true; try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k);
+      /* efface la présence de cet onglet ET des anciens onglets / lancements de l'application sur ce même appareil */
+      const { error } = await sb.rpc("pp_fin_appareil", { p_session: id || null, p_appareil: nomAppareil() });
+      if (error && id) await sb.rpc("pp_fin_session", { p_session: id });
+      sessionStorage.removeItem(k); } catch (_) {} await sb.auth.signOut({ scope: "local" }); location.replace(ICI); return;
     case "menu": e.preventDefault(); S.menu = S.menu === a.dataset.m ? null : a.dataset.m; S.dd = false; S.me = false; render(); return;
     case "reload": S.cache = {}; await chargerTout().catch(() => {}); render(); return;
     case "toggle": S.open = S.open === a.dataset.id ? null : a.dataset.id; render(); return;

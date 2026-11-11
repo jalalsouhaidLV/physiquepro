@@ -121,6 +121,7 @@
     pp_annuler_rdv: () => null,
     pp_deconnecter: () => null,
     pp_fin_session: () => null,
+    pp_fin_appareil: () => null,
     pp_quitter_cours: () => null,
     pp_restaurer: () => null,
     pp_sauvegarde: () => ({}),

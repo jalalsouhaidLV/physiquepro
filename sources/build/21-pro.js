@@ -670,7 +670,7 @@ function nomAppareil(){
   return os + " · " + nav + (window.matchMedia && matchMedia("(display-mode: standalone)").matches ? " (application)" : "");
 }
 async function signalerPresence(){
-  if (!S.user) return;
+  if (!S.user || S.sortie) return;   // pendant « Se déconnecter » : ne pas recréer la ligne effacée
   const id = idSession();
   if (presenceRpc && id) {
     const { data, error } = await sb.rpc("pp_presence", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible" });

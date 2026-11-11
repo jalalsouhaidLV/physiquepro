@@ -39,7 +39,7 @@
 > 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
 > 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
 > 4. git push sur main : GitHub Pages en 1-2 min. Netlify : uniquement le dimanche 18 h UTC (automatique), ou via Actions > « Publication Netlify du dimanche » > Run workflow UNIQUEMENT si Jalal le demande.
-> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 37 existaient au 11/11/2026 ; vérifier le dernier numéro dans le dossier avant d'en créer un), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql et 30-test-fichiers.sql.
+> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 40 existaient au 11/11/2026 ; vérifier le dernier numéro dans le dossier avant d'en créer un), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql et 30-test-fichiers.sql.
 > 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
 >
 > ## 5. Construction technique
@@ -119,7 +119,7 @@
 3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
 4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
 5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : seulement sur demande de Jalal (GitHub > Actions > « Publication Netlify du dimanche » > Run workflow).
-6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 39). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
+6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 40 ; 40 = « Se déconnecter » efface la présence de tout l’appareil, pp_fin_appareil). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
 
 ---
 
@@ -177,7 +177,7 @@
 - **Netlify** : branche de production `netlify` ; seules les publications de production sont construites ; aperçus de déploiement désactivés.
 - **GitHub Actions** : « Publication Netlify du dimanche » (`netlify-dimanche.yml`), « Garder Supabase actif » (empêche la mise en pause du projet gratuit après 7 jours), pages-build-deployment.
 - **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache sur Netlify `sources/*`, `verification.html`, `test-connexion.html`, `README.md`), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
-- **Sauvegarde du code** : `sources/build/` (35 modules + build.sh), `sources/supabase/` (scripts 01 à 39), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
+- **Sauvegarde du code** : `sources/build/` (35 modules + build.sh), `sources/supabase/` (scripts 01 à 40), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
 
 ## 10. Travailler depuis le projet (procédure)
 
@@ -197,7 +197,7 @@
 
 **Tables (27 + les 2 tables push du script 37, toutes avec RLS)** : classes, inscriptions, profiles, reglages, supports, themes, annonces, commentaires, commentaires_prives, devoirs, rendus, copies, corrections, quiz, quiz_solutions, resultats_quiz, flashcards, notes_perso, messages_urgents, rdv_series, rdv_creneaux, rdv_reservations, demandes_materiel, corbeille, sauvegardes, sessions_ouvertes, commentaires_devoirs (script 38), pp_rappels_cle et pp_rappels_envoyes (script 39, rôle service seulement). (`reseaux_lycee` supprimée à l'étape 33.)
 
-**Fonctions principales** : droits (`est_prof`, `dans_classe`, `domaine_autorise`, `mon_email`, `peut_rendre`, `devoir_ouvert`, `reponses_visibles`, `reponse_modifiable`), élèves (`rejoindre_classe`, `soumettre_quiz`, `pp_quitter_cours`, `pp_reserver`, `pp_annuler_rdv`, `pp_supprimer_compte`), présence (`pp_presence2`, `pp_presence`, `pp_statut_session`, `pp_sessions`, `pp_deconnecter`, `pp_fin_session`, `pp_stats_visites`, `pp_visite`, `pp_statut_prof`), prof (`pp_fichiers`, `pp_vers_corbeille`, `pp_restaurer`, `pp_menage_corbeille`, `pp_sauvegarde`, `pp_verrou_remise`), public (`pp_accueil_public`, seule ouverte aux visiteurs, sans données d'élèves), `pp_ping`. Définitions : `sources/supabase/`.
+**Fonctions principales** : droits (`est_prof`, `dans_classe`, `domaine_autorise`, `mon_email`, `peut_rendre`, `devoir_ouvert`, `reponses_visibles`, `reponse_modifiable`), élèves (`rejoindre_classe`, `soumettre_quiz`, `pp_quitter_cours`, `pp_reserver`, `pp_annuler_rdv`, `pp_supprimer_compte`), présence (`pp_presence2`, `pp_presence`, `pp_statut_session`, `pp_sessions`, `pp_deconnecter`, `pp_fin_appareil` (Se déconnecter : efface les lignes de cet appareil), `pp_fin_session`, `pp_stats_visites`, `pp_visite`, `pp_statut_prof`), prof (`pp_fichiers`, `pp_vers_corbeille`, `pp_restaurer`, `pp_menage_corbeille`, `pp_sauvegarde`, `pp_verrou_remise`), public (`pp_accueil_public`, seule ouverte aux visiteurs, sans données d'élèves), `pp_ping`. Définitions : `sources/supabase/`.
 
 **Stockage** : `documents` (prof ; dossier `prof/` = fichiers privés, jamais purgés) et `rendus` (un dossier par élève).
 

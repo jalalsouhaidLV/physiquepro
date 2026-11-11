@@ -120,7 +120,11 @@ document.addEventListener("click", async e => {
     case "favori": { e.preventDefault(); e.stopPropagation(); basculerFavori(a.dataset.nom); render(); return; }
     case "dd": S.dd = !S.dd; S.me = false; S.menu = null; render(); return;
     case "me": S.me = !S.me; S.dd = false; S.menu = null; render(); return;
-    case "logout": e.preventDefault(); try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k); if (id) { await sb.rpc("pp_fin_session", { p_session: id }); sessionStorage.removeItem(k); } } catch (_) {} await sb.auth.signOut({ scope: "local" }); location.replace(ICI); return;
+    case "logout": e.preventDefault(); S.sortie = true; try { const k = "pp_sess_" + (S.user && S.user.id), id = sessionStorage.getItem(k);
+      /* efface la présence de cet onglet ET des anciens onglets / lancements de l'application sur ce même appareil */
+      const { error } = await sb.rpc("pp_fin_appareil", { p_session: id || null, p_appareil: nomAppareil() });
+      if (error && id) await sb.rpc("pp_fin_session", { p_session: id });
+      sessionStorage.removeItem(k); } catch (_) {} await sb.auth.signOut({ scope: "local" }); location.replace(ICI); return;
     case "menu": e.preventDefault(); S.menu = S.menu === a.dataset.m ? null : a.dataset.m; S.dd = false; S.me = false; render(); return;
     case "reload": S.cache = {}; await chargerTout().catch(() => {}); render(); return;
     case "toggle": S.open = S.open === a.dataset.id ? null : a.dataset.id; render(); return;
