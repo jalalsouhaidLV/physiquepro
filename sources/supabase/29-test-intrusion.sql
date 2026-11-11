@@ -150,8 +150,8 @@ select pg_temp.ecrire('Prof', 'Supprimer un devoir', $$delete from devoirs where
 select pg_temp.ecrire('Prof', 'Supprimer une classe', $$delete from classes where id = 'zz_x'$$);
 select pg_temp.ecrire('Prof', 'Modifier une classe (code, nom)', $$update classes set nom = 'pirate' where id = 'zz_x'$$);
 select pg_temp.ecrire('Prof', 'Créer une classe', $$insert into classes (id, nom) values ('zz_pirate', 'pirate')$$);
-select pg_temp.ecrire('Prof', 'Modifier une annonce du prof', $$update annonces set texte = 'pirate' where classe_id = 'zz_x'$$);
-select pg_temp.ecrire('Prof', 'Supprimer une annonce du prof', $$delete from annonces where classe_id = 'zz_x'$$);
+select pg_temp.ecrire('Prof', 'Modifier une annonce du prof', $$update annonces set texte = 'pirate' where classe_id = 'zz_x' and auteur is null$$);
+select pg_temp.ecrire('Prof', 'Supprimer une annonce du prof', $$delete from annonces where classe_id = 'zz_x' and auteur is null$$);
 select pg_temp.ecrire('Prof', 'Modifier les réglages du site', $$update reglages set data = '{}'$$);
 select pg_temp.ecrire('Prof', 'Ajouter un support', $$insert into supports (classe_id, titre) values ('zz_x', 'faux')$$);
 select pg_temp.ecrire('Prof', 'Ajouter un chapitre', $$insert into themes (classe_id, titre) values ('zz_x', 'faux')$$);
