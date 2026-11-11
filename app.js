@@ -4496,6 +4496,8 @@ document.addEventListener("keydown", e => { if (!FC.rev || route().v !== "revisi
 /* ---------- Compteur de visites (prof) : comptes, visites, personnes en ligne ---------- */
 let presenceOn = false, presenceRpc = true;
 function idSession(){ const k = "pp_sess_" + (S.user && S.user.id); try { let v = sessionStorage.getItem(k); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))); sessionStorage.setItem(k, v); } return v; } catch (_) { return null; } }
+/* « au premier plan » : la page est visible ET c'est la fenêtre utilisée (sur ordinateur, une autre fenêtre devant = pas au premier plan) */
+function auPremierPlan(){ try { return document.visibilityState === "visible" && document.hasFocus(); } catch (_) { return document.visibilityState === "visible"; } }
 function nomAppareil(){
   const u = navigator.userAgent, os = /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Windows/.test(u) ? "Windows" : /Mac OS X/.test(u) ? "Mac" : /CrOS/.test(u) ? "Chromebook" : /Linux/.test(u) ? "Linux" : "Appareil";
   const nav = /Edg\//.test(u) ? "Edge" : /OPR\//.test(u) ? "Opera" : /Firefox\//.test(u) ? "Firefox" : /Chrome\//.test(u) ? "Chrome" : /Safari\//.test(u) ? "Safari" : "Navigateur";
@@ -4505,7 +4507,7 @@ async function signalerPresence(){
   if (!S.user || S.sortie) return;   // pendant « Se déconnecter » : ne pas recréer la ligne effacée
   const id = idSession();
   if (presenceRpc && id) {
-    const { data, error } = await sb.rpc("pp_presence", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible" });
+    const { data, error } = await sb.rpc("pp_presence", { p_session: id, p_appareil: nomAppareil(), p_visible: auPremierPlan() });
     if (!error) { if (data === true) deconnexionForcee(); return; }
     if (/pp_presence|function/i.test(error.message || "")) presenceRpc = false;   // étape 23 pas encore installée
   }
@@ -4522,6 +4524,7 @@ function demarrerPresence(){
   signalerPresence();
   setInterval(signalerPresence, 30000);
   document.addEventListener("visibilitychange", signalerPresence); window.addEventListener("pagehide", signalerPresence);
+  window.addEventListener("focus", () => signalerPresence()); window.addEventListener("blur", () => signalerPresence());
   if (S.prof) { chargerStatsVisites(); setInterval(() => { if (document.visibilityState === "visible") chargerStatsVisites(); }, 20000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") chargerStatsVisites(); }); }
 }
 async function chargerStatsVisites(){
@@ -5457,7 +5460,7 @@ function dessinerSessions(){
   const stx = x => x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
   const on = L.filter(x => stx(x) === "actif"), horsLigne = L.filter(x => stx(x) === "inactif" || stx(x) === "attente"),
     off = horsLigne.filter(x => !estMobile(x)), tel = horsLigne.filter(estMobile), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter && stx(x) !== "expiree").length;
-  z.innerHTML = `<section><h4><i class="pt vert"></i>En ligne maintenant · ${on.length}</h4>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
+  z.innerHTML = `<section><h4><i class="pt vert"></i>En ligne maintenant · ${on.length}</h4><p class="muted sesaide">L'élève travaille sur le site en ce moment : page ouverte devant lui (ordinateur) ou application ouverte (téléphone), avec une activité dans les 5 dernières minutes.</p>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
     <section><h4><i class="pt orange"></i>Ordinateurs restés connectés · ${off.length}</h4><p class="muted sesaide">Sans activité depuis plus de 5 minutes sur un ordinateur : l'élève a sans doute oublié de se déconnecter (ordinateur du lycée, par exemple). À déconnecter.</p>${off.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
     <section><h4><i class="pt gris"></i>Téléphones et tablettes fermés · ${tel.length}</h4><p class="muted sesaide">L'élève a fermé l'application ou le navigateur de son téléphone. C'est normal : il n'a pas à se déconnecter, rien à faire.</p>${tel.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
 `;
@@ -6190,7 +6193,7 @@ signalerPresence = async function(){
   const id = idSession();
   if (!ACT.rpc2 || !id) return _signalerPresence();
   const inactif = Math.max(0, Math.round((Date.now() - derniereActivite()) / 1000));
-  const { data, error } = await sb.rpc("pp_presence2", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible", p_inactif: inactif });
+  const { data, error } = await sb.rpc("pp_presence2", { p_session: id, p_appareil: nomAppareil(), p_visible: auPremierPlan(), p_inactif: inactif });
   if (error) { if (/pp_presence2|function/i.test(error.message || "")) { ACT.rpc2 = false; return _signalerPresence(); } return; }
   const r = typeof data === "string" ? JSON.parse(data) : (data || {});
   if (r.kick) deconnexionForcee();          /* seulement si le professeur a demandé la déconnexion */

@@ -23,7 +23,7 @@ signalerPresence = async function(){
   const id = idSession();
   if (!ACT.rpc2 || !id) return _signalerPresence();
   const inactif = Math.max(0, Math.round((Date.now() - derniereActivite()) / 1000));
-  const { data, error } = await sb.rpc("pp_presence2", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible", p_inactif: inactif });
+  const { data, error } = await sb.rpc("pp_presence2", { p_session: id, p_appareil: nomAppareil(), p_visible: auPremierPlan(), p_inactif: inactif });
   if (error) { if (/pp_presence2|function/i.test(error.message || "")) { ACT.rpc2 = false; return _signalerPresence(); } return; }
   const r = typeof data === "string" ? JSON.parse(data) : (data || {});
   if (r.kick) deconnexionForcee();          /* seulement si le professeur a demandé la déconnexion */

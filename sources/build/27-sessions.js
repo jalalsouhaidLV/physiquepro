@@ -31,7 +31,7 @@ function dessinerSessions(){
   const stx = x => x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
   const on = L.filter(x => stx(x) === "actif"), horsLigne = L.filter(x => stx(x) === "inactif" || stx(x) === "attente"),
     off = horsLigne.filter(x => !estMobile(x)), tel = horsLigne.filter(estMobile), nbEl = SES.liste.filter(x => x.role !== "prof" && !x.deconnecter && stx(x) !== "expiree").length;
-  z.innerHTML = `<section><h4><i class="pt vert"></i>En ligne maintenant · ${on.length}</h4>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
+  z.innerHTML = `<section><h4><i class="pt vert"></i>En ligne maintenant · ${on.length}</h4><p class="muted sesaide">L'élève travaille sur le site en ce moment : page ouverte devant lui (ordinateur) ou application ouverte (téléphone), avec une activité dans les 5 dernières minutes.</p>${on.map(ligneSession).join("") || `<p class="muted">Personne en ligne.</p>`}</section>
     <section><h4><i class="pt orange"></i>Ordinateurs restés connectés · ${off.length}</h4><p class="muted sesaide">Sans activité depuis plus de 5 minutes sur un ordinateur : l'élève a sans doute oublié de se déconnecter (ordinateur du lycée, par exemple). À déconnecter.</p>${off.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
     <section><h4><i class="pt gris"></i>Téléphones et tablettes fermés · ${tel.length}</h4><p class="muted sesaide">L'élève a fermé l'application ou le navigateur de son téléphone. C'est normal : il n'a pas à se déconnecter, rien à faire.</p>${tel.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
 `;

@@ -664,6 +664,8 @@ document.addEventListener("keydown", e => { if (!FC.rev || route().v !== "revisi
 /* ---------- Compteur de visites (prof) : comptes, visites, personnes en ligne ---------- */
 let presenceOn = false, presenceRpc = true;
 function idSession(){ const k = "pp_sess_" + (S.user && S.user.id); try { let v = sessionStorage.getItem(k); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))); sessionStorage.setItem(k, v); } return v; } catch (_) { return null; } }
+/* « au premier plan » : la page est visible ET c'est la fenêtre utilisée (sur ordinateur, une autre fenêtre devant = pas au premier plan) */
+function auPremierPlan(){ try { return document.visibilityState === "visible" && document.hasFocus(); } catch (_) { return document.visibilityState === "visible"; } }
 function nomAppareil(){
   const u = navigator.userAgent, os = /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Windows/.test(u) ? "Windows" : /Mac OS X/.test(u) ? "Mac" : /CrOS/.test(u) ? "Chromebook" : /Linux/.test(u) ? "Linux" : "Appareil";
   const nav = /Edg\//.test(u) ? "Edge" : /OPR\//.test(u) ? "Opera" : /Firefox\//.test(u) ? "Firefox" : /Chrome\//.test(u) ? "Chrome" : /Safari\//.test(u) ? "Safari" : "Navigateur";
@@ -673,7 +675,7 @@ async function signalerPresence(){
   if (!S.user || S.sortie) return;   // pendant « Se déconnecter » : ne pas recréer la ligne effacée
   const id = idSession();
   if (presenceRpc && id) {
-    const { data, error } = await sb.rpc("pp_presence", { p_session: id, p_appareil: nomAppareil(), p_visible: document.visibilityState === "visible" });
+    const { data, error } = await sb.rpc("pp_presence", { p_session: id, p_appareil: nomAppareil(), p_visible: auPremierPlan() });
     if (!error) { if (data === true) deconnexionForcee(); return; }
     if (/pp_presence|function/i.test(error.message || "")) presenceRpc = false;   // étape 23 pas encore installée
   }
@@ -690,6 +692,7 @@ function demarrerPresence(){
   signalerPresence();
   setInterval(signalerPresence, 30000);
   document.addEventListener("visibilitychange", signalerPresence); window.addEventListener("pagehide", signalerPresence);
+  window.addEventListener("focus", () => signalerPresence()); window.addEventListener("blur", () => signalerPresence());
   if (S.prof) { chargerStatsVisites(); setInterval(() => { if (document.visibilityState === "visible") chargerStatsVisites(); }, 20000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") chargerStatsVisites(); }); }
 }
 async function chargerStatsVisites(){
