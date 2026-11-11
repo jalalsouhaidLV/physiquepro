@@ -1,4 +1,6 @@
 /* ---------- notifications (cloche) et page Profil ---------- */
+/* côté élève, on tutoie (lot T de la 6e évaluation) */
+const NOTIF_TU = { coms: "Commentaires ajoutés à tes messages", mention: "Commentaires où l'on te mentionne" };
 const NOTIF_DEF = {
   coms: [["coms", "Commentaires ajoutés à vos posts"], ["mention", "Commentaires dans lesquels vous êtes mentionné"], ["prives", "Commentaires privés sur les devoirs"]],
   prof: [["rendus", "Nouveaux envois de devoirs d'élèves"], ["manquants", "Devoirs non rendus à la date limite"], ["programmes", "Publication d'un post programmé"]],
@@ -39,8 +41,8 @@ async function chargerNotifs(){
   const L = [], add = (k, date, titre, href, cid) => { if (notifOn(k) && coursOn(cid)) L.push({ k, date, titre, href, cid }); };
   const dv = id => S.devoirs.find(d => d.id === id) || {};
   co.filter(x => x.auteur !== moiId).forEach(x => { const a = x.annonces || {}, cid = a.classe_id, mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
-    if (mention) add("mention", D(x.cree_le), esc(x.auteur_nom) + " vous a mentionné dans un commentaire", "#/classe/" + cid + "/flux", cid);
-    else if (S.prof || a.auteur === moiId) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté " + (S.prof ? "une annonce" : "votre post"), "#/classe/" + cid + "/flux", cid); });
+    if (mention) add("mention", D(x.cree_le), esc(x.auteur_nom) + (S.prof ? " vous a mentionné dans un commentaire" : " t'a mentionné dans un commentaire"), "#/classe/" + cid + "/flux", cid);
+    else if (S.prof || a.auteur === moiId) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté " + (S.prof ? "une annonce" : "ton message"), "#/classe/" + cid + "/flux", cid); });
   { const cd = (res[res.length - 1] && !res[res.length - 1].error && res[res.length - 1].data) || [];
     cd.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id), mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
       if (S.prof || mention || x.auteur_nom === R().prof.nom) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); }); }
@@ -100,8 +102,8 @@ function admProfil(){
       <h3 class="crsub">Dans PhysiquePro</h3>
       <p class="muted" style="margin:0">Ces paramètres s'appliquent aux notifications de la cloche ${icon("bell")} en haut de chaque page. ${S.prof ? "Les élèves sont aussi prévenus par e-mail et sur leur téléphone quand tu rends une note (voir plus bas)." : "Pour être prévenu hors du site, active aussi les notifications de cet appareil plus bas."}</p>
       ${sw("bell", "Autoriser les notifications")}
-      <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, l)).join("")}
-      <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Cours dont vous êtes élève"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
+      <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, S.prof ? l : (NOTIF_TU[k] || l))).join("")}
+      <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Tes cours"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
       ${blocPush()}
       ${blocTelephoneProfil()}
       <details class="crdet"><summary><span><b>Notifications de cours</b><small class="muted">Ces paramètres s'appliquent aux notifications pour chaque cours</small></span>${icon("down")}</summary>

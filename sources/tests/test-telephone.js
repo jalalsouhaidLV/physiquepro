@@ -471,8 +471,10 @@ async function testsCinquieme() {
   await ctx.close();
   for (const dv of ["Pixel 7", "Galaxy S9+"]) {
     ({ ctx, page } = await contexte(dv)); await ouvrir(page);
-    e = await page.evaluate(() => { const n = document.querySelector(".topbar .quick"), r = n.getBoundingClientRect().right; return [...n.querySelectorAll("a")].filter(a => a.offsetWidth).map(a => a.getBoundingClientRect().right <= r + 0.5); });
-    verif("P " + dv + " : chaque logo du haut est visible en entier", e.length >= 1 && e.every(Boolean), e.length + " logos");
+    /* lot T : on mesure le cadre vert (.qi + anneau de 2 px), pas seulement le lien */
+    e = await page.evaluate(() => { const n = document.querySelector(".topbar .quick"), r = n.getBoundingClientRect().right; return [...n.querySelectorAll(":scope > a")].filter(a => a.offsetWidth).map(a => { const q = a.querySelector(".qi"); return Math.max(a.getBoundingClientRect().right, q ? q.getBoundingClientRect().right + 2 : 0) <= r + 0.5; }); });
+    verif("P " + dv + " : chaque logo du haut est visible en entier (cadre vert compris)", e.length >= 1 && e.every(Boolean), e.length + " logos");
+    if (dv === "Pixel 7") verif("T Pixel 7 : 3 logos du haut", e.length === 3, e.length + " logos");
     await ctx.close();
   }
   ({ ctx, page } = await contexte(null, { vue: { width: 1024, height: 700 }, role: "prof" }));
@@ -492,6 +494,12 @@ async function testsCinquieme() {
   await aller(page, "#/classe/tle/travaux", 800);
   e = await page.evaluate(() => { const h = [...document.querySelectorAll("main.content h1")]; return h.length + ":" + (h[0] ? h[0].innerText : ""); });
   verif("S Chaque page a un titre principal (onglet Travaux : titre caché pour les lecteurs d'écran)", /^1:/.test(e), e);
+  await aller(page, "#/admin/cours", 800);
+  e = await page.evaluate(() => { const w = document.querySelector(".tablewrap"), t = w.querySelector("table"); return { t: t.scrollWidth, w: w.clientWidth, page: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
+  verif("T Paramètres > Cours (1024 px) : colonne Actions visible sans défiler, page sans débordement", e.t <= e.w + 1 && e.page <= 0, JSON.stringify(e));
+  await aller(page, "#/accueil", 800);
+  e = await page.evaluate(() => document.querySelectorAll("main.content h1").length);
+  verif("T Accueil : un seul titre principal", e === 1, e + " h1");
   await ctx.close();
 }
 

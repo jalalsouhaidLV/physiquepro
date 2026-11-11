@@ -76,7 +76,7 @@ function blocComsDevoir(d, c){
     ${!L.length ? `<p class="muted" style="margin:0;font-size:.85rem">${S.prof ? "Les élèves peuvent poser ici une question que toute la classe verra." : "Une question sur ce travail ? Pose-la ici : toute la classe verra la réponse."}</p>` : ""}
     ${!ouvert ? `<button class="linkbtn" data-act="dvcomsouvrir" data-id="${d.id}">Voir les ${L.length} commentaires</button>` : ""}
     ${vus.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div>${S.prof || x.auteur === S.user.id ? `<button class="ib sm" data-act="dvcomx" data-id="${x.id}" data-d="${d.id}" aria-label="Supprimer le commentaire" title="Supprimer">${icon("x")}</button>` : ""}</div>`).join("")}
-    ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="dvcom-${d.id}" placeholder="Écrire un commentaire…" aria-label="Commentaire pour la classe" maxlength="2000" enterkeyhint="send"><button class="ib" data-act="dvcom" data-id="${d.id}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
+    ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="dvcom-${d.id}" placeholder="${petitEcran() ? "Commenter…" : "Écrire un commentaire…"}" aria-label="Commentaire pour la classe" maxlength="2000" enterkeyhint="send"><button class="ib" data-act="dvcom" data-id="${d.id}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
   </section>`;
 }
 ACTIONS_PLUS.dvcomsouvrir = (a, e) => { e.preventDefault(); S.open = "dv" + a.dataset.id; render(); };

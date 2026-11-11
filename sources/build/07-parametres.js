@@ -12,7 +12,7 @@ function vParametres(c){
   const sw = (key, label, aide = "") => `<label class="switch"><span><b>${label}</b>${aide ? `<small class="muted">${aide}</small>` : ""}</span><input type="checkbox" data-s="${key}" ${s[key] ? "checked" : ""}><i aria-hidden="true"></i></label>`;
   return `<div class="edtop" style="--c:var(${k.c})"><a class="ib" href="#/classe/${esc(c.id)}" aria-label="Fermer">${icon("x")}</a><h1>Paramètres du cours</h1><span class="spacer"></span>
       <button class="btn" data-act="savesettings" ${s.busy ? "disabled" : ""}>${s.busy ? "Enregistrement…" : "Enregistrer"}</button></div>
-    <div class="settings">
+    <div class="settings" role="main">
       ${s.err ? `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">${esc(s.err)}</div>` : ""}
       <section class="edcard"><h2>Informations sur la classe</h2>
         ${f("nom", "Nom du cours *")}
@@ -23,7 +23,7 @@ function vParametres(c){
         <div class="two">${f("symbole", "Symbole sur le bandeau", "ex. Tle")}
           <div class="field"><label for="s_couleur">Couleur du bandeau</label><select id="s_couleur" data-s="couleur">${[["pc","Bleu"],["snt","Vert"],["si","Rouge"],["tech","Ocre"],["pix","Bleu pétrole"]].map(([v, l]) => `<option value="${v}" ${s.couleur === v ? "selected" : ""}>${l}</option>`).join("")}</select></div></div>
         <div class="field"><label for="s_illustration">Illustration du bandeau</label><select id="s_illustration" data-s="illustration">${ART_NOMS.map(([v, l]) => `<option value="${v}" ${s.illustration === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-        <div class="banner bigbanner preview" style="--bb:var(${k.b})">${bannerArt(s)}<h1>${esc(s.nom || "Nom du cours")}</h1><span>${esc(s.section)}</span></div>
+        <div class="banner bigbanner preview" style="--bb:var(${k.b})">${bannerArt(s)}<p class="bnom">${esc(s.nom || "Nom du cours")}</p><span>${esc(s.section)}</span></div>
       </section>
       <section class="edcard"><h2>Général</h2>
         <h3>Codes d'invitation</h3>

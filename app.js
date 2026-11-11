@@ -343,7 +343,7 @@ function vAccueil(){
   const replie = !S.prof && window.innerWidth <= 600;   /* téléphone élève : l'essentiel d'abord, la « Découverte du jour » repliée en bas */
   const decouverte = replie ? `<details class="decjour"${S.decOuvert ? " open" : ""}><summary>${icon("idea")} Découverte du jour <small>scientifique, simulation, défi, anecdote</small></summary>${blocScientifique()}${blocDecouvertes()}</details>` : "";
   return `<div class="page wide home">${S.prof ? "" : carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
-    ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h1>Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h1><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
+    ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h2 class="hcours">Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h2><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
     <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${replie ? decouverte : blocDecouvertes()}${pageFoot()}</div>`;
 }
 /* « À rendre récemment » (en haut de l'accueil, comme Classroom) */
@@ -528,7 +528,7 @@ function vAnnonce(c, a, data){
     <div class="richtext" id="an-${a.id}">${rich(a.texte)}</div>${texteUtile(a.texte) ? `<div class="consignehead">${btnEcouter("an-" + a.id, "", true)}</div>` : ""}${ressources(a.ressources, { classe: a.classe_id })}
     <div class="coms">${coms.length ? `${!open ? `<button class="linkbtn" data-act="opencoms" data-id="${a.id}">${icon("people")} ${coms.length} commentaires sur le cours</button>` : `<span class="muted" style="font-size:.85rem">${icon("people")} ${coms.length} commentaire${coms.length > 1 ? "s" : ""} sur le cours</span>`}` : ""}
       ${shown.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div>${S.prof || x.auteur === S.user.id ? `<button class="ib sm" data-act="supprcom" data-id="${x.id}" data-c="${esc(c.id)}" aria-label="Supprimer le commentaire" title="Supprimer">${icon("x")}</button>` : ""}</div>`).join("")}
-      ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="cm-${a.id}" placeholder="Écrire un commentaire…" aria-label="Commentaire pour le cours"><button class="ib" data-act="comment" data-id="${a.id}" data-c="${esc(c.id)}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
+      ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="cm-${a.id}" placeholder="${petitEcran() ? "Commenter…" : "Écrire un commentaire…"}" aria-label="Commentaire pour le cours"><button class="ib" data-act="comment" data-id="${a.id}" data-c="${esc(c.id)}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
     </div></section>`;
 }
 const fmtBar = () => [["bold","<b>G</b>","Gras"],["italic","<i>I</i>","Italique"],["underline","<u>S</u>","Souligné"],["superscript","x²","Exposant"],["subscript","x₂","Indice"],["insertUnorderedList","•≡","Liste à puces"],["removeFormat","✕","Effacer la mise en forme"]].map(([cmd, l, t]) => `<button class="ib sm" data-act="fmt" data-cmd="${cmd}" data-keepfocus="1" title="${t}" aria-label="${t}">${l}</button>`).join("")
@@ -1275,7 +1275,7 @@ function vParametres(c){
   const sw = (key, label, aide = "") => `<label class="switch"><span><b>${label}</b>${aide ? `<small class="muted">${aide}</small>` : ""}</span><input type="checkbox" data-s="${key}" ${s[key] ? "checked" : ""}><i aria-hidden="true"></i></label>`;
   return `<div class="edtop" style="--c:var(${k.c})"><a class="ib" href="#/classe/${esc(c.id)}" aria-label="Fermer">${icon("x")}</a><h1>Paramètres du cours</h1><span class="spacer"></span>
       <button class="btn" data-act="savesettings" ${s.busy ? "disabled" : ""}>${s.busy ? "Enregistrement…" : "Enregistrer"}</button></div>
-    <div class="settings">
+    <div class="settings" role="main">
       ${s.err ? `<div class="notice" style="background:var(--bad-bg);color:var(--bad)">${esc(s.err)}</div>` : ""}
       <section class="edcard"><h2>Informations sur la classe</h2>
         ${f("nom", "Nom du cours *")}
@@ -1286,7 +1286,7 @@ function vParametres(c){
         <div class="two">${f("symbole", "Symbole sur le bandeau", "ex. Tle")}
           <div class="field"><label for="s_couleur">Couleur du bandeau</label><select id="s_couleur" data-s="couleur">${[["pc","Bleu"],["snt","Vert"],["si","Rouge"],["tech","Ocre"],["pix","Bleu pétrole"]].map(([v, l]) => `<option value="${v}" ${s.couleur === v ? "selected" : ""}>${l}</option>`).join("")}</select></div></div>
         <div class="field"><label for="s_illustration">Illustration du bandeau</label><select id="s_illustration" data-s="illustration">${ART_NOMS.map(([v, l]) => `<option value="${v}" ${s.illustration === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-        <div class="banner bigbanner preview" style="--bb:var(${k.b})">${bannerArt(s)}<h1>${esc(s.nom || "Nom du cours")}</h1><span>${esc(s.section)}</span></div>
+        <div class="banner bigbanner preview" style="--bb:var(${k.b})">${bannerArt(s)}<p class="bnom">${esc(s.nom || "Nom du cours")}</p><span>${esc(s.section)}</span></div>
       </section>
       <section class="edcard"><h2>Général</h2>
         <h3>Codes d'invitation</h3>
@@ -1696,7 +1696,7 @@ function admOutilsSection(A, inp, outilsBtns){
 function admCours(){
   const list = [...actives(), ...S.classes.filter(c => c.archive)];
   return `<div class="travhead"><button class="btn" data-act="newclass">${icon("plus")} Créer un cours</button><span class="spacer"></span><span class="muted" style="font-size:.85rem">L'ordre ici est celui de l'accueil et du menu.</span></div>
-    <div class="tablewrap"><table class="admtable"><thead><tr><th>Ordre</th><th class="first">Cours</th><th>Élèves</th><th>Code</th><th>Visio</th><th>OneDrive</th><th>Statut</th><th><span class="vh">Actions</span></th></tr></thead><tbody>
+    <div class="tablewrap"><table class="admtable admcours"><thead><tr><th>Ordre</th><th class="first">Cours</th><th>Élèves</th><th>Code</th><th>Visio</th><th>OneDrive</th><th>Statut</th><th><span class="vh">Actions</span></th></tr></thead><tbody>
     ${list.map(c => { const act = actives(), i = act.indexOf(c);
       return `<tr><td>${c.archive ? "" : `<span class="adbtns">${i > 0 ? `<button class="ib sm" data-act="moveclasse" data-c="${esc(c.id)}" data-dir="-1" aria-label="Monter ${esc(c.nom)}" title="Monter">${icon("up")}</button>` : ""}${i < act.length - 1 ? `<button class="ib sm" data-act="moveclasse" data-c="${esc(c.id)}" data-dir="1" aria-label="Descendre ${esc(c.nom)}" title="Descendre">${icon("down")}</button>` : ""}</span>`}</td>
         <td class="first"><a class="who2" href="#/classe/${esc(c.id)}" style="text-decoration:none;color:inherit"><span class="ini" style="--bb:var(${C(c.couleur).b})">${esc((c.symbole || c.nom).slice(0, 3))}</span><span><b>${esc(c.nom)}</b><small class="muted" style="display:block">${esc(c.section)}</small></span></a></td>
@@ -2066,6 +2066,8 @@ async function placerTheme(cid, id, pos){
   delete S.cache[cid]; render();
 }
 /* ---------- notifications (cloche) et page Profil ---------- */
+/* côté élève, on tutoie (lot T de la 6e évaluation) */
+const NOTIF_TU = { coms: "Commentaires ajoutés à tes messages", mention: "Commentaires où l'on te mentionne" };
 const NOTIF_DEF = {
   coms: [["coms", "Commentaires ajoutés à vos posts"], ["mention", "Commentaires dans lesquels vous êtes mentionné"], ["prives", "Commentaires privés sur les devoirs"]],
   prof: [["rendus", "Nouveaux envois de devoirs d'élèves"], ["manquants", "Devoirs non rendus à la date limite"], ["programmes", "Publication d'un post programmé"]],
@@ -2106,8 +2108,8 @@ async function chargerNotifs(){
   const L = [], add = (k, date, titre, href, cid) => { if (notifOn(k) && coursOn(cid)) L.push({ k, date, titre, href, cid }); };
   const dv = id => S.devoirs.find(d => d.id === id) || {};
   co.filter(x => x.auteur !== moiId).forEach(x => { const a = x.annonces || {}, cid = a.classe_id, mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
-    if (mention) add("mention", D(x.cree_le), esc(x.auteur_nom) + " vous a mentionné dans un commentaire", "#/classe/" + cid + "/flux", cid);
-    else if (S.prof || a.auteur === moiId) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté " + (S.prof ? "une annonce" : "votre post"), "#/classe/" + cid + "/flux", cid); });
+    if (mention) add("mention", D(x.cree_le), esc(x.auteur_nom) + (S.prof ? " vous a mentionné dans un commentaire" : " t'a mentionné dans un commentaire"), "#/classe/" + cid + "/flux", cid);
+    else if (S.prof || a.auteur === moiId) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté " + (S.prof ? "une annonce" : "ton message"), "#/classe/" + cid + "/flux", cid); });
   { const cd = (res[res.length - 1] && !res[res.length - 1].error && res[res.length - 1].data) || [];
     cd.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id), mention = prenom.length > 2 && sansAccent(x.texte).includes(prenom);
       if (S.prof || mention || x.auteur_nom === R().prof.nom) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); }); }
@@ -2167,8 +2169,8 @@ function admProfil(){
       <h3 class="crsub">Dans PhysiquePro</h3>
       <p class="muted" style="margin:0">Ces paramètres s'appliquent aux notifications de la cloche ${icon("bell")} en haut de chaque page. ${S.prof ? "Les élèves sont aussi prévenus par e-mail et sur leur téléphone quand tu rends une note (voir plus bas)." : "Pour être prévenu hors du site, active aussi les notifications de cet appareil plus bas."}</p>
       ${sw("bell", "Autoriser les notifications")}
-      <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, l)).join("")}
-      <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Cours dont vous êtes élève"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
+      <h3 class="crsub">Commentaires</h3>${NOTIF_DEF.coms.map(([k, l]) => sw(k, S.prof ? l : (NOTIF_TU[k] || l))).join("")}
+      <h3 class="crsub">${S.prof ? "Cours dont vous êtes enseignant" : "Tes cours"}</h3>${NOTIF_DEF[S.prof ? "prof" : "eleve"].map(([k, l]) => sw(k, l)).join("")}
       ${blocPush()}
       ${blocTelephoneProfil()}
       <details class="crdet"><summary><span><b>Notifications de cours</b><small class="muted">Ces paramètres s'appliquent aux notifications pour chaque cours</small></span>${icon("down")}</summary>
@@ -6346,7 +6348,7 @@ function blocComsDevoir(d, c){
     ${!L.length ? `<p class="muted" style="margin:0;font-size:.85rem">${S.prof ? "Les élèves peuvent poser ici une question que toute la classe verra." : "Une question sur ce travail ? Pose-la ici : toute la classe verra la réponse."}</p>` : ""}
     ${!ouvert ? `<button class="linkbtn" data-act="dvcomsouvrir" data-id="${d.id}">Voir les ${L.length} commentaires</button>` : ""}
     ${vus.map(x => `<div class="com">${avatarP(x.auteur_nom, "sm")}<div style="flex:1;min-width:0"><b>${esc(x.auteur_nom)}</b> <small class="muted">${fmtQuand(D(x.cree_le))}</small><div>${linkify(x.texte)}</div></div>${S.prof || x.auteur === S.user.id ? `<button class="ib sm" data-act="dvcomx" data-id="${x.id}" data-d="${d.id}" aria-label="Supprimer le commentaire" title="Supprimer">${icon("x")}</button>` : ""}</div>`).join("")}
-    ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="dvcom-${d.id}" placeholder="Écrire un commentaire…" aria-label="Commentaire pour la classe" maxlength="2000" enterkeyhint="send"><button class="ib" data-act="dvcom" data-id="${d.id}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
+    ${peutCommenter(c) ? `<div class="comform">${avatarP(S.nom, "sm")}<input id="dvcom-${d.id}" placeholder="${petitEcran() ? "Commenter…" : "Écrire un commentaire…"}" aria-label="Commentaire pour la classe" maxlength="2000" enterkeyhint="send"><button class="ib" data-act="dvcom" data-id="${d.id}" aria-label="Envoyer">${icon("send")}</button></div>` : ""}
   </section>`;
 }
 ACTIONS_PLUS.dvcomsouvrir = (a, e) => { e.preventDefault(); S.open = "dv" + a.dataset.id; render(); };
@@ -7375,7 +7377,9 @@ function logosQuiTiennent(){
     if (!nav.offsetWidth) return;
     const bord = () => nav.getBoundingClientRect().right + 0.5;
     const visibles = () => L.filter(a => a.offsetWidth && !a.classList.contains("qcache"));
-    for (let v = visibles(), i = 0; v.length > 1 && i < L.length && (nav.scrollWidth > nav.clientWidth + 1 || v[v.length - 1].getBoundingClientRect().right > bord()); v = visibles(), i++)
+    /* bord droit VISIBLE d'un logo : son cadre .qi (plus large que le lien) + l'anneau vert de 2 px (box-shadow) — lot T de la 6e évaluation */
+    const droite = a => { const q = a.querySelector(".qi"); let r = a.getBoundingClientRect().right; if (q) { const s = getComputedStyle(q).boxShadow.match(/0px 0px 0px (\d+(?:\.\d+)?)px/); r = Math.max(r, q.getBoundingClientRect().right + (s ? Number(s[1]) : 0)); } return r; };
+    for (let v = visibles(), i = 0; v.length > 1 && i < L.length && (nav.scrollWidth > nav.clientWidth + 1 || droite(v[v.length - 1]) > bord()); v = visibles(), i++)
       v[v.length - 1].classList.add("qcache");
   });
 }

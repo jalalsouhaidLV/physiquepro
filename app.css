@@ -2538,3 +2538,39 @@ section.uneq.qdernier .qnavbas{padding-top:2px}
   .topbar .quick.qeleve{gap:4px!important}
   .topbar .quick.qeleve>a{width:58px!important;min-width:0!important;flex:0 0 58px!important}
 }
+
+/* =====================================================================
+   Lot T (6e évaluation experte, 11/11/2026) : finitions
+   ===================================================================== */
+/* T1 : petits Android (Pixel 7) : 3 logos du haut tiennent en entier, cadre vert compris */
+@media (max-width:430px){
+  .topbar .quick>a{flex:0 0 auto;width:auto;min-width:0;max-width:none;padding:4px 2px}
+  .topbar .quick .qi,.topbar .quick .qi:has(.qlogo),.topbar .quick a.main .qi,.topbar .quick a.main .qi:has(.qlogo){width:56px;min-width:56px}
+  .topbar .quick .qlogo,.topbar .quick a.main .qlogo{width:46px}
+}
+/* T2 : Paramètres > Cours : toutes les colonnes visibles (Actions compris), et le titre caché « Actions » ne fait plus déborder la page */
+.tablewrap{position:relative}
+.admtable.admcours th:not(.first),.admtable.admcours td:not(.first){width:1%}
+.admtable.admcours td.first{width:auto;min-width:180px}
+.admtable.admcours th,.admtable.admcours td{padding-left:8px;padding-right:8px}
+.admtable.admcours th:not(.first){min-width:0}
+/* T3 : « Cours » de l'accueil devient un titre de section (h2), même aspect qu'avant ; nom du cours dans l'aperçu de la bannière */
+.homehead h2.hcours{font-family:var(--display);font-size:1.4rem;font-weight:800;line-height:1.2;letter-spacing:-.015em;margin:0}
+.bigbanner .bnom{font-family:var(--display);font-size:clamp(1.8rem,4vw,2.3rem);font-weight:800;line-height:1.2;letter-spacing:-.015em;margin:0;color:inherit}
+/* T5 : petits téléphones : menu « Apparence » dans l'écran ; titre d'un devoir assez petit pour ne pas couper « Questionnaire : » */
+.crrow>*{min-width:0}
+.crrow .agsel{width:100%}
+@media (max-width:380px){main .dvhead h1{font-size:1.45rem;overflow-wrap:break-word}}
+/* T6 : zones de toucher d'au moins 44 px sur téléphone, sans changer la mise en page */
+@media (max-width:760px),(pointer:coarse){
+  .tel-prochain a.tpautres,.sciday h2 a,.caside a.uplink,.fcdocs a,.crrow a{display:inline-block;padding-block:10px;margin-block:-10px}
+  .ccard .body>a{padding-block:10px;margin-block:-10px}
+  .ccard .body .cder a{padding-block:13px;margin-block:-13px}
+  .crrow a{padding-inline:6px;margin-inline:-6px}
+  .simq input{min-height:44px}
+  .yourwork .copierow a.btn.sm,.crcard .btn.sm{min-height:40px}
+}
+@media (pointer:coarse) and (max-height:500px){.navbas a{min-height:44px;align-content:center}}
+/* T8 : cartes de cours de l'accueil : le texte reste dans la carte (« … » au lieu d'être coupé au bord) */
+.ccard .body{grid-template-columns:minmax(0,1fr)}
+.ccard .body>*{min-width:0}

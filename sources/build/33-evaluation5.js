@@ -12,7 +12,9 @@ function logosQuiTiennent(){
     if (!nav.offsetWidth) return;
     const bord = () => nav.getBoundingClientRect().right + 0.5;
     const visibles = () => L.filter(a => a.offsetWidth && !a.classList.contains("qcache"));
-    for (let v = visibles(), i = 0; v.length > 1 && i < L.length && (nav.scrollWidth > nav.clientWidth + 1 || v[v.length - 1].getBoundingClientRect().right > bord()); v = visibles(), i++)
+    /* bord droit VISIBLE d'un logo : son cadre .qi (plus large que le lien) + l'anneau vert de 2 px (box-shadow) — lot T de la 6e évaluation */
+    const droite = a => { const q = a.querySelector(".qi"); let r = a.getBoundingClientRect().right; if (q) { const s = getComputedStyle(q).boxShadow.match(/0px 0px 0px (\d+(?:\.\d+)?)px/); r = Math.max(r, q.getBoundingClientRect().right + (s ? Number(s[1]) : 0)); } return r; };
+    for (let v = visibles(), i = 0; v.length > 1 && i < L.length && (nav.scrollWidth > nav.clientWidth + 1 || droite(v[v.length - 1]) > bord()); v = visibles(), i++)
       v[v.length - 1].classList.add("qcache");
   });
 }
