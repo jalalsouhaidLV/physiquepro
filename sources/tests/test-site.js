@@ -77,6 +77,23 @@ async function testerRole(navigateur, base, role) {
     if (CAPTURES) { fs.mkdirSync(DOSSIER_CAPTURES, { recursive: true }); await page.screenshot({ path: path.join(DOSSIER_CAPTURES, role + p.replace(/\//g, "_") + ".png"), fullPage: false }); }
     for (let i = avant; i < erreurs.length; i++) if (!erreurs[i].startsWith(p)) erreurs[i] = p + " → " + erreurs[i];
   }
+  /* panneau « Élèves connectés » : deux groupes seulement, une ligne par élève, bouton Déconnecter */
+  if (role === "prof") {
+    const avant = erreurs.length;
+    await page.evaluate(() => { location.hash = "#/accueil"; }); await page.waitForTimeout(700);
+    await page.click('[data-act="enligne"]').catch(() => note("panneau Élèves connectés : bouton du compteur introuvable"));
+    await page.waitForSelector("#sesPanel .sescorps section", { timeout: 8000 }).catch(() => note("panneau Élèves connectés : ne s'affiche pas"));
+    const vu = await page.evaluate(() => ({ titres: [...document.querySelectorAll("#sesPanel .sescorps h4")].map(h => h.textContent.trim()),
+      noms: [...document.querySelectorAll("#sesPanel .sesl b")].map(b => b.textContent.trim()) }));
+    if (vu.titres.length !== 2 || !/^Connectés · \d+$/.test(vu.titres[0]) || !/^Déconnectés · \d+$/.test(vu.titres[1])) note("panneau Élèves connectés : groupes inattendus " + JSON.stringify(vu.titres));
+    if (new Set(vu.noms).size !== vu.noms.length) note("panneau Élèves connectés : un élève apparaît deux fois " + JSON.stringify(vu.noms));
+    const b = await page.$('#sesPanel [data-act="sesdeco"]');
+    if (!b) note("panneau Élèves connectés : aucun bouton Déconnecter");
+    else { await b.click(); await page.waitForTimeout(200); await page.click('#sesPanel [data-act="sesdeco"].danger'); await page.waitForTimeout(800); }
+    if (CAPTURES) await page.screenshot({ path: path.join(DOSSIER_CAPTURES, "prof_eleves-connectes.png") });
+    await page.keyboard.press("Escape");
+    for (let i = avant; i < erreurs.length; i++) if (!erreurs[i].startsWith("panneau")) erreurs[i] = "panneau Élèves connectés → " + erreurs[i];
+  }
   /* laisse tourner les minuteries (présence, statut du prof, notifications) */
   await page.waitForTimeout(1500);
   const inconnus = await page.evaluate(() => window.__PP_INCONNUS || []);

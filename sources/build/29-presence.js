@@ -1,5 +1,5 @@
 /* =====================================================================
-   Activité réelle des élèves (pour les statuts En ligne / Inactif du professeur)
+   Activité réelle des élèves (« dernière activité » du panneau Élèves connectés)
    · l'activité (souris, clavier, toucher, défilement) est mémorisée pour tous les onglets
    · aucune déconnexion automatique : c'est le professeur qui déconnecte depuis le panneau
    ===================================================================== */

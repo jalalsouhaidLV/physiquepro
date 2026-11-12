@@ -29,7 +29,7 @@
 > ## 3. Choix de Jalal
 > - Tout en français, « gras mesuré ».
 > - Le prof n'est jamais compté dans les stats ni les listes.
-> - PAS de déconnexion automatique : statuts En ligne / Inactif ; Jalal déconnecte à la main (bouton « Déconnecter » du panneau Élèves connectés).
+> - PAS de déconnexion automatique : deux statuts Connecté (vert) / Déconnecté (rouge) ; Jalal déconnecte à la main (bouton « Déconnecter » du panneau Élèves connectés).
 > - Netlify publié une fois par semaine (dimanche), jamais autrement sauf demande de Jalal.
 > - Calendrier = lien Google Drive.
 > - Pas d'intervention de l'admin réseau du lycée.
@@ -39,7 +39,7 @@
 > 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
 > 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
 > 4. git push sur main : GitHub Pages en 1-2 min. Netlify : uniquement le dimanche 18 h UTC (automatique), ou via Actions > « Publication Netlify du dimanche » > Run workflow UNIQUEMENT si Jalal le demande.
-> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 46 existaient au 12/11/2026 ; vérifier le dernier numéro dans le dossier avant d'en créer un), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql et 30-test-fichiers.sql.
+> 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 47 existaient au 12/11/2026 ; vérifier le dernier numéro dans le dossier avant d'en créer un), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql et 30-test-fichiers.sql.
 > 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
 >
 > ## 5. Construction technique
@@ -119,7 +119,7 @@
 3. Mettre en ligne par `git push` sur `main` (dépôt relié au projet). Secours si le push est impossible : page « Upload files » de GitHub dans le Chrome de Jalal.
 4. Attendre 1 à 2 minutes, recharger le site avec `?r=…` et vérifier le `?v=` publié.
 5. **Netlify** : ne publie que la branche `netlify`. La GitHub Action `.github/workflows/netlify-dimanche.yml` copie `main` dans `netlify` chaque dimanche à 18 h UTC (20 h à Beyrouth, 21 h en heure d'été). Publication immédiate : seulement sur demande de Jalal (GitHub > Actions > « Publication Netlify du dimanche » > Run workflow).
-6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 46 ; 46 = table pp_push_urgents (rôle service seulement) : un message urgent d'élève ne déclenche qu'une notification au prof ; 45 = correctif de pp_eleves_deconnectes (la liste « Déconnectés » plantait : erreur 42803, sous-requête sur i.email non groupé ; min(lower(i.email))) ; 44 = audit de sécurité (lot B) ; 43 = trois statuts En ligne / Inactif (jusqu’à 7 jours) / Déconnecté, pp_eleves_deconnectes, « Déconnecter » vise toutes les lignes de l’élève sur l’appareil, les élèves déconnectés par le prof sont rangés dans « Déconnectés » ; 42 = « En ligne » seulement si la page est au premier plan (fenêtre utilisée ou application ouverte), signe de vie < 90 s et activité < 5 min ; 41 = le compteur « restés connectés » ne compte que les ordinateurs, pas les téléphones fermés ; 40 = « Se déconnecter » efface la présence de tout l’appareil, pp_fin_appareil). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
+6. **SQL** : scripts numérotés dans `sources/supabase/` (étapes 01 à 47 ; 47 = panneau Élèves connectés à 2 statuts : pp_eleves_deconnectes renvoie tous les élèves inscrits sans session ouverte (pas déconnectée, vue il y a moins de 7 jours) et pp_stats_visites.enligne compte les élèves connectés, clé « inactifs » retirée ; 46 = table pp_push_urgents (rôle service seulement) : un message urgent d'élève ne déclenche qu'une notification au prof ; 45 = correctif de pp_eleves_deconnectes (la liste « Déconnectés » plantait : erreur 42803, sous-requête sur i.email non groupé ; min(lower(i.email))) ; 44 = audit de sécurité (lot B) ; 43 = trois statuts En ligne / Inactif (jusqu’à 7 jours) / Déconnecté, pp_eleves_deconnectes, « Déconnecter » vise toutes les lignes de l’élève sur l’appareil, les élèves déconnectés par le prof sont rangés dans « Déconnectés » ; 42 = « En ligne » seulement si la page est au premier plan (fenêtre utilisée ou application ouverte), signe de vie < 90 s et activité < 5 min ; 41 = le compteur « restés connectés » ne compte que les ordinateurs, pas les téléphones fermés ; 40 = « Se déconnecter » efface la présence de tout l’appareil, pp_fin_appareil). Chaque nouvelle modification = un nouveau script numéroté, ajouté au dépôt. Exécution : connecteur Supabase du projet. Une requête qui commence par `drop` ou `delete` y est bloquée : Remote Control sur le PC de Jalal (dossier Downloads), le script est collé dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run.
 
 ---
 
@@ -127,7 +127,7 @@
 
 - Cours par classe (Tle spé PC, 1re spé PC, SNT, Option SI, Technologie 3e, PIX), chapitres en 3 étapes (Comprendre / S'entraîner / Vérifier), devoirs, questionnaires, notation sur 20, flashcards, annonces, commentaires.
 - Élèves : « Message urgent à M. SOUHAID » avec voyant **Disponible / Indisponible** à côté du nom, rendez-vous, Coin Perso, À faire.
-- Prof : compteur d'élèves (en ligne / inactifs) et panneau « Élèves connectés » avec déconnexion à distance ; corbeille 30 jours, sauvegardes, onglet Fichiers.
+- Prof : compteur « élèves connectés » et panneau « Élèves connectés » avec déconnexion à distance ; corbeille 30 jours, sauvegardes, onglet Fichiers.
 - Outils Scientifiques Importants : formules physique/chimie, éditeur de formules, convertisseur d'unités, tableau périodique, bits et octets, raccourcis AZERTY.
 - Pièces jointes en **cartes** partout (choix de Jalal du 11/11/2026, modèle Google Classroom sans en copier les visuels) : aperçu ou icône de couleur par type (Word, Excel, PowerPoint, PDF, image, vidéo, lien) + nom + type. Dans les publications, l'éditeur (bloc « Joindre »), le rédacteur d'annonce, le dépôt de l'élève (« Votre travail », cartes compactes) et la correction côté prof. Code : carteRes / carteEdit / cartesEdit dans 03-classe.js, styles `.att.rcards` (et `.mini`) dans app.css.
 - Simulations PhysiquePro animées : dosage pH-métrique, tir parabolique, onde progressive, décroissance radioactive, atome et couches, binaire et octets (+ simulations PhET).
@@ -139,7 +139,7 @@
 
 - Réponses et site entièrement en français ; texte en « gras mesuré ».
 - Le prof n'est jamais compté dans les statistiques ni les listes.
-- **Pas de déconnexion automatique** des élèves (refusée) : statuts En ligne / Inactif uniquement ; Jalal déconnecte à la main. Depuis le 11/11/2026, le panneau sépare les inactifs en « Ordinateurs restés connectés » (oubli probable, à déconnecter) et « Téléphones et tablettes fermés » (normal, rien à faire) ; « Se déconnecter » efface toutes les lignes de l’élève sur cet appareil.
+- **Pas de déconnexion automatique** des élèves (refusée). Depuis le 12/11/2026 (script 47, ?v=202611121100), le panneau « Élèves connectés » n'a plus que **deux groupes**, une ligne par élève : **Connecté** (vert : session ouverte sur au moins un appareil, téléphone ou ordinateur, même sans activité ; ses appareils et sa dernière activité sont indiqués) et **Déconnecté** (rouge : aucun appareil, y compris les élèves que Jalal a déconnectés). « Déconnecter » ferme tous les appareils de l'élève (un appel pp_deconnecter par appareil) ; « Déconnecter tous les élèves » reste. « Se déconnecter » efface toutes les lignes de l’élève sur cet appareil. test-site.js vérifie le panneau (2 groupes, pas de doublon, bouton Déconnecter).
 - Netlify publié **une seule fois par semaine** pour économiser les crédits ; GitHub Pages reste la version toujours à jour.
 - Le calendrier dynamique est **un lien** vers le fichier Google Drive de la direction (pas un fichier envoyé).
 - Pas d'intervention de l'administrateur réseau du lycée.
@@ -177,7 +177,7 @@
 - **Netlify** : branche de production `netlify` ; seules les publications de production sont construites ; aperçus de déploiement désactivés.
 - **GitHub Actions** : « Publication Netlify du dimanche » (`netlify-dimanche.yml`), « Garder Supabase actif » (empêche la mise en pause du projet gratuit après 7 jours), pages-build-deployment.
 - **Fichiers spéciaux à la racine** : `_headers` (Netlify seulement), `_redirects` (cache sur Netlify `sources/*`, `verification.html`, `test-connexion.html`, `README.md`), `404.html`, `sw.js`, `manifest.json`, `auth.html`.
-- **Sauvegarde du code** : `sources/build/` (36 modules + build.sh), `sources/supabase/` (scripts 01 à 46), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
+- **Sauvegarde du code** : `sources/build/` (36 modules + build.sh), `sources/supabase/` (scripts 01 à 47), `sources/tests/` (bouchons Playwright), `sources/LISEZMOI.md`, `sources/FICHE-PHYSIQUEPRO.md` (cette fiche).
 
 ## 10. Travailler depuis le projet (procédure)
 
