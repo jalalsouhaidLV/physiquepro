@@ -120,6 +120,33 @@ async function testerRole(navigateur, base, role) {
     await page.keyboard.press("Escape");
     for (let i = avant; i < erreurs.length; i++) if (!erreurs[i].startsWith("message d'urgence")) erreurs[i] = "message d'urgence → " + erreurs[i];
   }
+  /* UNE SEULE alerte par message urgent (12/11/2026) : appareil abonné aux notifications push → la page reste silencieuse ;
+     sinon site au premier plan → grande alerte + bip, site en arrière-plan → une notification du navigateur et rien d'autre */
+  if (role === "prof" || role === "eleve") {
+    const r = await page.evaluate(() => {
+      const res = []; let notifs = 0, bips0 = 0; const T = window.__ppTest; if (!T) return ["accès de test absent"]; const S = T.etat();
+      const N = function () { notifs++; }; N.permission = "granted"; N.requestPermission = async () => "granted";
+      const avantN = window.Notification, avantFocus = document.hasFocus;
+      try {
+        window.Notification = N;
+        const essai = (nom, pushOn, devant, attendu) => {
+          const ov = document.getElementById("urgCentre"); if (ov) ov.remove(); notifs = 0; bips0 = T.bips();
+          S.pushVerifie = true; S.pushOn = pushOn; document.hasFocus = () => devant;
+          T.notifier("⚠ Message urgent · Test", "Texte", () => {}, "De : Test", "Cours", "Texte", undefined, "urgprof-999", "./#/urgences");
+          const obtenu = [notifs, T.bips() - bips0, document.getElementById("urgCentre") ? 1 : 0].join("/");
+          if (obtenu !== attendu) res.push(nom + " : notification/bip/alerte = " + obtenu + " au lieu de " + attendu);
+        };
+        essai("appareil abonné, site devant", true, true, S.prof ? "0/0/0" : "0/0/1");
+        essai("appareil abonné, site derrière", true, false, S.prof ? "0/0/0" : "0/0/1");
+        essai("appareil non abonné, site devant", false, true, "0/1/1");
+        essai("appareil non abonné, site derrière", false, false, "1/0/0");
+      } catch (e) { res.push("erreur " + (e && e.message)); }
+      const ov = document.getElementById("urgCentre"); if (ov) ov.remove();
+      window.Notification = avantN; document.hasFocus = avantFocus; S.pushVerifie = false; S.pushOn = false;
+      return res;
+    });
+    r.forEach(x => note("une seule alerte → " + x));
+  }
   /* laisse tourner les minuteries (présence, statut du prof, notifications) */
   await page.waitForTimeout(1500);
   const inconnus = await page.evaluate(() => window.__PP_INCONNUS || []);

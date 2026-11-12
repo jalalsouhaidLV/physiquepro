@@ -3215,7 +3215,8 @@ function clesUrgentes(){ return S.prof ? (S.urgents || []).filter(m => !m.lu && 
 let audioCtx = null;
 const ouvrirAudio = () => { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); } catch (_) {} };
 ["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, ouvrirAudio, { capture: true, passive: true }));
-function bip(){ try { ouvrirAudio(); const A = audioCtx; if (!A) return; const t = A.currentTime + .05;
+let nbBips = 0;   /* compté pour le test « une seule alerte » */
+function bip(){ nbBips++; try { ouvrirAudio(); const A = audioCtx; if (!A) return; const t = A.currentTime + .05;
   [[880, 0], [1320, .18], [880, .5], [1320, .68]].forEach(([f, d]) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.35, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .15); o.connect(g).connect(A.destination); o.start(t + d); o.stop(t + d + .16); });
   } catch (_) {} }
 /* grande alerte au centre de l'écran (taille d'un paquet de cartes), sur n'importe quelle page du site */
@@ -3234,17 +3235,28 @@ function bandeauAlerte(titre, texte, ouvrir, qui, cours, entete){
 let clignoT = null;
 function clignoter(msg){ clearInterval(clignoT); let on = false; const base = () => document.title.replace(/^⚠ .*? · /, "");
   clignoT = setInterval(() => { if (document.visibilityState === "visible" && document.hasFocus()) { clearInterval(clignoT); document.title = base(); titreAvecCompteur(); return; } on = !on; document.title = on ? "⚠ " + msg + " · " + base() : base(); }, 1000); }
+/* UNE SEULE alerte par message (demande de Jalal, 12/11/2026 au soir). Avant : la notification push du serveur, puis en ouvrant le site
+   la même notification refaite par la page (même étiquette, renotify), plus le bip et la grande alerte = 3 alertes pour un message.
+   Règle : - cet appareil reçoit les notifications push (abonné au nom du compte) → la notification push EST l'alerte : la page ne sonne pas
+             et ne refait pas de notification (prof : seule la pastille rouge se met à jour ; élève : la grande alerte reste, en silence, pour lire le message) ;
+           - sinon, site au premier plan → grande alerte + bip ; site en arrière-plan → une notification du navigateur, rien d'autre. */
+const pushIci = () => notifOk() && typeof pushPossible === "function" && pushPossible() && (S.pushVerifie ? !!S.pushOn : pushVoulu());
 function notifier(titre, texte, ouvrir){
-  bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); bandeauAlerte(titre, arguments[5] || texte, ouvrir, arguments[3] || titre, arguments[4] || "", arguments[6]);
-  if (!notifOk()) return;
+  const alerte = () => bandeauAlerte(titre, arguments[5] || texte, ouvrir, arguments[3] || titre, arguments[4] || "", arguments[6]);
+  if (pushIci()) { if (!S.prof) alerte(); return; }
+  const devant = document.visibilityState === "visible" && document.hasFocus();
+  if (devant || !notifOk()) { bip(); clignoter(S.prof ? "Message urgent" : "Réponse reçue"); alerte(); return; }
+  clignoter(S.prof ? "Message urgent" : "Réponse reçue");
   const tag = arguments[7] || "pp-urgent-" + Date.now(), url = arguments[8] || "./";
   try { const n = new Notification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", tag, requireInteraction: true });
     n.onclick = () => { window.focus(); ouvrir(); n.close(); }; }
   catch (_) {
-    /* Android (Chrome) refuse « new Notification » : la notification visible doit passer par le service worker (sinon on n'entend que le bip) */
-    if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistration().then(reg => reg && reg.showNotification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", badge: "icon-192.png", tag, renotify: true, requireInteraction: true, vibrate: [200, 100, 200], data: { url } })).catch(() => {});
+    /* Android (Chrome) refuse « new Notification » : la notification visible doit passer par le service worker */
+    if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistration().then(reg => reg && reg.showNotification(titre, { body: texte.slice(0, 180), icon: "icon-192.png", badge: "icon-192.png", tag, requireInteraction: true, vibrate: [200, 100, 200], data: { url } })).catch(() => {});
   }
 }
+/* accès réservé au test automatique (test-site.js définit __PP_ROLE ; jamais présent sur le site publié) */
+if (window.__PP_ROLE) window.__ppTest = { etat: () => S, notifier: (...a) => notifier(...a), bips: () => nbBips };
 /* compare avec ce qui a déjà été signalé sur cet appareil ; la première fois, on mémorise sans sonner */
 function signalerNouveautes(){
   let vus = null; try { vus = JSON.parse(localStorage.getItem(cleNotif()) || "null"); } catch (_) {}

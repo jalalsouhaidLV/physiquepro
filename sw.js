@@ -57,8 +57,9 @@ self.addEventListener("push", e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch (_) { d = { texte: e.data ? e.data.text() : "" }; }
   /* message urgent d'un élève (étape 48) : la notification reste affichée jusqu'à ce que le prof la touche, et vibre fort */
   const fort = d.insistant === true;
-  e.waitUntil(self.registration.showNotification(d.titre || "PhysiquePro", { body: d.texte || "", icon: "icon-192.png", badge: "icon-192.png", tag: d.tag || "pp", renotify: true, silent: false,
-    requireInteraction: fort, vibrate: fort ? [400, 150, 400, 150, 600] : [200, 100, 200], data: { url: d.url || "./" } }));
+  /* une seule alerte par message : si la notification de ce message est déjà affichée (2e envoi, autre source), elle ne sonne pas une 2e fois */
+  e.waitUntil(self.registration.getNotifications({ tag: d.tag || "pp" }).catch(() => []).then(L => self.registration.showNotification(d.titre || "PhysiquePro", { body: d.texte || "", icon: "icon-192.png", badge: "icon-192.png", tag: d.tag || "pp", renotify: !(L && L.length), silent: false,
+    requireInteraction: fort, vibrate: fort ? [400, 150, 400, 150, 600] : [200, 100, 200], data: { url: d.url || "./" } })));
 });
 self.addEventListener("notificationclick", e => {
   e.notification.close();
