@@ -8,7 +8,11 @@ const siteInstalle = () => (window.matchMedia && matchMedia("(display-mode: stan
 const urlSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
 function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
 async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
-async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(), prem = !S.pushVerifie; S.pushVerifie = true;
+/* « activé » seulement si l'abonnement de cet appareil est rangé au nom du compte connecté (12/11/2026 : le téléphone du prof
+   avait été abonné avec un compte élève de test, le site affichait « Activées » alors que le prof ne recevait rien) */
+async function majEtatPush(){ const s = await abonnementPush(); let on = !!s && notifOk();
+  if (on && S.user) { try { const { data, error } = await sb.from("pp_push_abonnements").select("id").eq("endpoint", s.endpoint).maybeSingle(); if (!error && !data) on = false; } catch (_) {} }
+  const prem = !S.pushVerifie; S.pushVerifie = true;
   if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || location.hash.includes("/urgences") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
 
 async function activerPush(){
