@@ -146,13 +146,16 @@ function blocRecent(){
   const ok = o => !o.brouillon && D(o.publie_le) <= t && cls(o.classe_id) && !cls(o.classe_id).archive;
   let items = [...S.devoirs.filter(d => ok(d) && dans(d)).map(d => ({k:"devoir", o:d})), ...S.quiz.filter(q => ok(q) && dans(q) && q.mode === "note").map(q => ({k:"quiz", o:q}))];
   if (!S.prof) items = items.filter(it => it.k === "devoir" ? etat(it.o, moi()).t !== "Noté" : !resultatDe(it.o, S.user.id));
-  items.sort((a, b) => D(a.o.date_limite) - D(b.o.date_limite));
+  /* U1 (7e évaluation) : côté prof, un travail rendu par tous et entièrement noté est « Terminé » (gris, en fin de liste), plus « En retard » */
+  const finiProf = it => { if (!S.prof || it.k !== "devoir") return false; const el = elevesDuDevoir(it.o, inscritsDe(it.o.classe_id)); return el.length > 0 && el.every(e => renduDe(it.o, e.email)) && !aCorriger(it.o); };
+  items.forEach(it => { it.fini = finiProf(it); });
+  items.sort((a, b) => (a.fini - b.fini) || (D(a.o.date_limite) - D(b.o.date_limite)));
   const ligne = it => { const o = it.o, c = cls(o.classe_id);
     let droite = "";
     if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length, ac = aCorriger(o); droite = `<span class="muted rrendus">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}${nr ? ac ? ` · <b class="rac">${ac} à noter</b>` : " · tout noté ✓" : ""}</span>`; }
     else if (S.prof && it.k === "quiz") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => S.resultats.some(x => x.quiz_id === o.id && (S.profils || {})[x.eleve] === e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
     else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${libEtat(e.t)}</span>`; }
-    return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
+    return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${it.fini ? `<span class="rel fini">Terminé</span>` : relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
   return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "Travaux en cours" : "À faire bientôt"}</h2>
       <button class="ib" data-act="recent" title="${S.recent ? "Réduire" : "Développer"}" aria-label="${S.recent ? "Réduire" : "Développer"}" aria-expanded="${S.recent}">${icon(S.recent ? "up" : "expand")}</button></div>
     ${S.recent ? (items.length ? `<div class="recentlist">${items.slice(0, 10).map(ligne).join("")}</div>` : `<p class="muted" style="margin:0">Aucun travail avec une date limite cette semaine ou la semaine dernière.</p>`) : ""}</section>`;

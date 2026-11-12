@@ -2651,3 +2651,39 @@ section.uneq.qdernier .qnavbas{padding-top:2px}
 @media (max-width:760px),(pointer:coarse){.foot a.footdon{display:inline-block;padding-block:13px;margin-block:-13px}}
 /* C : pastille d'un lien (première lettre du site) */
 .rglyph.rlettre{font-size:1.25rem}
+/* ===== Lot U (7e évaluation, 12/11/2026) ===== */
+/* U1 : travail terminé côté prof (rendu par tous, tout noté) */
+.rel.fini{background:var(--surface-2,#eef1f3);color:var(--muted)}
+/* U2 : panneau Élèves connectés : ligne de l'appareil sur plusieurs lignes, bouton discret pour les téléphones */
+.sesinfo small.sesapp{white-space:normal;overflow:visible}
+.sesl .btn.sesdiscret{opacity:.7;font-weight:500!important}
+.sesl .btn.sesdiscret:hover,.sesl .btn.sesdiscret:focus-visible{opacity:1}
+/* U3 : « Le saviez-vous ? » lisible en mode sombre (contraste ≥ 4,5) */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .decfait .declbl{color:#f2a94e}}
+:root[data-theme="dark"] .decfait .declbl{color:#f2a94e}
+/* U4 : barre « Ton travail · Rendre » (téléphone, page devoir) */
+#ppRendre{display:none}
+@media (max-width:760px){
+  #ppRendre{display:flex;position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:39;min-height:48px;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:var(--accent);color:#fff;font:inherit;font-weight:700;font-size:1rem;box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer}
+  #ppRendre[hidden]{display:none}
+  #ppRendre .i{width:20px;height:20px}
+}
+/* U5 : en-tête du devoir sur petit écran : informations sur toute la largeur */
+@media (max-width:480px){
+  .dvhead{display:grid;grid-template-columns:40px 1fr;column-gap:12px;align-items:center}
+  .dvhead>.ico{width:40px;height:40px}
+  .dvhead>.ico .i{width:20px;height:20px}
+  .dvhead>div{display:contents}
+  .dvhead>div>:not(h1){grid-column:1/-1}
+  main .dvhead h1{font-size:1.4rem;line-height:1.25}
+}
+/* U6 : bannière du cours plus basse sur téléphone */
+@media (max-width:760px){
+  .bigbanner{min-height:0;padding:16px 18px}
+  .bigbanner h1,.bigbanner .bnom{font-size:1.5rem}
+  .bigbanner .bdesc{font-size:.9rem;margin:2px 0 0}
+  .bigbanner .art{width:130px;height:62px;opacity:.25}
+  .bigbanner .sym{font-size:5rem;bottom:-14px}
+}
+/* U7 : question oubliée signalée */
+.q.qmanque{outline:3px solid var(--bad,#d93025);outline-offset:4px;border-radius:8px}

@@ -80,7 +80,9 @@ function blocTableauDeBord(){
     const notes = dvs.filter(d => { const e = etat(d, moi()); return e.t === "Noté" && e.c && D(e.c.modifie_le || e.c.cree_le || 0) > new Date(+t - 7 * 864e5); }).length;
     const rep = typeof reponsesNonVues === "function" ? reponsesNonVues() : 0;
     const maResa = S.rdv ? S.rdv.resa.filter(r => r.eleve === S.user.id).map(r => S.rdv.creneaux.find(c => c.id === r.creneau_id)).filter(c => c && D(c.debut) > t).sort((a, b) => D(a.debut) - D(b.debut))[0] : null;
-    tuiles = tuile("#/semaine", "week", semaine, "à rendre cette semaine", semaine ? "info" : "ok", semaine ? "" : "Rien d'urgent")
+    /* U7 (7e évaluation) : une seule façon de compter, la même que « Ton prochain travail » et la pastille de l'application */
+    const aFaire = typeof travauxAFaire === "function" ? travauxAFaire() : [], cetteSem = aFaire.filter(x => x.lim && x.lim > t && x.lim <= dans7).length;
+    tuiles = tuile("#/todo", "todo", aFaire.length, aFaire.length > 1 ? "travaux à faire" : "travail à faire", aFaire.length ? "info" : "ok", aFaire.length ? (cetteSem === aFaire.length ? (cetteSem > 1 ? "tous cette semaine" : "cette semaine") : cetteSem ? "dont " + cetteSem + " cette semaine" : "rien cette semaine") : "Rien d'urgent")
       + tuile("#/todo", "alerte", manq, manq > 1 ? "travaux manquants" : "travail manquant", manq ? "bad" : "ok", manq ? "à rattraper" : "Aucun retard")
       + tuile("#/todo", "grade", notes, notes > 1 ? "nouvelles notes" : "nouvelle note", notes ? "info" : "", "ces 7 derniers jours")
       + (rep ? tuile("#", "urgent", rep, rep > 1 ? "réponses de " + esc(nomProfCourt()) : "réponse de " + esc(nomProfCourt()), "bad", "Message urgent").replace('href="#"', 'href="#" data-act="urgchoix"') : "")

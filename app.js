@@ -354,13 +354,16 @@ function blocRecent(){
   const ok = o => !o.brouillon && D(o.publie_le) <= t && cls(o.classe_id) && !cls(o.classe_id).archive;
   let items = [...S.devoirs.filter(d => ok(d) && dans(d)).map(d => ({k:"devoir", o:d})), ...S.quiz.filter(q => ok(q) && dans(q) && q.mode === "note").map(q => ({k:"quiz", o:q}))];
   if (!S.prof) items = items.filter(it => it.k === "devoir" ? etat(it.o, moi()).t !== "Noté" : !resultatDe(it.o, S.user.id));
-  items.sort((a, b) => D(a.o.date_limite) - D(b.o.date_limite));
+  /* U1 (7e évaluation) : côté prof, un travail rendu par tous et entièrement noté est « Terminé » (gris, en fin de liste), plus « En retard » */
+  const finiProf = it => { if (!S.prof || it.k !== "devoir") return false; const el = elevesDuDevoir(it.o, inscritsDe(it.o.classe_id)); return el.length > 0 && el.every(e => renduDe(it.o, e.email)) && !aCorriger(it.o); };
+  items.forEach(it => { it.fini = finiProf(it); });
+  items.sort((a, b) => (a.fini - b.fini) || (D(a.o.date_limite) - D(b.o.date_limite)));
   const ligne = it => { const o = it.o, c = cls(o.classe_id);
     let droite = "";
     if (S.prof && it.k === "devoir") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => renduDe(o, e.email)).length, ac = aCorriger(o); droite = `<span class="muted rrendus">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}${nr ? ac ? ` · <b class="rac">${ac} à noter</b>` : " · tout noté ✓" : ""}</span>`; }
     else if (S.prof && it.k === "quiz") { const el = elevesDuDevoir(o, inscritsDe(o.classe_id)); const nr = el.filter(e => S.resultats.some(x => x.quiz_id === o.id && (S.profils || {})[x.eleve] === e.email)).length; droite = `<span class="muted">${nr} rendu${nr > 1 ? "s" : ""} sur ${el.length}</span>`; }
     else if (!S.prof && it.k === "devoir") { const e = etat(o, moi()); droite = `<span class="pill ${e.k}">${libEtat(e.t)}</span>`; }
-    return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
+    return `<a class="recentrow" href="#/${it.k}/${o.id}" style="--c:var(${C(c.couleur).c})"><span class="ico">${icon(it.k === "devoir" && o.type === "question" ? "question" : it.k, "")}</span><span class="tt">${esc(o.titre)}<small>${esc(c.nom)} · ${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</small></span>${it.fini ? `<span class="rel fini">Terminé</span>` : relEch(o.date_limite, !S.prof && it.k === "devoir" && ["Rendu", "Noté"].includes(etat(o, moi()).t))}${droite}</a>`; };
   return `<section class="recent${S.recent ? " open" : ""}"><div class="recenthead"><h2>${S.prof ? "Travaux en cours" : "À faire bientôt"}</h2>
       <button class="ib" data-act="recent" title="${S.recent ? "Réduire" : "Développer"}" aria-label="${S.recent ? "Réduire" : "Développer"}" aria-expanded="${S.recent}">${icon(S.recent ? "up" : "expand")}</button></div>
     ${S.recent ? (items.length ? `<div class="recentlist">${items.slice(0, 10).map(ligne).join("")}</div>` : `<p class="muted" style="margin:0">Aucun travail avec une date limite cette semaine ou la semaine dernière.</p>`) : ""}</section>`;
@@ -513,7 +516,7 @@ function vFlux(c, data){
   return `<div class="page" style="--c:var(${C(c.couleur).c})">${banniere(c)}
     <div class="classgrid">${asideClasse(c)}
       <div class="stream">${fluxMasque}${composer}
-        ${items.length ? items.map(it => it.k === "annonce" ? vAnnonce(c, it.a, data) : vNotif(it)).join("") : `<section class="post emptyflux"><div><h3>C'est ici que vous pourrez communiquer avec ${S.prof ? "votre classe" : "ta classe"}</h3><p class="muted">${S.prof ? "Publie des annonces, et les nouveaux devoirs et documents apparaîtront ici." : "Les annonces de ton professeur apparaîtront ici."}</p>${S.prof ? `<a class="btn ghost sm" href="#/classe/${esc(c.id)}/parametres">${icon("gear")} Paramètres du flux</a>` : ""}</div></section>`}
+        ${items.length ? items.map(it => it.k === "annonce" ? vAnnonce(c, it.a, data) : vNotif(it)).join("") : `<section class="post emptyflux"><div><h3>C'est ici que tu pourras communiquer avec ta classe</h3><p class="muted">${S.prof ? "Publie des annonces, et les nouveaux devoirs et documents apparaîtront ici." : "Les annonces de ton professeur apparaîtront ici."}</p>${S.prof ? `<a class="btn ghost sm" href="#/classe/${esc(c.id)}/parametres">${icon("gear")} Paramètres du flux</a>` : ""}</div></section>`}
       </div></div>${pageFoot()}</div>`;
 }
 function vNotif(it){
@@ -3916,7 +3919,9 @@ function blocTableauDeBord(){
     const notes = dvs.filter(d => { const e = etat(d, moi()); return e.t === "Noté" && e.c && D(e.c.modifie_le || e.c.cree_le || 0) > new Date(+t - 7 * 864e5); }).length;
     const rep = typeof reponsesNonVues === "function" ? reponsesNonVues() : 0;
     const maResa = S.rdv ? S.rdv.resa.filter(r => r.eleve === S.user.id).map(r => S.rdv.creneaux.find(c => c.id === r.creneau_id)).filter(c => c && D(c.debut) > t).sort((a, b) => D(a.debut) - D(b.debut))[0] : null;
-    tuiles = tuile("#/semaine", "week", semaine, "à rendre cette semaine", semaine ? "info" : "ok", semaine ? "" : "Rien d'urgent")
+    /* U7 (7e évaluation) : une seule façon de compter, la même que « Ton prochain travail » et la pastille de l'application */
+    const aFaire = typeof travauxAFaire === "function" ? travauxAFaire() : [], cetteSem = aFaire.filter(x => x.lim && x.lim > t && x.lim <= dans7).length;
+    tuiles = tuile("#/todo", "todo", aFaire.length, aFaire.length > 1 ? "travaux à faire" : "travail à faire", aFaire.length ? "info" : "ok", aFaire.length ? (cetteSem === aFaire.length ? (cetteSem > 1 ? "tous cette semaine" : "cette semaine") : cetteSem ? "dont " + cetteSem + " cette semaine" : "rien cette semaine") : "Rien d'urgent")
       + tuile("#/todo", "alerte", manq, manq > 1 ? "travaux manquants" : "travail manquant", manq ? "bad" : "ok", manq ? "à rattraper" : "Aucun retard")
       + tuile("#/todo", "grade", notes, notes > 1 ? "nouvelles notes" : "nouvelle note", notes ? "info" : "", "ces 7 derniers jours")
       + (rep ? tuile("#", "urgent", rep, rep > 1 ? "réponses de " + esc(nomProfCourt()) : "réponse de " + esc(nomProfCourt()), "bad", "Message urgent").replace('href="#"', 'href="#" data-act="urgchoix"') : "")
@@ -5450,8 +5455,8 @@ function ligneSession(x){
   const st = x.statut || (x.deconnecter ? "attente" : x.en_ligne ? "actif" : "inactif");
   const etat = st === "attente" ? `<span class="sest attente">Déconnecté par toi</span>` : st === "actif" ? (x.visible ? `<span class="sest on">En ligne</span>` : `<span class="sest fond">En ligne · onglet en arrière-plan</span>`)
     : st === "expiree" ? `<span class="sest exp">Déconnecté automatiquement</span>` : estMobile(x) ? `<span class="sest off">Inactif · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>` : `<span class="sest inact">Inactif · dernière activité ${ilYa(x.actif_le || x.vu_le)}</span>`;
-  const btn = x.moi ? `<span class="muted sesmoi">${x.id === idSession() ? "Toi (cette page)" : "Toi (autre appareil)"}</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
-  return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted">${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
+  const btn = x.moi ? `<span class="muted sesmoi">${x.id === idSession() ? "Toi (cette page)" : "Toi (autre appareil)"}</span>` : x.deconnecter ? "" : `<button class="btn sm ${SES.arme === x.id ? "danger" : "ghost"}${SES.arme !== x.id && st === "inactif" && estMobile(x) ? " sesdiscret" : ""}" data-act="sesdeco" data-id="${esc(x.id)}">${icon("logout")} ${SES.arme === x.id ? "Confirmer ?" : "Déconnecter"}</button>`;
+  return `<div class="sesl${x.en_ligne ? "" : " inactif"}">${avatarP(x.nom || x.email || "?", "")}<div class="sesinfo"><b>${esc(x.nom || x.email)}</b>${x.role === "prof" ? ` <span class="simniv">Professeur</span>` : ""}<small>${esc(x.classes || (x.role === "prof" ? "" : "Aucun cours"))}</small><small class="muted sesapp">${esc(x.appareil || "Appareil inconnu")} · connecté depuis ${heureCourte(x.debut)}</small></div>${etat}${btn}</div>`;
 }
 function dessinerSessions(){
   const z = document.querySelector("#sesPanel .sescorps"); if (!z) return;
@@ -5466,7 +5471,7 @@ function dessinerSessions(){
     <section><h4><i class="pt gris"></i>Inactifs sur un téléphone ou une tablette · ${tel.length}</h4><p class="muted sesaide">Toujours connecté sur son téléphone, mais l'application est fermée ou en arrière-plan. C'est normal : il n'a pas à se déconnecter, rien à faire.</p>${tel.map(ligneSession).join("") || `<p class="muted">Aucun.</p>`}</section>
     ${SES.deco ? (() => { const D = SES.deco.filter(x => !q || sansAccent([x.nom, x.email, x.classes].join(" ")).includes(q));
       const nbD = D.length + attente.length;
-      return `<section><details${q ? " open" : ""}><summary style="cursor:pointer"><h4 style="display:inline;margin-left:4px"><i class="pt gris"></i>Déconnectés · ${nbD}</h4></summary><p class="muted sesaide">Élèves de tes cours qui ne sont connectés sur aucun appareil, ou que tu as déconnectés (la déconnexion se termine dès que l'appareil se rallume).</p>${attente.map(ligneSession).join("")}${D.map(x => `<div class="sesl inactif">${avatarP(x.nom || x.email, "")}<div class="sesinfo"><b>${esc(x.nom || nomDepuisEmail(x.email))}</b><small>${esc(x.classes || "")}</small>${x.derniere_visite ? `<small class="muted">Dernière visite ${ilYa(x.derniere_visite)}</small>` : `<small class="muted">Jamais connecté</small>`}</div><span class="sest off">Déconnecté</span></div>`).join("") || (attente.length ? "" : `<p class="muted">Aucun.</p>`)}</details></section>`; })() : ""}
+      return `<section><details${q ? " open" : ""}><summary style="cursor:pointer"><h4 style="display:inline-flex;align-items:center;gap:6px;margin-left:4px"><i class="pt gris"></i>Déconnectés · ${nbD}</h4></summary><p class="muted sesaide">Élèves de tes cours qui ne sont connectés sur aucun appareil, ou que tu as déconnectés (la déconnexion se termine dès que l'appareil se rallume).</p>${attente.map(ligneSession).join("")}${D.map(x => `<div class="sesl inactif">${avatarP(x.nom || x.email, "")}<div class="sesinfo"><b>${esc(x.nom || nomDepuisEmail(x.email))}</b><small>${esc(x.classes || "")}</small>${x.derniere_visite ? `<small class="muted">Dernière visite ${ilYa(x.derniere_visite)}</small>` : `<small class="muted">Jamais connecté</small>`}</div><span class="sest off">Déconnecté</span></div>`).join("") || (attente.length ? "" : `<p class="muted">Aucun.</p>`)}</details></section>`; })() : ""}
 `;
   const tous = document.querySelector('#sesPanel [data-act="sesdecotous"]'); if (tous) { tous.disabled = !nbEl; tous.className = "btn sm " + (SES.arme === "tous" ? "danger" : "ghost"); tous.innerHTML = `${icon("logout")} ${SES.arme === "tous" ? `Confirmer : déconnecter ${nbEl} session${nbEl > 1 ? "s" : ""} d'élèves ?` : "Déconnecter tous les élèves"}`; }
 }
@@ -7502,6 +7507,47 @@ document.addEventListener("error", e => {
   else if (im.dataset.err === "initiales") { const s = document.createElement("span"); s.textContent = im.dataset.ini || ""; im.replaceWith(s); }
 }, true);
 ACTIONS_PLUS.recharger = () => location.reload();
+/* =====================================================================
+   PhysiquePro · module 35 · 7e évaluation experte (lot U, 12/11/2026)
+   U4 : sur téléphone, barre « Ton travail · Rendre » sur la page d'un devoir à rendre.
+   U7 : le message « Il manque ta réponse » disparaît au changement de page et, sur ordinateur, mène à la question oubliée.
+   ===================================================================== */
+
+/* ---------- U4 : barre « Ton travail · Rendre » */
+let _rendreObs = null;
+function barreRendre(){
+  let b = document.getElementById("ppRendre");
+  if (_rendreObs) { _rendreObs.disconnect(); _rendreObs = null; }
+  const r = route(), zone = document.querySelector("main.content .yourwork");
+  const pill = zone && zone.querySelector("header .pill");
+  const fini = !pill || /Rendu|Noté|Envoyée/.test(pill.textContent);
+  if (S.prof || r.v !== "devoir" || !zone || fini || !zone.querySelector('[data-act="submit"]')) { if (b) b.remove(); return; }
+  if (!b) {
+    b = document.createElement("button"); b.id = "ppRendre"; b.type = "button";
+    b.addEventListener("click", () => { const z = document.querySelector("main.content .yourwork"); if (!z) return; z.scrollIntoView({ behavior: "smooth", block: "start" }); const s = z.querySelector('[data-act="submit"]'); if (s) setTimeout(() => s.focus({ preventScroll: true }), 400); });
+    document.body.appendChild(b);
+  }
+  b.innerHTML = `${icon("send")} Ton travail · Rendre`;
+  b.setAttribute("aria-label", "Aller à ton travail pour le rendre");
+  /* la barre se cache dès que le bouton « Rendre » lui-même est à l'écran */
+  if ("IntersectionObserver" in window) { _rendreObs = new IntersectionObserver(es => { const v = es.some(e => e.isIntersecting); const x = document.getElementById("ppRendre"); if (x) x.hidden = v; }, { rootMargin: "0px 0px -90px 0px" }); _rendreObs.observe(zone.querySelector('[data-act="submit"]')); }
+}
+APRES_RENDU.push(barreRendre);
+
+/* ---------- U7 : message « Il manque… » */
+window.addEventListener("hashchange", () => { const t = document.getElementById("toast"); if (t && /^Il manque t/.test(t.textContent)) t.hidden = true; });
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest('[data-act="valider"]'); if (!b || document.querySelector("section.uneq")) return;
+  const sec = b.closest("section.card") || document.querySelector("main.content .page > section.card"); if (!sec) return;
+  const qs = [...sec.querySelectorAll(":scope > .q")].filter(x => x.querySelector("input,textarea,select"));
+  const rep = x => [...x.querySelectorAll("input,textarea,select")].some(i => (i.type === "radio" || i.type === "checkbox") ? i.checked : String(i.value || "").trim() !== "");
+  const vide = qs.find(x => !rep(x)); if (!vide) return;
+  setTimeout(() => {
+    vide.classList.add("qmanque"); vide.scrollIntoView({ behavior: "smooth", block: "center" });
+    const i = vide.querySelector("input,textarea,select"); if (i) setTimeout(() => i.focus({ preventScroll: true }), 350);
+    const enlever = () => vide.classList.remove("qmanque"); vide.addEventListener("change", enlever, { once: true }); vide.addEventListener("input", enlever, { once: true });
+  }, 0);
+}, true);
 /* ---------- rendu ---------- */
 let renderId = 0;
 const chargement = (r) => topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${squelette()}</main></div>`;
