@@ -111,6 +111,8 @@ select pg_temp.lire('Lire', 'Annonce programmée pas encore publiée', $$select 
 select pg_temp.lire('Lire', 'Profils des autres utilisateurs', $$select * from profiles where id <> auth.uid()$$);
 select pg_temp.lire('Lire', 'Clé secrète des rappels (pp_rappels_cle)', $$select * from pp_rappels_cle$$);
 select pg_temp.lire('Lire', 'Journal des rappels envoyés (pp_rappels_envoyes)', $$select * from pp_rappels_envoyes$$);
+select pg_temp.lire('Lire', 'Clés des notifications push (pp_push_cles)', $$select * from pp_push_cles$$);
+select pg_temp.lire('Lire', 'File des notifications urgentes du prof (pp_push_urgents)', $$select * from pp_push_urgents$$);
 
 -- 2. MODIFIER ou SUPPRIMER les données de B
 select pg_temp.ecrire('Modifier', 'Modifier la copie de B', $$update rendus set lien = 'pirate' where auteur_email = 'lv.zz.testb@lycee-verdun.edu.lb'$$);
@@ -177,6 +179,7 @@ select pg_temp.appel('Fonctions', 'Supprimer le compte de B (pp_supprimer_compte
 select pg_temp.appel('Fonctions', 'Lister tous les fichiers (pp_fichiers)', $$select pp_fichiers()$$);
 select pg_temp.appel('Fonctions', 'Rejoindre une classe avec un faux code', $$select rejoindre_classe('ZZFAUX00', 'A')$$);
 select pg_temp.appel('Fonctions', 'Répondre deux fois à un quiz noté', $$select soumettre_quiz((select v::bigint from t_ids where k = 'Q'), '[1]'); select soumettre_quiz((select v::bigint from t_ids where k = 'Q'), '[1]')$$);
+select pg_temp.appel('Fonctions', 'Liste des élèves déconnectés (pp_eleves_deconnectes)', $$select pp_eleves_deconnectes()$$);
 
 -- 6. ÉTAPE 44 (audit sur 20) : à garder EN DERNIER, car A finit inscrit dans la classe Y
 select pg_temp.ecrire('Tricher', 'Déplacer sa propre annonce dans une classe où A n''est pas inscrit', $$update annonces set classe_id = 'zz_y' where texte = 'ZZ annonce de A'$$);

@@ -2730,3 +2730,6 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,[contenteditable
 .fformule sub,.fformule sup,.q sub,.q sup{font-size:max(12px,.7em)}
 @media (max-width:520px){.att.rcards .rcard:has(.dlbtn) .rtxt{padding-right:52px}}
 @media (max-width:420px){.edtop h1{font-size:1rem;overflow:visible;text-overflow:clip}}
+
+/* 12/11/2026 : raccourcis techniques du prof (Paramètres) : le texte passe à la ligne au lieu d'être coupé sur téléphone */
+.edcard .classlinks a span{white-space:normal;overflow:visible;text-overflow:clip}

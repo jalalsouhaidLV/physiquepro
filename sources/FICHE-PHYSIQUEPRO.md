@@ -37,7 +37,7 @@
 > ## 4. Procédure de travail
 > 1. Cloner le dépôt jalalsouhaidLV/physiquepro (ou git pull).
 > 2. Modifier sources/build/*.js, lancer ./sources/build/build.sh, changer ?v= dans index.html.
-> 3. Tester : node sources/tests/test-site.js (56 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
+> 3. Tester : node sources/tests/test-site.js (59 pages visiteur / élève / prof, données fictives ; dans le conteneur : NODE_PATH=$(npm root -g)). Nouvelle page ou nouvelle fonction pp_… : l'ajouter à PAGES (test-site.js) et à RPC (faux-supabase.js).
 > 4. git push sur main : GitHub Pages en 1-2 min. Netlify : uniquement le dimanche 18 h UTC (automatique), ou via Actions > « Publication Netlify du dimanche » > Run workflow UNIQUEMENT si Jalal le demande.
 > 5. SQL : nouveau script numéroté dans sources/supabase/ (01 à 47 existaient au 12/11/2026 ; vérifier le dernier numéro dans le dossier avant d'en créer un), exécuté par le connecteur Supabase. Une requête qui commence par drop ou delete y est bloquée (ne pas contourner) : ouvrir Remote Control sur le PC de Jalal (dossier Downloads), coller le script dans l'éditeur SQL de son Chrome, et Jalal clique lui-même sur Run. Si droits ou RLS changent : relancer 29-test-intrusion.sql et 30-test-fichiers.sql.
 > 6. Vérifier la publication : le conteneur n'atteint ni github.io ni netlify.app. Vérifier le run GitHub Actions (pages-build-deployment), puis le site avec ?r= dans le Chrome de Jalal par Remote Control. Répondre en français.
@@ -69,7 +69,7 @@
 > - Racine : _headers (Netlify seulement), _redirects (cache sur Netlify sources/*, verification.html, test-connexion.html, README.md), 404.html, sw.js, manifest.json, auth.html, verification.html, test-connexion.html, README.md.
 >
 > ## 8. Sécurité : état et limites
-> - Tests 29 (84/84 au 11/11/2026) et 30 (13/13).
+> - Tests 29 (93/93 au 12/11/2026) et 30 (13/13).
 > - Piège : la règle rendus_lecture garde auth.uid() direct (une sous-requête provoque « infinite recursion ») ; c'est la seule alerte de performance Supabase restante, et elle est voulue.
 > - Limites : pas d'en-têtes HTTP sur GitHub Pages ; MFA/Entra relèvent du lycée ; un code de classe permet à tout compte du lycée de rejoindre.
 >
@@ -104,7 +104,7 @@
 - **Site statique** (HTML + CSS + JavaScript sans framework) hébergé sur GitHub Pages, à la racine du dépôt : `index.html`, `app.js` (assemblé, ne pas modifier à la main), `app.css`, `config.js`, `logos.js`, logos `logo-*.png/svg`, icônes `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
 - **`config.js`** est le seul fichier à modifier pour changer un lien, une icône du haut, le nom ou l'email du prof : il contient aussi l'adresse Supabase et la clé *publishable* (publique par nature, sans danger).
 - **Code source découpé** dans `sources/build/` (35 modules, liste en section 11). `sources/build/build.sh` fonctionne directement dans le dépôt : il assemble les modules dans `app.js` à la racine (09-evenements.js toujours en dernier) puis vérifie avec `node --check`.
-- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (actuellement `202611111400`).
+- **Anti-cache** : après chaque modification, changer le numéro `?v=AAAAMMJJHHMM` dans `index.html` (lire la valeur actuelle dans index.html).
 - **Bibliothèques** chargées depuis jsDelivr avec vérification d'intégrité (SRI) : supabase-js 2.117.2 et msal-browser 3.28.1.
 - **Connexion** : Microsoft 365 du lycée via Supabase Auth (Azure). Seule restriction : adresse en `@lycee-verdun.edu.lb` (élèves `lv.prenom.nom@…`, profs `prenom.nom@…`). Le prof est `jalal.souhaid@lycee-verdun.edu.lb` (rôle « prof » donné automatiquement).
 - **Base de données** Supabase (PostgreSQL) : toutes les tables ont des règles RLS ; les visiteurs non connectés n'ont aucun accès direct ; les fonctions réservées au prof vérifient `est_prof()`.
@@ -147,7 +147,7 @@
 
 ---
 
-## 7. Sécurité (vérifiée le 20 octobre 2026, test d'intrusion relancé le 11 novembre 2026 : 90/90)
+## 7. Sécurité (vérifiée le 20 octobre 2026, test d'intrusion relancé le 12 novembre 2026 : 93/93)
 
 - Test d'intrusion « élève contre élève » : **86/86** tentatives bloquées (lecture, modification, usurpation, fonctions du prof, commentaires de classe, annonces programmées ou épinglées, clé et journal des rappels).
 - Test sur les fichiers déposés : **13/13** tentatives bloquées.
