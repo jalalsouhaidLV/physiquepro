@@ -772,13 +772,13 @@ document.addEventListener("toggle", e => {
    et bouton « Être prévenu la prochaine fois » dans la grande alerte d'urgence (18-urgences.js). */
 const clePushCarte = () => "pp_push_carte_" + (S.user && S.user.id);
 const pushCarteMasquee = () => { try { return Number(localStorage.getItem(clePushCarte()) || 0) > Date.now(); } catch (_) { return false; } };
-const pushProposable = () => !S.prof && !!S.user && !S.pushOn && !(typeof Notification !== "undefined" && Notification.permission === "denied") && (pushPossible() || (estIOS() && !siteInstalle()));
+const pushProposable = () => !!S.user && !S.pushOn && !(typeof Notification !== "undefined" && Notification.permission === "denied") && (pushPossible() || (estIOS() && !siteInstalle()));
 function carteNotifsEleve(){
-  if (S.prof || !S.user || S.pushOn || pushCarteMasquee()) return "";
+  if (!S.user || S.pushOn || pushCarteMasquee()) return "";
   if (!S.pushVerifie) { setTimeout(majEtatPush, 0); return ""; }
   if (!pushProposable()) return "";
   const ios = estIOS() && !siteInstalle(), tel = matchMedia("(pointer:coarse)").matches;
-  return `<section class="pushcarte" aria-label="Notifications">${icon("bell")}<div class="pctxt"><b>Sois prévenu sur ${tel ? "ton téléphone" : "cet ordinateur"}</b><span>Quand ${esc(nomProfCourt())} t'envoie un message d'urgence ou rend ta note, même si PhysiquePro est fermé.${ios ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span></div>
+  return `<section class="pushcarte" aria-label="Notifications">${icon("bell")}<div class="pctxt"><b>Sois prévenu sur ${tel ? "ton téléphone" : "cet ordinateur"}</b><span>${S.prof ? "Dès qu'un élève t'envoie un message urgent, même si PhysiquePro est fermé." : `Quand ${esc(nomProfCourt())} t'envoie un message d'urgence ou rend ta note, même si PhysiquePro est fermé.`}${ios ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span></div>
     <div class="pcbtns">${ios ? `<button class="btn sm" data-act="installguide">${icon("install")} Installer PhysiquePro</button>` : `<button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications</button>`}<button class="btn ghost sm" data-act="pushplustard">Plus tard</button></div></section>`;
 }
 ACTIONS_PLUS.pushplustard = (a, e) => { e.preventDefault(); try { localStorage.setItem(clePushCarte(), String(Date.now() + 3 * 864e5)); } catch (_) {} render(); };

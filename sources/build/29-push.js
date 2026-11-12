@@ -9,7 +9,7 @@ const urlSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
 function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
 async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
 async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(), prem = !S.pushVerifie; S.pushVerifie = true;
-  if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
+  if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || location.hash.includes("/urgences") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
 
 async function activerPush(){
   if (!pushPossible()) return toast(estIOS() && !siteInstalle() ? "Sur iPhone : ajoute d'abord PhysiquePro à l'écran d'accueil, puis ouvre-le depuis l'icône." : "Ce navigateur ne gère pas les notifications push.");
@@ -37,15 +37,15 @@ async function desactiverPush(){
 
 /* bloc de la page Profil */
 function blocPush(){
-  if (!S.prof) setTimeout(majEtatPush, 0);
+  setTimeout(majEtatPush, 0);
   const etat = S.pushOn ? `<p class="muted" style="margin:0">${icon("bell")} Activées sur cet appareil.</p><div><button class="btn ghost sm" data-act="pushoff">Désactiver sur cet appareil</button></div>`
     : !pushPossible() && estIOS() && !siteInstalle() ? `<p class="muted" style="margin:0">Sur iPhone ou iPad (iOS 16.4 ou plus récent) : dans Safari, touche <b>Partager</b> puis <b>Sur l'écran d'accueil</b>. Ouvre ensuite PhysiquePro depuis cette nouvelle icône et reviens ici pour activer les notifications.</p>`
     : !pushPossible() ? `<p class="muted" style="margin:0">Ce navigateur ne gère pas les notifications push. Sur Android, utilise Chrome.</p>`
     : typeof Notification !== "undefined" && Notification.permission === "denied" ? `<p class="muted" style="margin:0">Les notifications sont bloquées pour ce site : autorise-les dans les réglages du téléphone ou du navigateur, puis reviens ici.</p>`
     : `<div><button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications sur cet appareil</button></div>`;
-  return `${S.prof ? "" : `<h3 class="crsub">Sur ce téléphone ou cet ordinateur</h3>
-      <p class="muted" style="margin:0">Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès que ton professeur rend une note ou t'envoie un message d'urgence. À faire une fois sur chaque appareil.</p>
-      ${etat}`}
+  return `<h3 class="crsub">Sur ce téléphone ou cet ordinateur</h3>
+      <p class="muted" style="margin:0">${S.prof ? "Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès qu'un élève t'envoie un message urgent." : "Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès que ton professeur rend une note ou t'envoie un message d'urgence."} À faire une fois sur chaque appareil.</p>
+      ${etat}
       ${S.prof ? `<h3 class="crsub">Quand je rends une note</h3>
       <label class="switch crsw"><span>Envoyer aussi un e-mail à l'élève (depuis mon Outlook)</span><input type="checkbox" data-pref="mail_notes" ${prefs().mail_notes !== false ? "checked" : ""}><i aria-hidden="true"></i></label>
       <p class="muted" style="margin:0;font-size:.85rem">Les élèves qui ont activé les notifications sur leur téléphone (Profil &gt; Notifications) reçoivent aussi une notification push. La première fois, Microsoft demande d'autoriser l'envoi d'e-mails. <button class="linkbtn" data-act="mailauth">Autoriser maintenant</button></p>` : ""}`;

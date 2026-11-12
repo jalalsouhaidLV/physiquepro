@@ -39,6 +39,8 @@ async function envoyerUrgent(m){
   const { data, error } = await sb.from("messages_urgents").insert({ classe_id: m.classe, eleve: S.user.id, eleve_email: moi(), eleve_nom: nom, texte: t }).select().single();
   if (error) throw error;
   S.urgents = [data, ...(S.urgents || [])];
+  /* notification push sur le téléphone du prof, même PhysiquePro fermé (pp-push version 3, étape 46) ; ne bloque pas l'envoi */
+  invoquerPush({ action: "urgent", id: data.id }).catch(() => {});
 }
 /* page prof */
 function vUrgences(){
@@ -180,6 +182,8 @@ async function demanderNotifs(){
   else toast("Notifications refusées. Tu peux les autoriser plus tard dans les réglages du navigateur (cadenas à gauche de l'adresse).");
   render();
 }
-const bandeauNotifs = () => notifOk() ? `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Notifications activées sur cet ordinateur : ${S.prof ? "tu es prévenu à chaque nouveau message" : "tu es prévenu quand ton professeur répond"}, tant que le site est ouvert dans un onglet.</p>`
+/* prof : tant que cet appareil n'est pas abonné, proposer les notifications « même site fermé » (12/11/2026) */
+const bandeauNotifs = () => S.prof && !S.pushVerifie && setTimeout(majEtatPush, 0) && false ? "" : S.prof && S.pushVerifie && pushProposable() ? `<div class="notifbar">${icon("bell")}<span><b>Sois prévenu sur cet appareil dès qu'un élève t'envoie un message urgent, même quand PhysiquePro est fermé.</b>${estIOS() && !siteInstalle() ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span>${estIOS() && !siteInstalle() ? `<button class="btn sm" data-act="installguide">${icon("install")} Installer PhysiquePro</button>` : `<button class="btn sm" data-act="pushon">Activer</button>`}</div>`
+  : notifOk() ? `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Notifications activées sur cet ordinateur : ${S.prof ? (S.pushOn ? "tu es prévenu à chaque nouveau message, même quand le site est fermé" : "tu es prévenu à chaque nouveau message, tant que le site est ouvert dans un onglet") : "tu es prévenu quand ton professeur répond, tant que le site est ouvert dans un onglet"}.</p>`
   : notifPossible() ? `<div class="notifbar">${icon("bell")}<span>${S.prof ? "Sois prévenu sur cet ordinateur dès qu'un élève t'envoie un message urgent." : "Sois prévenu sur cet ordinateur dès que ton professeur te répond."}</span><button class="btn sm" data-act="notifon">Activer les notifications</button></div>`
   : `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Les notifications sont bloquées pour ce site : autorise-les dans les réglages du navigateur (cadenas à gauche de l'adresse).</p>`;

@@ -135,7 +135,7 @@ function vAccueil(){
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
   const replie = !S.prof && window.innerWidth <= 600;   /* téléphone élève : l'essentiel d'abord, la « Découverte du jour » repliée en bas */
   const decouverte = replie ? `<details class="decjour"${S.decOuvert ? " open" : ""}><summary>${icon("idea")} Découverte du jour <small>scientifique, simulation, défi, anecdote</small></summary>${blocScientifique()}${blocDecouvertes()}</details>` : "";
-  return `<div class="page wide home">${S.prof ? "" : carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
+  return `<div class="page wide home">${carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
     ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h2 class="hcours">Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h2><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
     <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${replie ? decouverte : blocDecouvertes()}${pageFoot()}</div>`;
 }

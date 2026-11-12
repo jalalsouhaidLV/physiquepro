@@ -343,7 +343,7 @@ function vAccueil(){
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
   const replie = !S.prof && window.innerWidth <= 600;   /* téléphone élève : l'essentiel d'abord, la « Découverte du jour » repliée en bas */
   const decouverte = replie ? `<details class="decjour"${S.decOuvert ? " open" : ""}><summary>${icon("idea")} Découverte du jour <small>scientifique, simulation, défi, anecdote</small></summary>${blocScientifique()}${blocDecouvertes()}</details>` : "";
-  return `<div class="page wide home">${S.prof ? "" : carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
+  return `<div class="page wide home">${carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
     ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h2 class="hcours">Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h2><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
     <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${replie ? decouverte : blocDecouvertes()}${pageFoot()}</div>`;
 }
@@ -3091,6 +3091,8 @@ async function envoyerUrgent(m){
   const { data, error } = await sb.from("messages_urgents").insert({ classe_id: m.classe, eleve: S.user.id, eleve_email: moi(), eleve_nom: nom, texte: t }).select().single();
   if (error) throw error;
   S.urgents = [data, ...(S.urgents || [])];
+  /* notification push sur le téléphone du prof, même PhysiquePro fermé (pp-push version 3, étape 46) ; ne bloque pas l'envoi */
+  invoquerPush({ action: "urgent", id: data.id }).catch(() => {});
 }
 /* page prof */
 function vUrgences(){
@@ -3232,7 +3234,9 @@ async function demanderNotifs(){
   else toast("Notifications refusées. Tu peux les autoriser plus tard dans les réglages du navigateur (cadenas à gauche de l'adresse).");
   render();
 }
-const bandeauNotifs = () => notifOk() ? `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Notifications activées sur cet ordinateur : ${S.prof ? "tu es prévenu à chaque nouveau message" : "tu es prévenu quand ton professeur répond"}, tant que le site est ouvert dans un onglet.</p>`
+/* prof : tant que cet appareil n'est pas abonné, proposer les notifications « même site fermé » (12/11/2026) */
+const bandeauNotifs = () => S.prof && !S.pushVerifie && setTimeout(majEtatPush, 0) && false ? "" : S.prof && S.pushVerifie && pushProposable() ? `<div class="notifbar">${icon("bell")}<span><b>Sois prévenu sur cet appareil dès qu'un élève t'envoie un message urgent, même quand PhysiquePro est fermé.</b>${estIOS() && !siteInstalle() ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span>${estIOS() && !siteInstalle() ? `<button class="btn sm" data-act="installguide">${icon("install")} Installer PhysiquePro</button>` : `<button class="btn sm" data-act="pushon">Activer</button>`}</div>`
+  : notifOk() ? `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Notifications activées sur cet ordinateur : ${S.prof ? (S.pushOn ? "tu es prévenu à chaque nouveau message, même quand le site est fermé" : "tu es prévenu à chaque nouveau message, tant que le site est ouvert dans un onglet") : "tu es prévenu quand ton professeur répond, tant que le site est ouvert dans un onglet"}.</p>`
   : notifPossible() ? `<div class="notifbar">${icon("bell")}<span>${S.prof ? "Sois prévenu sur cet ordinateur dès qu'un élève t'envoie un message urgent." : "Sois prévenu sur cet ordinateur dès que ton professeur te répond."}</span><button class="btn sm" data-act="notifon">Activer les notifications</button></div>`
   : `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Les notifications sont bloquées pour ce site : autorise-les dans les réglages du navigateur (cadenas à gauche de l'adresse).</p>`;
 /* =====================================================================
@@ -6223,7 +6227,7 @@ const urlSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
 function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
 async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
 async function majEtatPush(){ const s = await abonnementPush(), on = !!s && notifOk(), prem = !S.pushVerifie; S.pushVerifie = true;
-  if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
+  if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || location.hash.includes("/urgences") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
 
 async function activerPush(){
   if (!pushPossible()) return toast(estIOS() && !siteInstalle() ? "Sur iPhone : ajoute d'abord PhysiquePro à l'écran d'accueil, puis ouvre-le depuis l'icône." : "Ce navigateur ne gère pas les notifications push.");
@@ -6251,15 +6255,15 @@ async function desactiverPush(){
 
 /* bloc de la page Profil */
 function blocPush(){
-  if (!S.prof) setTimeout(majEtatPush, 0);
+  setTimeout(majEtatPush, 0);
   const etat = S.pushOn ? `<p class="muted" style="margin:0">${icon("bell")} Activées sur cet appareil.</p><div><button class="btn ghost sm" data-act="pushoff">Désactiver sur cet appareil</button></div>`
     : !pushPossible() && estIOS() && !siteInstalle() ? `<p class="muted" style="margin:0">Sur iPhone ou iPad (iOS 16.4 ou plus récent) : dans Safari, touche <b>Partager</b> puis <b>Sur l'écran d'accueil</b>. Ouvre ensuite PhysiquePro depuis cette nouvelle icône et reviens ici pour activer les notifications.</p>`
     : !pushPossible() ? `<p class="muted" style="margin:0">Ce navigateur ne gère pas les notifications push. Sur Android, utilise Chrome.</p>`
     : typeof Notification !== "undefined" && Notification.permission === "denied" ? `<p class="muted" style="margin:0">Les notifications sont bloquées pour ce site : autorise-les dans les réglages du téléphone ou du navigateur, puis reviens ici.</p>`
     : `<div><button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications sur cet appareil</button></div>`;
-  return `${S.prof ? "" : `<h3 class="crsub">Sur ce téléphone ou cet ordinateur</h3>
-      <p class="muted" style="margin:0">Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès que ton professeur rend une note ou t'envoie un message d'urgence. À faire une fois sur chaque appareil.</p>
-      ${etat}`}
+  return `<h3 class="crsub">Sur ce téléphone ou cet ordinateur</h3>
+      <p class="muted" style="margin:0">${S.prof ? "Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès qu'un élève t'envoie un message urgent." : "Reçois une notification sur cet appareil, même quand PhysiquePro est fermé, dès que ton professeur rend une note ou t'envoie un message d'urgence."} À faire une fois sur chaque appareil.</p>
+      ${etat}
       ${S.prof ? `<h3 class="crsub">Quand je rends une note</h3>
       <label class="switch crsw"><span>Envoyer aussi un e-mail à l'élève (depuis mon Outlook)</span><input type="checkbox" data-pref="mail_notes" ${prefs().mail_notes !== false ? "checked" : ""}><i aria-hidden="true"></i></label>
       <p class="muted" style="margin:0;font-size:.85rem">Les élèves qui ont activé les notifications sur leur téléphone (Profil &gt; Notifications) reçoivent aussi une notification push. La première fois, Microsoft demande d'autoriser l'envoi d'e-mails. <button class="linkbtn" data-act="mailauth">Autoriser maintenant</button></p>` : ""}`;
@@ -7340,13 +7344,13 @@ document.addEventListener("toggle", e => {
    et bouton « Être prévenu la prochaine fois » dans la grande alerte d'urgence (18-urgences.js). */
 const clePushCarte = () => "pp_push_carte_" + (S.user && S.user.id);
 const pushCarteMasquee = () => { try { return Number(localStorage.getItem(clePushCarte()) || 0) > Date.now(); } catch (_) { return false; } };
-const pushProposable = () => !S.prof && !!S.user && !S.pushOn && !(typeof Notification !== "undefined" && Notification.permission === "denied") && (pushPossible() || (estIOS() && !siteInstalle()));
+const pushProposable = () => !!S.user && !S.pushOn && !(typeof Notification !== "undefined" && Notification.permission === "denied") && (pushPossible() || (estIOS() && !siteInstalle()));
 function carteNotifsEleve(){
-  if (S.prof || !S.user || S.pushOn || pushCarteMasquee()) return "";
+  if (!S.user || S.pushOn || pushCarteMasquee()) return "";
   if (!S.pushVerifie) { setTimeout(majEtatPush, 0); return ""; }
   if (!pushProposable()) return "";
   const ios = estIOS() && !siteInstalle(), tel = matchMedia("(pointer:coarse)").matches;
-  return `<section class="pushcarte" aria-label="Notifications">${icon("bell")}<div class="pctxt"><b>Sois prévenu sur ${tel ? "ton téléphone" : "cet ordinateur"}</b><span>Quand ${esc(nomProfCourt())} t'envoie un message d'urgence ou rend ta note, même si PhysiquePro est fermé.${ios ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span></div>
+  return `<section class="pushcarte" aria-label="Notifications">${icon("bell")}<div class="pctxt"><b>Sois prévenu sur ${tel ? "ton téléphone" : "cet ordinateur"}</b><span>${S.prof ? "Dès qu'un élève t'envoie un message urgent, même si PhysiquePro est fermé." : `Quand ${esc(nomProfCourt())} t'envoie un message d'urgence ou rend ta note, même si PhysiquePro est fermé.`}${ios ? " Sur iPhone, installe d'abord PhysiquePro sur l'écran d'accueil." : ""}</span></div>
     <div class="pcbtns">${ios ? `<button class="btn sm" data-act="installguide">${icon("install")} Installer PhysiquePro</button>` : `<button class="btn sm" data-act="pushon">${icon("bell")} Activer les notifications</button>`}<button class="btn ghost sm" data-act="pushplustard">Plus tard</button></div></section>`;
 }
 ACTIONS_PLUS.pushplustard = (a, e) => { e.preventDefault(); try { localStorage.setItem(clePushCarte(), String(Date.now() + 3 * 864e5)); } catch (_) {} render(); };
