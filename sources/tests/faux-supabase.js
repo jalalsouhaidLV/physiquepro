@@ -84,6 +84,7 @@
     reglages: [{ id: 1, data: {}, modifie_le: jour(-10) }],
     copies: [{ id: 1, classe_id: "tle", objet: "devoir", objet_id: 1, source: "OD-FICHE", eleve_email: ELEVE.email, nom: "Fiche ondes.docx", od_id: "OD-COPIE", web: "https://exemple.sharepoint.com/_layouts/15/Doc.aspx?sourcedoc=x", fichier: "https://exemple.sharepoint.com/personal/prof/Documents/Copies/Eleve%20Test%20-%20Fiche%20ondes.docx", cree_le: jour(-2) }],
     messages_urgents: [{ id: 1, classe_id: "tle", eleve: ELEVE.id, eleve_email: ELEVE.email, eleve_nom: ELEVE.nom, texte: "Message urgent de test.", cree_le: jour(-0.1), lu: false, reponse: null, repondu_le: null, de_prof: false }],
+    pp_push_urgents: [{ message_id: 1, termine: true, essais: 1, envoyes: 2, appareils: 2, envoye_le: jour(-0.1) }],
     demandes_materiel: [],
     rdv_series: [{ id: 1, classe_id: "tle", titre: "Rendez-vous de test", lieu: "Salle B12", consigne: "", cree_le: jour(-3) }],
     rdv_creneaux: [{ id: 1, serie_id: 1, debut: jour(2), fin: new Date(T0 + 2 * J + 15 * 6e4).toISOString(), capacite: 1 }],

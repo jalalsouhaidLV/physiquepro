@@ -6,6 +6,8 @@ const nomProfCourt = () => { const w = nomProfSans().split(/\s+/); const up = w.
 async function chargerUrgents(){
   try { const r = await sb.from("messages_urgents").select("*").order("cree_le", { ascending: false }).limit(300); S.urgents = r.error ? (S.urgents || []) : r.data; }
   catch (_) { S.urgents = S.urgents || []; }
+  /* prof : la remise de chaque notification sur ses appareils (étape 48, lisible par le prof seulement) */
+  if (S.prof) { try { const r = await sb.from("pp_push_urgents").select("message_id, termine, essais, envoyes, appareils, envoye_le").order("message_id", { ascending: false }).limit(300); if (!r.error) S.urgPush = new Map((r.data || []).map(x => [x.message_id, x])); } catch (_) {} }
   if (S.user) signalerNouveautes();
   const n = nbUrgents(), b = document.querySelector(".urgbtn .badge"), btn = document.querySelector(".urgbtn");
   if (btn) { if (b && !n) b.remove(); else if (b) b.textContent = n > 99 ? "99+" : n; else if (n) btn.insertAdjacentHTML("beforeend", `<span class="badge">${n > 99 ? "99+" : n}</span>`); }
@@ -39,8 +41,16 @@ async function envoyerUrgent(m){
   const { data, error } = await sb.from("messages_urgents").insert({ classe_id: m.classe, eleve: S.user.id, eleve_email: moi(), eleve_nom: nom, texte: t }).select().single();
   if (error) throw error;
   S.urgents = [data, ...(S.urgents || [])];
-  /* notification push sur le téléphone du prof, même PhysiquePro fermé (pp-push version 3, étape 46) ; ne bloque pas l'envoi */
-  invoquerPush({ action: "urgent", id: data.id }).catch(() => {});
+  /* la notification sur le téléphone du prof part maintenant du SERVEUR (étape 48 : déclencheur de la base + fonction pp-urgent,
+     2e essai chaque minute) : elle arrive même si l'élève utilise une copie plus ancienne du site ou ferme tout de suite */
+}
+/* prof : « Notifié sur ton téléphone » sous chaque message reçu (étape 48) */
+function suiviPush(m){
+  const p = S.urgPush && S.urgPush.get(m.id); if (!p) return "";
+  if (p.envoyes > 0) return `<small class="muted urgpush">${icon("bell")} Notification remise à ${p.envoyes} appareil${p.envoyes > 1 ? "s" : ""} à ${fmtT(D(p.envoye_le))}</small>`;
+  if (p.appareils === 0) return `<small class="muted urgpush">${icon("bell")} Aucune notification : aucun de tes appareils n'est abonné (Profil &gt; Notifications)</small>`;
+  if (p.appareils == null) return "";
+  return `<small class="urgpush" style="color:var(--bad,#c62828)">${icon("bell")} ${p.termine ? "Notification non remise" : "Notification en cours d'envoi (essai " + p.essais + ")"}</small>`;
 }
 /* page prof */
 function vUrgences(){
@@ -53,6 +63,7 @@ function vUrgences(){
       <div class="urgactions"><button class="btn ghost sm" data-act="urgecrire" data-c="${esc(m.classe_id)}" data-e="${esc(m.eleve)}">${icon("send")} Écrire à nouveau</button><button class="ib sm" data-act="urgsuppr" data-id="${m.id}" title="Supprimer" aria-label="Supprimer le message">${icon("trash")}</button></div></article>`;
     return `<article class="urgcard${m.lu ? "" : " nonlu"}" style="--c:var(${C(c && c.couleur).c})">
       <header>${avatarP(m.eleve_nom || m.eleve_email, "sm")}<div style="flex:1;min-width:0"><b>${esc(m.eleve_nom || nomDepuisEmail(m.eleve_email))}</b><small class="muted">${esc(c ? c.nom : "Cours supprimé")} · ${fmtD(D(m.cree_le))} à ${fmtT(D(m.cree_le))}</small></div>${m.lu ? "" : `<span class="pill bad">Non lu</span>`}</header>
+      ${suiviPush(m)}
       <p class="urgtxt">${linkify(m.texte)}</p>
       ${m.reponse ? `<div class="urgrep"><small><b>Ta réponse</b> · ${fmtQuand(D(m.repondu_le))}</small><p>${linkify(m.reponse)}</p></div>` : ""}
       ${S.urgRep === m.id ? `<div class="field"><textarea id="urgRep${m.id}" rows="3" placeholder="Ta réponse (l'élève la voit dans sa fenêtre « Message urgent »)" style="width:100%">${esc(m.reponse || "")}</textarea></div>

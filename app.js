@@ -161,6 +161,8 @@ async function chargerTout(){
   [S.classes, S.devoirs, S.rendus, S.corrections, S.quiz, S.resultats] = res.slice(0, 6).map(r => r.data);
   try { const cp = await sb.from("copies").select("*"); S.copies = cp.error ? [] : cp.data; } catch (_) { S.copies = []; }
   await chargerUrgents();
+  /* étape 48 : vérifier (et réparer sans rien demander) l'abonnement aux notifications de cet appareil à chaque ouverture */
+  if (!S.pushVerifie && typeof majEtatPush === "function") setTimeout(() => { majEtatPush().catch(() => {}); }, 2500);
   if (S.prof) {
     S.nbEleves = {}; S.toutesInscriptions = res[6].data;
     res[6].data.forEach(x => S.nbEleves[x.classe_id] = (S.nbEleves[x.classe_id] || 0) + 1);
@@ -3058,6 +3060,8 @@ const nomProfCourt = () => { const w = nomProfSans().split(/\s+/); const up = w.
 async function chargerUrgents(){
   try { const r = await sb.from("messages_urgents").select("*").order("cree_le", { ascending: false }).limit(300); S.urgents = r.error ? (S.urgents || []) : r.data; }
   catch (_) { S.urgents = S.urgents || []; }
+  /* prof : la remise de chaque notification sur ses appareils (étape 48, lisible par le prof seulement) */
+  if (S.prof) { try { const r = await sb.from("pp_push_urgents").select("message_id, termine, essais, envoyes, appareils, envoye_le").order("message_id", { ascending: false }).limit(300); if (!r.error) S.urgPush = new Map((r.data || []).map(x => [x.message_id, x])); } catch (_) {} }
   if (S.user) signalerNouveautes();
   const n = nbUrgents(), b = document.querySelector(".urgbtn .badge"), btn = document.querySelector(".urgbtn");
   if (btn) { if (b && !n) b.remove(); else if (b) b.textContent = n > 99 ? "99+" : n; else if (n) btn.insertAdjacentHTML("beforeend", `<span class="badge">${n > 99 ? "99+" : n}</span>`); }
@@ -3091,8 +3095,16 @@ async function envoyerUrgent(m){
   const { data, error } = await sb.from("messages_urgents").insert({ classe_id: m.classe, eleve: S.user.id, eleve_email: moi(), eleve_nom: nom, texte: t }).select().single();
   if (error) throw error;
   S.urgents = [data, ...(S.urgents || [])];
-  /* notification push sur le téléphone du prof, même PhysiquePro fermé (pp-push version 3, étape 46) ; ne bloque pas l'envoi */
-  invoquerPush({ action: "urgent", id: data.id }).catch(() => {});
+  /* la notification sur le téléphone du prof part maintenant du SERVEUR (étape 48 : déclencheur de la base + fonction pp-urgent,
+     2e essai chaque minute) : elle arrive même si l'élève utilise une copie plus ancienne du site ou ferme tout de suite */
+}
+/* prof : « Notifié sur ton téléphone » sous chaque message reçu (étape 48) */
+function suiviPush(m){
+  const p = S.urgPush && S.urgPush.get(m.id); if (!p) return "";
+  if (p.envoyes > 0) return `<small class="muted urgpush">${icon("bell")} Notification remise à ${p.envoyes} appareil${p.envoyes > 1 ? "s" : ""} à ${fmtT(D(p.envoye_le))}</small>`;
+  if (p.appareils === 0) return `<small class="muted urgpush">${icon("bell")} Aucune notification : aucun de tes appareils n'est abonné (Profil &gt; Notifications)</small>`;
+  if (p.appareils == null) return "";
+  return `<small class="urgpush" style="color:var(--bad,#c62828)">${icon("bell")} ${p.termine ? "Notification non remise" : "Notification en cours d'envoi (essai " + p.essais + ")"}</small>`;
 }
 /* page prof */
 function vUrgences(){
@@ -3105,6 +3117,7 @@ function vUrgences(){
       <div class="urgactions"><button class="btn ghost sm" data-act="urgecrire" data-c="${esc(m.classe_id)}" data-e="${esc(m.eleve)}">${icon("send")} Écrire à nouveau</button><button class="ib sm" data-act="urgsuppr" data-id="${m.id}" title="Supprimer" aria-label="Supprimer le message">${icon("trash")}</button></div></article>`;
     return `<article class="urgcard${m.lu ? "" : " nonlu"}" style="--c:var(${C(c && c.couleur).c})">
       <header>${avatarP(m.eleve_nom || m.eleve_email, "sm")}<div style="flex:1;min-width:0"><b>${esc(m.eleve_nom || nomDepuisEmail(m.eleve_email))}</b><small class="muted">${esc(c ? c.nom : "Cours supprimé")} · ${fmtD(D(m.cree_le))} à ${fmtT(D(m.cree_le))}</small></div>${m.lu ? "" : `<span class="pill bad">Non lu</span>`}</header>
+      ${suiviPush(m)}
       <p class="urgtxt">${linkify(m.texte)}</p>
       ${m.reponse ? `<div class="urgrep"><small><b>Ta réponse</b> · ${fmtQuand(D(m.repondu_le))}</small><p>${linkify(m.reponse)}</p></div>` : ""}
       ${S.urgRep === m.id ? `<div class="field"><textarea id="urgRep${m.id}" rows="3" placeholder="Ta réponse (l'élève la voit dans sa fenêtre « Message urgent »)" style="width:100%">${esc(m.reponse || "")}</textarea></div>
@@ -6259,8 +6272,30 @@ function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob(
 async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
 /* « activé » seulement si l'abonnement de cet appareil est rangé au nom du compte connecté (12/11/2026 : le téléphone du prof
    avait été abonné avec un compte élève de test, le site affichait « Activées » alors que le prof ne recevait rien) */
-async function majEtatPush(){ const s = await abonnementPush(); let on = !!s && notifOk();
+/* Abonnement entretenu tout seul (étape 48, 12/11/2026) : le navigateur peut changer ou perdre l'abonnement d'un appareil
+   (mise à jour, nettoyage, adresse refusée par le service de notifications) ; avant, l'appareil restait muet sans que personne le sache.
+   À chaque ouverture, si les notifications sont autorisées et que cet appareil a déjà été activé avec ce compte (ou pour le prof) :
+   on le réabonne si besoin et on le range à nouveau au nom du compte connecté. Aucune question n'est posée (autorisation déjà donnée). */
+const clePushVoulu = () => "pp-push-voulu-" + (S.user ? S.user.id : "");
+const pushVoulu = () => { try { return !!S.user && localStorage.getItem(clePushVoulu()) === "1"; } catch (_) { return false; } };
+const noterPushVoulu = on => { try { if (on) localStorage.setItem(clePushVoulu(), "1"); else localStorage.removeItem(clePushVoulu()); } catch (_) {} };
+async function entretenirPush(s){
+  if (!S.user || !pushPossible() || !notifOk() || !(S.prof || pushVoulu()) || S.pushEntretenu) return s;
+  S.pushEntretenu = true;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!s) { const { data } = await invoquerPush({ action: "cle" }); if (!data || !data.cle) return s;
+      s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64EnOctets(data.cle) }); }
+    const j = s.toJSON();
+    const { error } = await sb.rpc("pp_push_abonner", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_appareil: (estIOS() ? "iPhone/iPad" : /Android/i.test(navigator.userAgent) ? "Android" : "Ordinateur") });
+    if (!error) noterPushVoulu(true);
+  } catch (_) {}
+  return s;
+}
+async function majEtatPush(){ let s = await abonnementPush(); let on = !!s && notifOk();
   if (on && S.user) { try { const { data, error } = await sb.from("pp_push_abonnements").select("id").eq("endpoint", s.endpoint).maybeSingle(); if (!error && !data) on = false; } catch (_) {} }
+  if (!on && S.user && notifOk() && (S.prof || pushVoulu()) && !S.pushEntretenu) { s = await entretenirPush(s); if (s) { try { const { data } = await sb.from("pp_push_abonnements").select("id").eq("endpoint", s.endpoint).maybeSingle(); on = !!data; } catch (_) {} } }
+  if (on) noterPushVoulu(true);
   const prem = !S.pushVerifie; S.pushVerifie = true;
   if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || location.hash.includes("/urgences") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
 
@@ -6279,13 +6314,13 @@ async function activerPush(){
     const j = sub.toJSON();
     const { error: e2 } = await sb.rpc("pp_push_abonner", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_appareil: (estIOS() ? "iPhone/iPad" : /Android/i.test(navigator.userAgent) ? "Android" : "Ordinateur") });
     if (e2) throw e2;
-    S.pushOn = true; toast("Notifications activées sur cet appareil ✓"); render();
+    noterPushVoulu(true); S.pushOn = true; toast("Notifications activées sur cet appareil ✓"); render();
   } catch (e) { const m = String((e && e.message) || e || ""); toast("Activation impossible : " + (/non-2xx|Failed to fetch|NetworkError/i.test(m) ? "le service de notifications ne répond pas. Réessaie dans un moment." : m)); }
 }
 async function desactiverPush(){
   const sub = await abonnementPush();
   if (sub) { try { await sb.rpc("pp_push_desabonner", { p_endpoint: sub.endpoint }); } catch (_) {} try { await sub.unsubscribe(); } catch (_) {} }
-  S.pushOn = false; toast("Notifications désactivées sur cet appareil"); render();
+  noterPushVoulu(false); S.pushOn = false; toast("Notifications désactivées sur cet appareil"); render();
 }
 
 /* bloc de la page Profil */

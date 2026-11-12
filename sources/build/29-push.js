@@ -10,8 +10,30 @@ function b64EnOctets(b){ const p = "=".repeat((4 - b.length % 4) % 4), s = atob(
 async function abonnementPush(){ if (!pushPossible()) return null; try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch (_) { return null; } }
 /* « activé » seulement si l'abonnement de cet appareil est rangé au nom du compte connecté (12/11/2026 : le téléphone du prof
    avait été abonné avec un compte élève de test, le site affichait « Activées » alors que le prof ne recevait rien) */
-async function majEtatPush(){ const s = await abonnementPush(); let on = !!s && notifOk();
+/* Abonnement entretenu tout seul (étape 48, 12/11/2026) : le navigateur peut changer ou perdre l'abonnement d'un appareil
+   (mise à jour, nettoyage, adresse refusée par le service de notifications) ; avant, l'appareil restait muet sans que personne le sache.
+   À chaque ouverture, si les notifications sont autorisées et que cet appareil a déjà été activé avec ce compte (ou pour le prof) :
+   on le réabonne si besoin et on le range à nouveau au nom du compte connecté. Aucune question n'est posée (autorisation déjà donnée). */
+const clePushVoulu = () => "pp-push-voulu-" + (S.user ? S.user.id : "");
+const pushVoulu = () => { try { return !!S.user && localStorage.getItem(clePushVoulu()) === "1"; } catch (_) { return false; } };
+const noterPushVoulu = on => { try { if (on) localStorage.setItem(clePushVoulu(), "1"); else localStorage.removeItem(clePushVoulu()); } catch (_) {} };
+async function entretenirPush(s){
+  if (!S.user || !pushPossible() || !notifOk() || !(S.prof || pushVoulu()) || S.pushEntretenu) return s;
+  S.pushEntretenu = true;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!s) { const { data } = await invoquerPush({ action: "cle" }); if (!data || !data.cle) return s;
+      s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64EnOctets(data.cle) }); }
+    const j = s.toJSON();
+    const { error } = await sb.rpc("pp_push_abonner", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_appareil: (estIOS() ? "iPhone/iPad" : /Android/i.test(navigator.userAgent) ? "Android" : "Ordinateur") });
+    if (!error) noterPushVoulu(true);
+  } catch (_) {}
+  return s;
+}
+async function majEtatPush(){ let s = await abonnementPush(); let on = !!s && notifOk();
   if (on && S.user) { try { const { data, error } = await sb.from("pp_push_abonnements").select("id").eq("endpoint", s.endpoint).maybeSingle(); if (!error && !data) on = false; } catch (_) {} }
+  if (!on && S.user && notifOk() && (S.prof || pushVoulu()) && !S.pushEntretenu) { s = await entretenirPush(s); if (s) { try { const { data } = await sb.from("pp_push_abonnements").select("id").eq("endpoint", s.endpoint).maybeSingle(); on = !!data; } catch (_) {} } }
+  if (on) noterPushVoulu(true);
   const prem = !S.pushVerifie; S.pushVerifie = true;
   if (on !== !!S.pushOn || prem) { S.pushOn = on; if (location.hash.includes("/admin/profil") || location.hash.includes("/urgences") || (prem && document.querySelector(".page.home") && !S.modal)) render(); } }
 
@@ -30,13 +52,13 @@ async function activerPush(){
     const j = sub.toJSON();
     const { error: e2 } = await sb.rpc("pp_push_abonner", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_appareil: (estIOS() ? "iPhone/iPad" : /Android/i.test(navigator.userAgent) ? "Android" : "Ordinateur") });
     if (e2) throw e2;
-    S.pushOn = true; toast("Notifications activées sur cet appareil ✓"); render();
+    noterPushVoulu(true); S.pushOn = true; toast("Notifications activées sur cet appareil ✓"); render();
   } catch (e) { const m = String((e && e.message) || e || ""); toast("Activation impossible : " + (/non-2xx|Failed to fetch|NetworkError/i.test(m) ? "le service de notifications ne répond pas. Réessaie dans un moment." : m)); }
 }
 async function desactiverPush(){
   const sub = await abonnementPush();
   if (sub) { try { await sb.rpc("pp_push_desabonner", { p_endpoint: sub.endpoint }); } catch (_) {} try { await sub.unsubscribe(); } catch (_) {} }
-  S.pushOn = false; toast("Notifications désactivées sur cet appareil"); render();
+  noterPushVoulu(false); S.pushOn = false; toast("Notifications désactivées sur cet appareil"); render();
 }
 
 /* bloc de la page Profil */

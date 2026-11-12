@@ -55,7 +55,10 @@ self.addEventListener("fetch", e => {
 /* notifications push (étape 37) : note rendue par le professeur, etc. */
 self.addEventListener("push", e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch (_) { d = { texte: e.data ? e.data.text() : "" }; }
-  e.waitUntil(self.registration.showNotification(d.titre || "PhysiquePro", { body: d.texte || "", icon: "icon-192.png", badge: "icon-192.png", tag: d.tag || "pp", renotify: true, data: { url: d.url || "./" } }));
+  /* message urgent d'un élève (étape 48) : la notification reste affichée jusqu'à ce que le prof la touche, et vibre fort */
+  const fort = d.insistant === true;
+  e.waitUntil(self.registration.showNotification(d.titre || "PhysiquePro", { body: d.texte || "", icon: "icon-192.png", badge: "icon-192.png", tag: d.tag || "pp", renotify: true, silent: false,
+    requireInteraction: fort, vibrate: fort ? [400, 150, 400, 150, 600] : [200, 100, 200], data: { url: d.url || "./" } }));
 });
 self.addEventListener("notificationclick", e => {
   e.notification.close();

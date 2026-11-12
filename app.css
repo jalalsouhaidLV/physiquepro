@@ -2733,3 +2733,4 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,[contenteditable
 
 /* 12/11/2026 : raccourcis techniques du prof (Paramètres) : le texte passe à la ligne au lieu d'être coupé sur téléphone */
 .edcard .classlinks a span{white-space:normal;overflow:visible;text-overflow:clip}
+.urgpush{display:flex;align-items:center;gap:6px;margin:6px 0 0;font-size:.8rem}.urgpush svg{width:14px;height:14px;flex:none}

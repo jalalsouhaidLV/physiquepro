@@ -181,6 +181,10 @@ select pg_temp.appel('Fonctions', 'Rejoindre une classe avec un faux code', $$se
 select pg_temp.appel('Fonctions', 'Répondre deux fois à un quiz noté', $$select soumettre_quiz((select v::bigint from t_ids where k = 'Q'), '[1]'); select soumettre_quiz((select v::bigint from t_ids where k = 'Q'), '[1]')$$);
 select pg_temp.appel('Fonctions', 'Liste des élèves déconnectés (pp_eleves_deconnectes)', $$select pp_eleves_deconnectes()$$);
 
+-- ÉTAPE 48 : la file des notifications urgentes du prof ne s'écrit que par le serveur
+select pg_temp.ecrire('Tricher', 'Marquer une notification urgente comme déjà remise (pp_push_urgents)', $$insert into pp_push_urgents (message_id) values ((select max(id) from messages_urgents))$$);
+select pg_temp.appel('Fonctions', 'Lancer soi-même l''envoi serveur (pp_urgent_signaler)', $$select pp_urgent_signaler()$$);
+
 -- 6. ÉTAPE 44 (audit sur 20) : à garder EN DERNIER, car A finit inscrit dans la classe Y
 select pg_temp.ecrire('Tricher', 'Déplacer sa propre annonce dans une classe où A n''est pas inscrit', $$update annonces set classe_id = 'zz_y' where texte = 'ZZ annonce de A'$$);
 select pg_temp.ecrire('Tricher', 'Rendre un lien qui ne commence pas par https', $$insert into rendus (devoir_id, auteur, auteur_email, lien) values ((select v::bigint from t_ids where k = 'D1'), auth.uid(), 'lv.zz.testa@lycee-verdun.edu.lb', 'javascript:alert(1)')$$);

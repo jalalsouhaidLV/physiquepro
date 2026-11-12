@@ -161,6 +161,8 @@ async function chargerTout(){
   [S.classes, S.devoirs, S.rendus, S.corrections, S.quiz, S.resultats] = res.slice(0, 6).map(r => r.data);
   try { const cp = await sb.from("copies").select("*"); S.copies = cp.error ? [] : cp.data; } catch (_) { S.copies = []; }
   await chargerUrgents();
+  /* étape 48 : vérifier (et réparer sans rien demander) l'abonnement aux notifications de cet appareil à chaque ouverture */
+  if (!S.pushVerifie && typeof majEtatPush === "function") setTimeout(() => { majEtatPush().catch(() => {}); }, 2500);
   if (S.prof) {
     S.nbEleves = {}; S.toutesInscriptions = res[6].data;
     res[6].data.forEach(x => S.nbEleves[x.classe_id] = (S.nbEleves[x.classe_id] || 0) + 1);
