@@ -93,6 +93,17 @@
     sauvegardes: [],
     flashcards: [{ id: 1, classe_id: "tle", theme_id: 1, recto: "Célérité", verso: "Vitesse de propagation de l'onde", ordre: 1, cree_le: jour(-3) }]
   };
+  /* option des tests « textes longs » (window.__PP_LONG) : titres, noms et cours très longs, pour vérifier que rien ne déborde */
+  if (window.__PP_LONG) {
+    const L1 = " : détermination de la constante d'acidité d'un couple acide-base par titrage pH-métrique";
+    DB.devoirs.forEach(d => { d.titre += L1; }); DB.quiz.forEach(q => { q.titre += " sur les ondes mécaniques progressives périodiques"; });
+    DB.supports.forEach(s => { s.titre += " (version complète avec exercices corrigés)"; });
+    DB.themes.forEach(t => { t.titre += " et applications expérimentales en laboratoire"; });
+    DB.classes.forEach(c => { c.nom = "Terminale spécialité " + c.nom + " groupe 2"; });
+    const NOMS = { [ELEVE.email]: "Marie-Christine ABOU-KHALIL EL-HAJJ", [ELEVE2.email]: "Jean-Baptiste FRANCO-LIBANAIS" };
+    DB.profiles.forEach(p => { if (NOMS[p.email]) p.nom = NOMS[p.email]; }); DB.inscriptions.forEach(i => { if (NOMS[i.email]) i.nom = NOMS[i.email]; });
+    DB.annonces.forEach(a => { a.texte += " Pensez à apporter votre calculatrice, votre blouse et le polycopié distribué la semaine dernière."; });
+  }
   /* un élève ne voit que ses données (comme les règles RLS) */
   if (role === "eleve") {
     DB.profiles = DB.profiles.filter(p => p.id === ELEVE.id);

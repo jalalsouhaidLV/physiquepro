@@ -179,7 +179,7 @@ function carteAvancement(){
   const g = k => nb(ov("av" + k)), a = g("a") || 1, b = g("b") || 1, c = g("c") || 1, d = g("d") || 0, nA = g("nA"), nB = g("nB");
   let r = "";
   if (isFinite(nA) && isFinite(nB)) { const xA = nA / a, xB = nB / b, x = Math.min(xA, xB), lim = Math.abs(xA - xB) < 1e-12 * Math.max(xA, xB) ? "mélange stœchiométrique : les deux réactifs sont limitants" : xA < xB ? "le réactif limitant est A" : "le réactif limitant est B";
-    r = `<div class="ores bon"><b>x_max = ${fmt4(x)} mol</b><small>${lim}</small></div><div class="tablewrap"><table class="admtable avtab"><thead><tr><th class="first">État</th><th>a A</th><th>b B</th><th>c C</th>${d ? "<th>d D</th>" : ""}</tr></thead><tbody>
+    r = `<div class="ores bon"><b>x_max = ${fmt4(x)} mol</b><small>${lim}</small></div><div class="tablewrap" tabindex="0" role="region" aria-label="Tableau"><table class="admtable avtab"><thead><tr><th class="first">État</th><th>a A</th><th>b B</th><th>c C</th>${d ? "<th>d D</th>" : ""}</tr></thead><tbody>
       <tr><td class="first">Initial (x = 0)</td><td>${fmt4(nA)}</td><td>${fmt4(nB)}</td><td>0</td>${d ? "<td>0</td>" : ""}</tr>
       <tr><td class="first">En cours (x)</td><td>${fmt4(nA)} − ${a}x</td><td>${fmt4(nB)} − ${b}x</td><td>${c}x</td>${d ? `<td>${d}x</td>` : ""}</tr>
       <tr><td class="first">Final (x_max)</td><td>${fmt4(nA - a * x)}</td><td>${fmt4(nB - b * x)}</td><td>${fmt4(c * x)}</td>${d ? `<td>${fmt4(d * x)}</td>` : ""}</tr></tbody></table></div>`; }

@@ -5,9 +5,11 @@
   "scripts": {
     "test": "node test-site.js",
     "voir": "node test-site.js --voir",
-    "serveur": "node serveur.js"
+    "serveur": "node serveur.js",
+    "audit": "node audit-complet.js"
   },
   "devDependencies": {
-    "playwright": "^1.50.0"
+    "playwright": "^1.50.0",
+    "axe-core": "4.10.2"
   }
 }

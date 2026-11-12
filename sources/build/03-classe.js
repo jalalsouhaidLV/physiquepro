@@ -71,7 +71,10 @@ function carteRes(r, ctx = {}){
   }
   const dl = copie ? (copie.fichier && !tel ? `<a class="dlbtn" href="${esc(copie.fichier + "?download=1")}" target="_blank" rel="noopener" title="Télécharger ta copie" aria-label="Télécharger ta copie de ${esc(nom)}">${icon("down")}</a>` : "")
     : r.path ? btnDl(r.bucket || "documents", r.path, r.label) : r.url && /sharepoint\.com/i.test(r.url) && fam ? `<a class="dlbtn" href="${esc(r.url + (r.url.includes("?") ? "&" : "?") + "download=1")}" target="_blank" rel="noopener" title="Télécharger pour modifier sur l'ordinateur" aria-label="Télécharger ${esc(nom)}">${icon("down")}</a>` : "";
-  return `<div class="rcard${copie ? " macopie" : ""}"><a class="rtxt" ${lien} ${tip2}><b>${esc(nom)}</b><small>${esc(sous)}${etat}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
+  /* X3 (9e évaluation) : un lien sans titre s'affiche « site » + « chemin », plus d'adresse coupée au milieu d'un mot */
+  let vu = nom, vuSous = sous;
+  if (/^https?:\/\//i.test(nom)) { try { const u = new URL(nom); vu = u.hostname.replace(/^www\./, ""); vuSous = (u.pathname + u.search).replace(/^\/$/, "") || "Lien"; } catch (_) {} }
+  return `<div class="rcard${copie ? " macopie" : ""}"><a class="rtxt" ${lien} ${tip2}><b>${esc(vu)}</b><small>${esc(vuSous)}${etat}</small></a>${dl}<a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes(r, fam)}</a></div>`;
 }
 const carteYoutube = r => carteRes(r);
 function ressources(list, ctx = {}, cls = ""){
@@ -215,7 +218,7 @@ function statsDevoir(d, lien = true){
   const el = elevesDuDevoir(d, inscritsDe(d.classe_id)), n = el.filter(e => renduDe(d, e.email)).length;
   const an = aCorriger(d);
   const bloc = (nb, txt, f) => lien ? `<a href="#/devoir/${d.id}" data-act="voirstat" data-d="${d.id}" data-f="${f}" title="Voir les élèves : ${txt.toLowerCase()}"><b>${nb}</b><small>${txt}</small></a>` : `<div><b>${nb}</b><small>${txt}</small></div>`;
-  return `<span class="stats crstats">${bloc(n, "Remis", "remis")}${bloc(el.length - n, ouvert(d) ? "Attribués" : "Manquants", "attribues")}${an ? bloc(an, "À noter", "anoter") : ""}</span>`;
+  return `<span class="stats crstats">${bloc(n, "Remis", "remis")}${bloc(el.length - n, "Non rendus", "attribues")}${an ? bloc(an, "À noter", "anoter") : ""}</span>`;
 }
 /* vrai texte (pas seulement « … » ou des espaces) */
 function texteUtile(h){ return !!String(h || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&hellip;/g, " ").replace(/[\s.…·-]+/g, "").length;
@@ -289,7 +292,7 @@ function vNotes(c, data){
   };
   const moyEleve = e => moyenneDe(c, e.email, uidDe(e.email), false).moy;
   const moyCol = col => { const v = el.map(e => { if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? noteQuiz(col.o, r) : null; } const cr = correctionDe(renduDe(col.o, e.email)); return cr && cr.note != null ? Number(cr.note) : null; }).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
-  return `<div class="page wide" style="--c:var(${C(c.couleur).c})"><div class="homehead"><span></span><button class="btn ghost sm" data-act="exportnotes" data-c="${esc(c.id)}">${icon("down")} Exporter les notes (Excel)</button></div><div class="tablewrap"><table class="gradebook">
+  return `<div class="page wide" style="--c:var(${C(c.couleur).c})"><div class="homehead"><span></span><button class="btn ghost sm" data-act="exportnotes" data-c="${esc(c.id)}">${icon("down")} Exporter les notes (Excel)</button></div><div class="tablewrap" tabindex="0" role="region" aria-label="Tableau"><table class="gradebook">
     <thead><tr><th class="first"><span class="muted">Élèves (${el.length})</span></th>${cols.map(col => `<th><small class="muted">${col.o.date_limite ? fmtShort(D(col.o.date_limite)) : "Aucune date limite"}</small><a href="${col.k === "d" ? "#/devoir/" + col.o.id : "#/quiz/" + col.o.id}">${esc(col.o.titre)}</a><small class="muted">sur ${col.o.points}${col.o.categorie ? " · " + esc(col.o.categorie) : ""}</small>
       ${col.k === "d" ? `<div class="dd kebab"><button class="ib sm" data-act="menu" data-m="g${col.o.id}" aria-label="Options de la colonne">${icon("more")}</button>${S.menu === "g" + col.o.id ? `<div class="dd-menu"><a href="#" data-act="rendretout" data-d="${col.o.id}">${icon("send")} Rendre toutes les notes</a><a href="#/devoir/${col.o.id}">${icon("devoir")} Ouvrir le devoir</a></div>` : ""}</div>` : ""}</th>`).join("")}<th>Moyenne<small class="muted">sur 20${(c.categories || []).length ? " · pondérée" : ""}</small></th></tr></thead>
     <tbody><tr class="avg"><td class="first">${icon("people")} Moyenne de la classe</td>${cols.map(col => `<td class="cell">${fmtNote(moyCol(col) == null ? null : Math.round(moyCol(col) * 10) / 10)}</td>`).join("")}<td class="cell"></td></tr>

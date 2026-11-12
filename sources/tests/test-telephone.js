@@ -15,6 +15,8 @@ const VOIR = process.argv.includes("--voir"), CAPTURES = process.argv.includes("
 const DOSSIER = path.join(__dirname, "captures", "telephone");
 const UID = "00000000-0000-4000-8000-000000000002";
 const res = [];
+/* le site met des espaces insécables (avant « : ? ! ») et des gluons invisibles autour des traits d'union : on les ramène à du texte simple */
+const N = t => String(t == null ? "" : t).replace(/\u2060/g, "").replace(/\u00a0/g, " ");
 const verif = (n, ok, detail = "") => { res.push({ n, ok: !!ok, detail }); console.log((ok ? "OK    " : "ÉCHEC ") + n + (detail ? "  (" + detail + ")" : "")); };
 
 let base, nav;
@@ -70,7 +72,7 @@ async function testsIPhone() {
 
   /* B12 */
   const pr = await page.evaluate(() => { const s = document.querySelector(".tel-prochain"); return s && { titre: s.querySelector(".tptitre")?.textContent, go: s.querySelector(".tpgo")?.getAttribute("href"), cl: s.className, qui: !!s.querySelector('[data-act="pasmoi"]') }; });
-  verif("B12 Accueil : carte « Ton prochain travail » (le plus urgent en premier)", pr && pr.titre === "Entraînement : célérité" && pr.go === "#/quiz/2" && /rouge/.test(pr.cl), pr && pr.titre + " · " + pr.cl);
+  verif("B12 Accueil : carte « Ton prochain travail » (le plus urgent en premier)", pr && N(pr.titre) === "Entraînement : célérité" && pr.go === "#/quiz/2" && /rouge/.test(pr.cl), pr && pr.titre + " · " + pr.cl);
   await capture(page, "B12-accueil");
   /* C19 */
   await page.waitForTimeout(1000);
@@ -453,7 +455,7 @@ async function testsCinquieme() {
   await page.click("section.uneq > .q:not([hidden]) .opt"); await page.click('[data-qnav="=1"]'); await page.waitForTimeout(200);
   await page.click('section.uneq [data-act="valider"]'); await page.waitForTimeout(1200);
   const vert = await page.evaluate(() => document.getElementById("ppRendu")?.innerText || "");
-  verif("Q Écran vert du questionnaire : la note y est écrite", /Ta note : \d/.test(vert), vert.replace(/\s+/g, " ").slice(0, 80));
+  verif("Q Écran vert du questionnaire : la note y est écrite", /Ta note : \d/.test(N(vert)), vert.replace(/\s+/g, " ").slice(0, 80));
   await page.click("#ppRendu [data-rendu-ok]"); await page.waitForTimeout(400);
   e = await page.evaluate(() => { const b = document.querySelector(".quizbilan"); return b && { top: Math.round(b.getBoundingClientRect().top), y: Math.round(scrollY), txt: b.innerText.replace(/\s+/g, " ") }; });
   verif("Q Après l'envoi : le résultat est en haut de la page, visible tout de suite", e && e.top < 500 && e.y < 50 && /Ta note/.test(e.txt), e && e.txt.slice(0, 70));
@@ -463,7 +465,7 @@ async function testsCinquieme() {
   await aller(page, "#/todo", 800);
   e = await page.evaluate(() => ({ onglets: [...document.querySelectorAll(".tabs3 button")].map(b => b.innerText.replace(/\s+\d+$/, "").trim()), titres: [...document.querySelectorAll(".workrow .tt")].map(t => t.firstChild.textContent.trim()) }));
   verif("Q « À faire » : mots simples (À faire, En retard, Terminés)", e.onglets.join(",") === "À faire,En retard,Terminés", e.onglets.join(","));
-  verif("Q « À faire » : l'entraînement de demain est en tête (du plus urgent au moins urgent)", e.titres[0] === "Entraînement : célérité", e.titres.join(" / "));
+  verif("Q « À faire » : l'entraînement de demain est en tête (du plus urgent au moins urgent)", N(e.titres[0]) === "Entraînement : célérité", e.titres.join(" / "));
   const pill = await page.evaluate(() => { location.hash = "#/accueil"; return new Promise(ok => setTimeout(() => ok([...document.querySelectorAll(".recentrow .pill")].map(p => p.innerText)), 700)); });
   verif("Q Élève : « À faire » au lieu de « Attribué »", pill.length && !pill.includes("Attribué") && pill.includes("À faire"), pill.join(","));
   e = await page.evaluate(() => [...document.querySelectorAll(".topbar .ib, .topbar .avatar")].filter(b => b.offsetWidth).map(b => Math.round(Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height))));

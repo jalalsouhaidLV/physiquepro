@@ -147,7 +147,7 @@ function vDevoirProf(d, c){
       <label class="accepte"><input type="checkbox" data-accepte="${d.id}" ${d.accepte !== false ? "checked" : ""}><i></i><span>${d.accepte !== false ? "Devoirs acceptés" : "Devoirs non acceptés"}</span>
         <span class="info" title="Quand les devoirs ne sont pas acceptés, les élèves ne peuvent plus rendre leur travail ni annuler leur envoi. Tu peux rouvrir la remise à tout moment.">${icon("question")}</span></label>
       ${d.accepte === false ? `<p class="muted" style="margin:-6px 0 0;font-size:.85rem">La remise est verrouillée : les élèves voient « Ton professeur n'accepte plus de devoirs pour ce travail ».</p>` : ""}
-      <p class="muted" style="margin:0">${d.date_limite ? (ouvert(d) ? "Dépôt ouvert jusqu'au " + fmtD(D(d.date_limite)) + " à " + fmtT(D(d.date_limite)) + "." : "Dépôt fermé depuis le " + fmtD(D(d.date_limite)) + ".") : "Aucune date limite."}</p>
+      <p class="muted" style="margin:0">${d.date_limite ? (ouvert(d) ? "Dépôt ouvert jusqu'au " + fmtD(D(d.date_limite)) + " à " + fmtT(D(d.date_limite)) + "." : d.accepte === false ? "Date limite passée le " + fmtD(D(d.date_limite)) + "." : d.retard_ok ? "Date limite passée le " + fmtD(D(d.date_limite)) + " : les élèves peuvent encore rendre, leur travail est marqué « en retard »." : "Date limite passée le " + fmtD(D(d.date_limite)) + " : les élèves ne peuvent plus rendre. Pour rouvrir, repousse la date limite (crayon en haut à droite).") : "Aucune date limite."}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null && aCorriger(d) ? `<button class="btn" data-act="rendretout" data-d="${d.id}">${icon("send")} Rendre toutes les notes saisies</button>` : ""}
       ${autres.length ? `<button class="btn ghost" data-act="mailmissing" data-d="${d.id}">${icon("mail")} Écrire aux ${autres.length} élève${autres.length > 1 ? "s" : ""} qui n'${autres.length > 1 ? "ont" : "a"} pas rendu</button>` : ""}</div>
       ${S.compose ? composeBox(el.filter(e => S.pick.has(e.email))) : ""}
@@ -166,16 +166,16 @@ function vDevoirProf(d, c){
       ${vCP(d.id, sel)}`;
   }
   /* filtre (Tous / Remis / Attribués / Notés / À noter) et tri (statut, nom de famille, prénom), comme Classroom */
-  const filtre = S.swFiltre || "tous", tri = S.swTri || "statut", lblA = ouvert(d) ? "Attribués" : "Manquants";
+  const filtre = S.swFiltre || "tous", tri = S.swTri || "statut", lblA = "Non rendus";
   const grp = e => { const s = etat(d, e.email); return s.t === "Noté" ? "notes" : s.r ? "remis" : "attribues"; };
   const passe = e => filtre === "tous" || (filtre === "anoter" ? grp(e) === "remis" : grp(e) === filtre);
   const vus = el.filter(passe), vide = `<p class="empty" style="padding:4px 16px">Aucun</p>`;
   let liste;
-  if (tri === "statut") liste = [["remis", "Remis"], ["attribues", lblA], ["notes", "Notés"]].map(([g, t]) => { const l = vus.filter(e => grp(e) === g); return filtre !== "tous" && !l.length ? "" : `<h4>${t} (${l.length})</h4>${l.map(row).join("") || vide}`; }).join("");
+  if (tri === "statut") liste = [["remis", "À noter"], ["attribues", lblA], ["notes", "Notés"]].map(([g, t]) => { const l = vus.filter(e => grp(e) === g); return filtre !== "tous" && !l.length ? "" : `<h4>${t} (${l.length})</h4>${l.map(row).join("") || vide}`; }).join("");
   else { const cle = tri === "nom" ? e => cleNom(e.nom).nom + " " + cleNom(e.nom).prenom : e => cleNom(e.nom).prenom + " " + cleNom(e.nom).nom;
     liste = `<h4>${vus.length} élève${vus.length > 1 ? "s" : ""}</h4>${vus.slice().sort((a, b) => cle(a).localeCompare(cle(b), "fr")).map(row).join("") || vide}`; }
   const outils = `<div class="swtools">
-      <select data-swf="1" aria-label="Filtrer les élèves">${[["tous", "Tous"], ["remis", "Remis"], ["attribues", lblA], ["notes", "Notés"]].map(([v, t]) => `<option value="${v}" ${filtre === v || (filtre === "anoter" && v === "remis") ? "selected" : ""}>${t}</option>`).join("")}</select>
+      <select data-swf="1" aria-label="Filtrer les élèves">${[["tous", "Tous"], ["remis", "À noter"], ["attribues", lblA], ["notes", "Notés"]].map(([v, t]) => `<option value="${v}" ${filtre === v || (filtre === "anoter" && v === "remis") ? "selected" : ""}>${t}</option>`).join("")}</select>
       <select data-swt="1" aria-label="Trier les élèves">${[["nom", "Trier par nom de famille"], ["prenom", "Trier par prénom"], ["statut", "Trier par statut"]].map(([v, t]) => `<option value="${v}" ${tri === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
   return tabs + `<div class="page wide" style="--c:var(${k.c})">
     <div class="sw"><div class="list">${outils}<button class="st" data-act="sel" data-n="" aria-current="${!sel}"><span class="nm"><b>Tous les élèves</b></span></button>
