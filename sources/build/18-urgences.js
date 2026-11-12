@@ -64,34 +64,59 @@ function vUrgences(){
     </article>`; };
   const nRec = L.filter(m => !m.de_prof).length, nEnv = L.filter(m => m.de_prof).length;
   return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">${icon("urgent")} Messagerie d'urgence</h1>
-      <span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn danger" data-act="urgecrire">${icon("send")} Écrire à un élève</button>
+      <span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn danger" data-act="urgecrire">${icon("send")} Écrire aux élèves</button>
       <select data-urgf="1" aria-label="Filtrer les messages"><option value="tous">Tous les messages (${L.length})</option><option value="nonlus" ${filtre === "nonlus" ? "selected" : ""}>Non lus (${nbUrgents()})</option><option value="recus" ${filtre === "recus" ? "selected" : ""}>Reçus des élèves (${nRec})</option><option value="envoyes" ${filtre === "envoyes" ? "selected" : ""}>Envoyés aux élèves (${nEnv})</option>${S.classes.map(c => `<option value="${esc(c.id)}" ${filtre === c.id ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></span></div>
     ${bandeauNotifs()}
     <p class="muted" style="margin:0">Les messages urgents de tes élèves et ceux que tu leur envoies. Un élève qui reçoit ton message voit une grande alerte au centre de son écran, sur n'importe quelle page du site.</p>
     ${vus.length ? `<div class="urglist">${vus.map(carte).join("")}</div>` : `<div class="emptystate"><b>Aucun message${filtre === "nonlus" ? " non lu" : ""}.</b><span>Quand un élève t'écrit, son message apparaît ici et « Messagerie d'urgence » affiche un chiffre rouge dans le menu de gauche.</span></div>`}
     ${pageFoot()}</div>`;
 }
-/* fenêtre « Écrire à un élève » */
+/* fenêtre « Écrire aux élèves » : toute la classe (une case) ou quelques élèves cochés dans la liste */
 function modalUrgProf(m){
   const act = actives(), cid = m.classe || (act[0] && act[0].id), comptes = new Map((S.comptes || []).map(p => [p.email, p]));
   const el = inscritsDe(cid).map(e => ({ ...e, p: comptes.get(e.email) })), avec = el.filter(e => e.p), sans = el.filter(e => !e.p);
-  return `<h2>${icon("urgent")} Message d'urgence à un élève</h2>
-    <div class="two"><div class="field"><label for="upCours">Cours</label><select id="upCours" data-urgc="1">${act.map(c => `<option value="${esc(c.id)}" ${c.id === cid ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></div>
-      <div class="field"><label for="upEleve">Élève</label><select id="upEleve">${avec.length ? avec.map(e => `<option value="${esc(e.p.id)}" ${m.eleve === e.p.id ? "selected" : ""}>${esc(e.nom)}</option>`).join("") : `<option value="">Aucun élève connecté dans ce cours</option>`}</select></div></div>
+  const choisis = new Set(m.eleve ? [m.eleve] : []), tous = avec.length > 0 && avec.every(e => choisis.has(e.p.id));
+  return `<h2>${icon("urgent")} Message d'urgence</h2>
+    <div class="field"><label for="upCours">Cours</label><select id="upCours" data-urgc="1">${act.map(c => `<option value="${esc(c.id)}" ${c.id === cid ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></div>
+    <div class="field"><label>À qui ?</label>${avec.length ? `<label class="check urgtous"><input type="checkbox" id="upTous" data-act="urgtous" ${tous ? "checked" : ""}> <b>Toute la classe</b> <span class="muted">(${avec.length} élève${avec.length > 1 ? "s" : ""})</span></label>
+      <p class="muted" style="margin:2px 0 0;font-size:.8rem">ou coche seulement les élèves à prévenir :</p>
+      <div class="ciblelist urgliste">${avec.map(e => `<label class="check"><input type="checkbox" class="upEl" data-act="urgun" value="${esc(e.p.id)}" ${choisis.has(e.p.id) ? "checked" : ""}> ${esc(e.nom)}</label>`).join("")}</div>
+      <p class="muted" id="upNb" aria-live="polite" style="margin:0;font-size:.82rem;font-weight:600">${nbChoisisTxt(choisis.size, avec.length)}</p>`
+      : `<p class="notice" style="margin:0">Aucun élève de ce cours ne s'est encore connecté au site.</p>`}</div>
     ${sans.length ? `<p class="muted" style="margin:0;font-size:.8rem">${sans.length} élève${sans.length > 1 ? "s" : ""} de ce cours ne ${sans.length > 1 ? "se sont" : "s'est"} jamais connecté${sans.length > 1 ? "s" : ""} au site : ${sans.length > 1 ? "ils" : "il"} ne peu${sans.length > 1 ? "vent" : "t"} pas encore recevoir de message.</p>` : ""}
-    <div class="field"><label for="upTexte">Ton message</label><textarea id="upTexte" rows="5" maxlength="2000" style="width:100%;resize:vertical" placeholder="ex. Passe me voir à la récréation pour ton TP.">${esc(m.texte || "")}</textarea></div>
-    <p class="muted" style="margin:0;font-size:.82rem">L'élève voit une grande alerte « MESSAGE D'URGENCE REÇU » au centre de son écran dès qu'il est sur le site. S'il a activé les notifications (Profil &gt; Notifications), il reçoit aussi une notification sur son téléphone, même site fermé.</p>`;
+    <div class="field"><label for="upTexte">Ton message</label><textarea id="upTexte" rows="4" maxlength="2000" style="width:100%;resize:vertical" placeholder="ex. Passe me voir à la récréation pour ton TP.">${esc(m.texte || "")}</textarea></div>
+    <p class="muted" style="margin:0;font-size:.82rem">Chaque élève choisi voit une grande alerte « MESSAGE D'URGENCE REÇU » au centre de son écran dès qu'il est sur le site. S'il a activé les notifications (Profil &gt; Notifications), il reçoit aussi une notification sur son téléphone, même site fermé.</p>`;
+}
+const nbChoisisTxt = (n, tot) => !n ? "Aucun élève choisi." : n === tot && tot > 1 ? "Toute la classe est choisie (" + n + " élèves)." : n + " élève" + (n > 1 ? "s choisis" : " choisi") + ".";
+/* cases de la fenêtre : sans tout redessiner (le message en cours de frappe reste) */
+function cocherUrg(t){
+  const L = [...document.querySelectorAll(".modal .upEl")], tous = document.getElementById("upTous");
+  if (t.dataset.act === "urgtous") L.forEach(x => { x.checked = t.checked; });
+  else if (tous) tous.checked = L.length > 0 && L.every(x => x.checked);
+  const nb = document.getElementById("upNb"); if (nb) nb.textContent = nbChoisisTxt(L.filter(x => x.checked).length, L.length);
 }
 async function envoyerUrgProf(){
   const v = id => ((document.getElementById(id) || {}).value || "").trim();
-  const cid = v("upCours"), uid = v("upEleve"), t = v("upTexte");
-  if (!uid) throw new Error("Choisis un élève."); if (!t) throw new Error("Écris ton message.");
-  const p = (S.comptes || []).find(x => x.id === uid), e = inscritsDe(cid).find(x => x.email === (p && p.email));
-  const { data, error } = await sb.from("messages_urgents").insert({ classe_id: cid, eleve: uid, eleve_email: p.email, eleve_nom: (e && e.nom) || p.nom || nomDepuisEmail(p.email), texte: t, de_prof: true }).select().single();
+  const cid = v("upCours"), t = v("upTexte"), ids = [...document.querySelectorAll(".modal .upEl:checked")].map(x => x.value);
+  if (!ids.length) throw new Error("Coche « Toute la classe » ou au moins un élève."); if (!t) throw new Error("Écris ton message.");
+  const ins = inscritsDe(cid), tot = document.querySelectorAll(".modal .upEl").length;
+  const dest = ids.map(uid => { const p = (S.comptes || []).find(x => x.id === uid); if (!p) return null; const e = ins.find(x => x.email === p.email); return { p, nom: (e && e.nom) || p.nom || nomDepuisEmail(p.email) }; }).filter(Boolean);
+  if (!dest.length) throw new Error("Coche « Toute la classe » ou au moins un élève.");
+  const { data, error } = await sb.from("messages_urgents").insert(dest.map(d => ({ classe_id: cid, eleve: d.p.id, eleve_email: d.p.email, eleve_nom: d.nom, texte: t, de_prof: true }))).select();
   if (error) throw error;
-  S.urgents = [data, ...(S.urgents || [])]; signalerNouveautes();
-  const c = cls(cid), avis = await pousserUrgent([p.email], "⚠ Message d'urgence de " + nomProfCourt(), (c ? c.nom + " · " : "") + t, cid, "urg-" + data.id);
-  return ((e && e.nom) || p.email) + avis;
+  S.urgents = [...(data || []), ...(S.urgents || [])]; signalerNouveautes();
+  const c = cls(cid), titre = "⚠ Message d'urgence de " + nomProfCourt(), corps = (c ? c.nom + " · " : "") + t;
+  /* une notification par élève, avec l'étiquette de son message (urg-<id>) : le téléphone n'en affiche qu'une même si le site est ouvert */
+  if ((data || []).length === 1) return dest[0].nom + await pousserUrgent([data[0].eleve_email], titre, corps, cid, "urg-" + data[0].id);
+  const R = await Promise.all((data || []).map(r => pousserUn(r.eleve_email, titre, corps, cid, "urg-" + r.id)));
+  const ok = R.filter(x => x === 1).length, ko = R.filter(x => x < 0).length, n = (data || []).length;
+  const qui = n === tot && tot > 1 ? "toute la classe (" + n + " élèves)" : n + " élèves";
+  return qui + " · notification envoyée sur le téléphone de " + ok + " élève" + (ok > 1 ? "s" : "") + (n - ok - ko > 0 ? " ; les autres verront l'alerte en ouvrant le site" : "") + (ko ? " (" + ko + " notification" + (ko > 1 ? "s" : "") + " non envoyée" + (ko > 1 ? "s" : "") + ")" : "");
+}
+/* 1 = notification partie, 0 = l'élève n'a pas activé les notifications, -1 = échec */
+async function pousserUn(email, titre, texte, cid, tag){
+  try { const { data, error } = await invoquerPush({ action: "envoyer", emails: [String(email).toLowerCase()], titre, texte: String(texte).slice(0, 180), url: "./#/classe/" + cid, tag });
+    return error || !data ? -1 : data.eleves ? 1 : 0; } catch (_) { return -1; }
 }
 /* notification push sur le téléphone de l'élève (fonction Supabase pp-push), même site fermé ; renvoie un complément pour le message de confirmation */
 async function pousserUrgent(emails, titre, texte, cid, tag){

@@ -94,6 +94,32 @@ async function testerRole(navigateur, base, role) {
     await page.keyboard.press("Escape");
     for (let i = avant; i < erreurs.length; i++) if (!erreurs[i].startsWith("panneau")) erreurs[i] = "panneau Élèves connectés → " + erreurs[i];
   }
+  /* message d'urgence du prof : « Toute la classe » (une case) ou quelques élèves cochés */
+  if (role === "prof") {
+    const avant = erreurs.length;
+    await page.evaluate(() => { location.hash = "#/urgences"; }); await page.waitForTimeout(700);
+    await page.click('[data-act="urgecrire"]').catch(() => note("message d'urgence : bouton « Écrire aux élèves » introuvable"));
+    await page.waitForSelector(".modal #upTexte", { timeout: 5000 }).catch(() => note("message d'urgence : la fenêtre ne s'ouvre pas"));
+    const n = await page.$$eval(".modal .upEl", L => L.length);
+    if (!n) note("message d'urgence : aucune case élève dans la fenêtre");
+    else {
+      await page.fill("#upTexte", "Test à plusieurs élèves");
+      await page.check("#upTous");
+      const tous = await page.$$eval(".modal .upEl", L => L.every(x => x.checked));
+      if (!tous) note("message d'urgence : « Toute la classe » ne coche pas tous les élèves");
+      if (n > 1) { await page.uncheck(".modal .upEl >> nth=0"); if (await page.isChecked("#upTous")) note("message d'urgence : « Toute la classe » reste cochée après avoir décoché un élève"); }
+      if ((await page.inputValue("#upTexte")) !== "Test à plusieurs élèves") note("message d'urgence : le texte tapé s'efface quand on coche");
+      const choisis = await page.$$eval(".modal .upEl:checked", L => L.length);
+      await page.click('.modal [data-act="mok"]'); await page.waitForTimeout(1200);
+      const t = await page.evaluate(() => (document.getElementById("toast") || {}).textContent || "");
+      if (!/Message d'urgence envoyé/.test(t)) note("message d'urgence : pas de confirmation après l'envoi (« " + t + " »)");
+      const nb = await page.$$eval(".urgcard.envoye", L => L.filter(x => x.textContent.includes("Test à plusieurs élèves")).length);
+      if (nb !== choisis) note("message d'urgence : " + nb + " message(s) enregistré(s) pour " + choisis + " élève(s) coché(s)");
+    }
+    if (CAPTURES) await page.screenshot({ path: path.join(DOSSIER_CAPTURES, "prof_urgence-plusieurs.png") });
+    await page.keyboard.press("Escape");
+    for (let i = avant; i < erreurs.length; i++) if (!erreurs[i].startsWith("message d'urgence")) erreurs[i] = "message d'urgence → " + erreurs[i];
+  }
   /* laisse tourner les minuteries (présence, statut du prof, notifications) */
   await page.waitForTimeout(1500);
   const inconnus = await page.evaluate(() => window.__PP_INCONNUS || []);

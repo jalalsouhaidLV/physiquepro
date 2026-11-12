@@ -102,7 +102,7 @@ document.addEventListener("click", async e => {
   const act = a.dataset.act, r = route();
   if (bloqueVueEleve(act, e)) return;
   if (ACTIONS_PLUS[act] && !(["INPUT"].includes(a.tagName))) { await ACTIONS_PLUS[act](a, e, r); return; }
-  if (["INPUT"].includes(a.tagName) && ["pick", "pickall", "cibletous", "cibleun", "bonne", "ans", "inscr", "bonnecase", "anscase", "repchoix"].includes(act)) { /* traité par « change » */ if (act !== "pick" && act !== "pickall") return; }
+  if (["INPUT"].includes(a.tagName) && ["pick", "pickall", "cibletous", "cibleun", "bonne", "ans", "inscr", "bonnecase", "anscase", "repchoix", "urgtous", "urgun"].includes(act)) { /* traité par « change » */ if (act !== "pick" && act !== "pickall") return; }
   switch (act) {
     case "pubconnect": e.preventDefault(); connecter(); return;
     case "pubcours": e.preventDefault(); connecter("#/classe/" + encodeURIComponent(a.dataset.c)); return;
@@ -450,6 +450,7 @@ document.addEventListener("change", async e => {
   if (t.classList && t.classList.contains("anAussi") && S.annonce) { const v = t.value, l = S.annonce.aussi || []; S.annonce.aussi = t.checked ? [...new Set([...l, v])] : l.filter(x => x !== v); return; }
   if (t.dataset.impmap != null) { S.imp.map[t.dataset.impmap] = t.value; return; }
   if (t.id === "impBrouillons") { S.imp.brouillons = t.checked; return; }
+  if ((t.dataset.act === "urgtous" || t.dataset.act === "urgun") && S.modal) { cocherUrg(t); return; }
   if (t.dataset.urgc && S.modal) { S.modal.texte = (document.getElementById("upTexte") || {}).value || ""; S.modal.classe = t.value; S.modal.eleve = null; render(); return; }
   if (t.dataset.urgf) { S.urgF = t.value; render(); return; }
   if (t.dataset.swf) { S.swFiltre = t.value; render(); return; }
