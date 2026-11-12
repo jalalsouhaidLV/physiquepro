@@ -6,7 +6,7 @@
 
 ## 1. À coller dans les « Instructions » du projet Claude
 
-*Texte identique aux instructions du projet (version du 11/11/2026, recopiée à l'identique lors de l'audit du 11/11).*
+*Texte identique aux instructions du projet (version du 12/11/2026, collée dans les paramètres du projet le 12/11).*
 
 > # PhysiquePro : instructions du projet
 > Fiche à jour au 12/11/2026. Copie complète dans le dépôt : sources/FICHE-PHYSIQUEPRO.md (la lire pour les détails, notamment §11 Inventaire et §12 Savoir-faire). En cas de doute, l'état réel du dépôt et de Supabase fait foi.
