@@ -159,7 +159,7 @@ function confirmationRendu(o, titre, ligne){
 /* ---------------------------------------------------------------- A5. Téléphone partagé : « Ce n'est pas moi » */
 function quiRend(){
   if (S.prof || !S.user) return "";
-  return `<p class="quirend">${icon("people")}<span>Tu rends en tant que <b>${esc(S.nom)}</b>. <a href="#" data-act="pasmoi">Ce n'est pas moi</a></span></p>`;
+  return `<p class="quirend">${icon("people")}<span>Tu rends en tant ${/^[aeiouyàâäéèêëîïôöùûüœæ]/i.test(String(S.nom || "").trim()) ? "qu'" : "que "}<b>${esc(S.nom)}</b>. <a href="#" data-act="pasmoi">Ce n'est pas moi</a></span></p>`;
 }
 VUES_MODAL.pasmoi = () => ({ foot: false, body: `<h2>${icon("people")} Ce n'est pas toi ?</h2>
   <p style="margin:0">Ce téléphone est connecté avec le compte de <b>${esc(S.nom)}</b> (${esc(moi())}).</p>

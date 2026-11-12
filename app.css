@@ -2234,6 +2234,8 @@ section.post{grid-template-columns:minmax(0,1fr)}.coms{grid-template-columns:min
 .quirend{display:flex;gap:8px;align-items:flex-start;margin:0;font-size:.85rem;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:8px 10px}
 .quirend .i{flex:none;width:18px;height:18px;margin-top:1px}
 .quirend a{color:var(--accent);font-weight:600;white-space:nowrap}
+/* W3 : le nom de l'élève à la même taille et dans la même police que la phrase */
+.quirend b{font:inherit;font-weight:700;color:var(--fg)}
 /* A6. gros boutons pour les QCM */
 @media (pointer:coarse),(max-width:600px){
   .opt{min-height:52px;padding:12px 14px;border-width:2px;border-radius:12px;font-size:1rem;gap:12px}
@@ -2664,7 +2666,9 @@ section.uneq.qdernier .qnavbas{padding-top:2px}
 /* U4 : barre « Ton travail · Rendre » (téléphone, page devoir) */
 #ppRendre{display:none}
 @media (max-width:760px){
-  #ppRendre{display:flex;position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:39;min-height:48px;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:var(--accent);color:#fff;font:inherit;font-weight:700;font-size:1rem;box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer}
+  #ppRendre{display:flex;position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:39;min-height:48px;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:#116482;color:#fff;font:inherit;font-weight:700;font-size:1rem;box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer}
+  /* W1 : même bleu foncé en mode sombre (blanc sur #116482 = contraste 6,6) */
+  #ppRendre:focus-visible{outline:3px solid #fff;outline-offset:-5px}
   #ppRendre[hidden]{display:none}
   #ppRendre .i{width:20px;height:20px}
 }
@@ -2687,3 +2691,9 @@ section.uneq.qdernier .qnavbas{padding-top:2px}
 }
 /* U7 : question oubliée signalée */
 .q.qmanque{outline:3px solid var(--bad,#d93025);outline-offset:4px;border-radius:8px}
+
+/* W4 (8e évaluation) : « À faire » sur petit écran : la date sur sa ligne, la pastille juste dessous, pour chaque ligne */
+@media (max-width:420px){
+  .work .workrow .dt .dtd{display:block}
+  .work .workrow .dt .dtd + *{margin-left:0;margin-top:4px;display:inline-block}
+}

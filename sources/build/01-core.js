@@ -104,7 +104,7 @@ function rich(html){
 const sci = t => esc(t).replace(/\^\{([^}]{1,12})\}/g, "<sup>$1</sup>").replace(/\^(-?[\w.]{1,6})/g, "<sup>$1</sup>").replace(/_\{([^}]{1,12})\}/g, "<sub>$1</sub>").replace(/([A-Za-z\)])_([0-9]{1,3}|[a-z]{1,3})/g, "$1<sub>$2</sub>");
 const SYMBOLES = ["Δ","√","×","·","÷","±","≈","≠","≤","≥","→","⇌","⟶","°","µ","λ","Ω","π","θ","α","β","γ","ε","ρ","σ","τ","φ","ω","∞","∑","∫","²","³","⁻¹","⁻","⁺","₀","₁","₂","₃","₄","‰","℃","Å"];
 const paletteSymb = () => `<div class="symbs" role="toolbar" aria-label="Symboles scientifiques">${SYMBOLES.map(x => `<button class="sym" data-act="ins" data-s="${x}" data-keepfocus="1" title="Insérer ${x}">${x}</button>`).join("")}<span class="muted" style="font-size:.78rem;padding:0 6px">Astuce : dans les questions, écris 10^-3 ou H_2O</span></div>`;
-const linkify = t => esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
+const linkify = t => esc(t).replace(/ ([?!;:»])/g, "\u00a0$1").replace(/« /g, "«\u00a0").replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
 
 /* ---------- Supabase ---------- */
 if (!window.supabase) { app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger PhysiquePro. Vérifie ta connexion Internet puis recharge la page.</div></div>`; return; }

@@ -15,7 +15,7 @@ function barreRendre(){
   if (S.prof || r.v !== "devoir" || !zone || fini || !zone.querySelector('[data-act="submit"]')) { if (b) b.remove(); return; }
   if (!b) {
     b = document.createElement("button"); b.id = "ppRendre"; b.type = "button";
-    b.addEventListener("click", () => { const z = document.querySelector("main.content .yourwork"); if (!z) return; z.scrollIntoView({ behavior: "smooth", block: "start" }); const s = z.querySelector('[data-act="submit"]'); if (s) setTimeout(() => s.focus({ preventScroll: true }), 400); });
+    b.addEventListener("click", () => { const z = document.querySelector("main.content .yourwork"); if (!z) return; /* W2 : on s'arrête juste sous la barre du haut, pour que le titre « Ton travail » reste visible */ const hb = document.querySelector(".topbar"), hh = hb ? Math.max(0, hb.getBoundingClientRect().bottom) : 0; window.scrollTo({ top: Math.max(0, z.getBoundingClientRect().top + scrollY - hh - 12), behavior: "smooth" }); const s = z.querySelector('[data-act="submit"]'); if (s) setTimeout(() => s.focus({ preventScroll: true }), 400); });
     document.body.appendChild(b);
   }
   b.innerHTML = `${icon("send")} Ton travail · Rendre`;

@@ -284,7 +284,7 @@ function vNotes(c, data){
     if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? `<td class="cell"><span class="nv">${fmtNote(noteQuiz(col.o, r))}</span><span class="muted">/${col.o.points}</span></td>` : (col.o.date_limite && D(col.o.date_limite) > now() ? `<td class="cell"><span class="s muted">À faire</span></td>` : `<td class="cell"><span class="s" style="color:var(--bad)">Non fait</span></td>`); }
     const d = col.o; if (d.eleves && !d.eleves.includes(e.email)) return `<td class="cell na"></td>`;
     const r = renduDe(d, e.email), cr = correctionDe(r);
-    if (!r) return `<td class="cell">${ouvert(d) ? "" : `<span class="s" style="color:var(--bad)">Manquant</span>`}</td>`;
+    if (!r) return `<td class="cell">${ouvert(d) ? `<span class="s muted">À faire</span>` : `<span class="s" style="color:var(--bad)">Manquant</span>`}</td>`;
     return `<td class="cell"><input class="gin" data-act="note" data-rendu="${r.id}" data-max="${d.points}" value="${cr && cr.note != null ? fmtNote(cr.note) : ""}" placeholder="__" aria-label="Note de ${esc(e.nom)}"><span class="muted">/${d.points}</span><span class="s ${cr && cr.publiee ? "" : "draftnote"}">${cr && cr.note != null ? (cr.publiee ? "" : "Brouillon") : "Rendu"}</span></td>`;
   };
   const moyEleve = e => moyenneDe(c, e.email, uidDe(e.email), false).moy;

@@ -104,7 +104,7 @@ function rich(html){
 const sci = t => esc(t).replace(/\^\{([^}]{1,12})\}/g, "<sup>$1</sup>").replace(/\^(-?[\w.]{1,6})/g, "<sup>$1</sup>").replace(/_\{([^}]{1,12})\}/g, "<sub>$1</sub>").replace(/([A-Za-z\)])_([0-9]{1,3}|[a-z]{1,3})/g, "$1<sub>$2</sub>");
 const SYMBOLES = ["Δ","√","×","·","÷","±","≈","≠","≤","≥","→","⇌","⟶","°","µ","λ","Ω","π","θ","α","β","γ","ε","ρ","σ","τ","φ","ω","∞","∑","∫","²","³","⁻¹","⁻","⁺","₀","₁","₂","₃","₄","‰","℃","Å"];
 const paletteSymb = () => `<div class="symbs" role="toolbar" aria-label="Symboles scientifiques">${SYMBOLES.map(x => `<button class="sym" data-act="ins" data-s="${x}" data-keepfocus="1" title="Insérer ${x}">${x}</button>`).join("")}<span class="muted" style="font-size:.78rem;padding:0 6px">Astuce : dans les questions, écris 10^-3 ou H_2O</span></div>`;
-const linkify = t => esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
+const linkify = t => esc(t).replace(/ ([?!;:»])/g, "\u00a0$1").replace(/« /g, "«\u00a0").replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
 
 /* ---------- Supabase ---------- */
 if (!window.supabase) { app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger PhysiquePro. Vérifie ta connexion Internet puis recharge la page.</div></div>`; return; }
@@ -660,7 +660,7 @@ function vNotes(c, data){
     if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? `<td class="cell"><span class="nv">${fmtNote(noteQuiz(col.o, r))}</span><span class="muted">/${col.o.points}</span></td>` : (col.o.date_limite && D(col.o.date_limite) > now() ? `<td class="cell"><span class="s muted">À faire</span></td>` : `<td class="cell"><span class="s" style="color:var(--bad)">Non fait</span></td>`); }
     const d = col.o; if (d.eleves && !d.eleves.includes(e.email)) return `<td class="cell na"></td>`;
     const r = renduDe(d, e.email), cr = correctionDe(r);
-    if (!r) return `<td class="cell">${ouvert(d) ? "" : `<span class="s" style="color:var(--bad)">Manquant</span>`}</td>`;
+    if (!r) return `<td class="cell">${ouvert(d) ? `<span class="s muted">À faire</span>` : `<span class="s" style="color:var(--bad)">Manquant</span>`}</td>`;
     return `<td class="cell"><input class="gin" data-act="note" data-rendu="${r.id}" data-max="${d.points}" value="${cr && cr.note != null ? fmtNote(cr.note) : ""}" placeholder="__" aria-label="Note de ${esc(e.nom)}"><span class="muted">/${d.points}</span><span class="s ${cr && cr.publiee ? "" : "draftnote"}">${cr && cr.note != null ? (cr.publiee ? "" : "Brouillon") : "Rendu"}</span></td>`;
   };
   const moyEleve = e => moyenneDe(c, e.email, uidDe(e.email), false).moy;
@@ -918,8 +918,8 @@ function vTodo(){
   };
   const L = {attribues:"À faire", manquants:"En retard", termines:"Terminés"}, list = groups[S.todoTab];
   const ligne = it => { const o = it.d || it.q, c = cls(o.classe_id); let right;
-    if (it.d) { const e = etat(o, moi()); right = e.t === "Noté" ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(e.note)}/${o.points}</span>` : e.t === "Rendu" ? "Rendu" : dueOf(o).replace("Échéance : ", "") + (e.t === "Attribué" ? relEch(o.date_limite) : ""); }
-    else { const r = resultatDe(o, S.user.id); right = r ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(noteQuiz(o, r))}/${o.points}</span>` : o.date_limite ? dueTxt(D(o.date_limite)).replace("Échéance : ", "") + relEch(o.date_limite) : "Aucune date limite"; }
+    if (it.d) { const e = etat(o, moi()); right = e.t === "Noté" ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(e.note)}/${o.points}</span>` : e.t === "Rendu" ? "Rendu" : `<span class="dtd">${dueOf(o).replace("Échéance : ", "")}</span>` + (e.t === "Attribué" ? relEch(o.date_limite) : ""); }
+    else { const r = resultatDe(o, S.user.id); right = r ? `<span class="mono nt" style="color:var(--ink)">${fmtNote(noteQuiz(o, r))}/${o.points}</span>` : o.date_limite ? `<span class="dtd">${dueTxt(D(o.date_limite)).replace("Échéance : ", "")}</span>` + relEch(o.date_limite) : "Aucune date limite"; }
     return `<div class="work" style="--c:var(${C(c && c.couleur).c})"><a class="workrow" href="${it.d ? "#/devoir/" : "#/quiz/"}${o.id}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(it.d ? "devoir" : "quiz", "")}</span><span class="tt">${esc(o.titre)}<br><small class="muted" style="font-weight:400">${esc(c ? c.nom : "")}</small></span><span class="dt">${right}</span></a></div>`; };
   return `<div class="tabsbar" style="--c:var(--accent)"><div class="tabs tabs3" role="tablist">${Object.keys(L).map(k => `<button role="tab" aria-selected="${S.todoTab === k}" data-act="todotab" data-t="${k}">${L[k]} <span class="muted mono">${groups[k].length}</span></button>`).join("")}</div></div>
   <div class="page" style="max-width:820px"><section class="group">${list.length ? list.map(ligne).join("") : `<p class="empty" style="padding:24px 18px;margin:0">${S.todoTab === "attribues" ? "Aucun travail à rendre pour le moment." : S.todoTab === "manquants" ? "Aucun travail en retard. Bravo !" : "Aucun travail terminé."}</p>`}</section>${pageFoot()}</div>`;
@@ -6723,7 +6723,7 @@ function confirmationRendu(o, titre, ligne){
 /* ---------------------------------------------------------------- A5. Téléphone partagé : « Ce n'est pas moi » */
 function quiRend(){
   if (S.prof || !S.user) return "";
-  return `<p class="quirend">${icon("people")}<span>Tu rends en tant que <b>${esc(S.nom)}</b>. <a href="#" data-act="pasmoi">Ce n'est pas moi</a></span></p>`;
+  return `<p class="quirend">${icon("people")}<span>Tu rends en tant ${/^[aeiouyàâäéèêëîïôöùûüœæ]/i.test(String(S.nom || "").trim()) ? "qu'" : "que "}<b>${esc(S.nom)}</b>. <a href="#" data-act="pasmoi">Ce n'est pas moi</a></span></p>`;
 }
 VUES_MODAL.pasmoi = () => ({ foot: false, body: `<h2>${icon("people")} Ce n'est pas toi ?</h2>
   <p style="margin:0">Ce téléphone est connecté avec le compte de <b>${esc(S.nom)}</b> (${esc(moi())}).</p>
@@ -7524,7 +7524,7 @@ function barreRendre(){
   if (S.prof || r.v !== "devoir" || !zone || fini || !zone.querySelector('[data-act="submit"]')) { if (b) b.remove(); return; }
   if (!b) {
     b = document.createElement("button"); b.id = "ppRendre"; b.type = "button";
-    b.addEventListener("click", () => { const z = document.querySelector("main.content .yourwork"); if (!z) return; z.scrollIntoView({ behavior: "smooth", block: "start" }); const s = z.querySelector('[data-act="submit"]'); if (s) setTimeout(() => s.focus({ preventScroll: true }), 400); });
+    b.addEventListener("click", () => { const z = document.querySelector("main.content .yourwork"); if (!z) return; /* W2 : on s'arrête juste sous la barre du haut, pour que le titre « Ton travail » reste visible */ const hb = document.querySelector(".topbar"), hh = hb ? Math.max(0, hb.getBoundingClientRect().bottom) : 0; window.scrollTo({ top: Math.max(0, z.getBoundingClientRect().top + scrollY - hh - 12), behavior: "smooth" }); const s = z.querySelector('[data-act="submit"]'); if (s) setTimeout(() => s.focus({ preventScroll: true }), 400); });
     document.body.appendChild(b);
   }
   b.innerHTML = `${icon("send")} Ton travail · Rendre`;
