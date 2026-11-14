@@ -1,0 +1,4 @@
+# Bibliothèques : copies exactes des paquets npm, vérifiées par bibliotheques/EMPREINTES.sha256.
+# Git ne doit jamais y convertir les fins de ligne (sinon les empreintes ne correspondent plus sous Windows).
+bibliotheques/** -text
+*.pdf binary

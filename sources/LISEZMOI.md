@@ -38,3 +38,11 @@ Options : `--voir` (navigateur visible), `--captures` (une capture par page dans
 Pour regarder le site avec les fausses données : `npm run serveur`, puis ouvrir http://localhost:8123/?role=eleve (ou `?role=prof`, `?role=visiteur`).
 
 Quand une nouvelle page ou une nouvelle fonction `pp_…` est ajoutée au site : ajouter la page à la liste `PAGES` de `test-site.js` et la fonction à `RPC` dans `faux-supabase.js`. Le test signale ce qui manque au bouchon par la ligne « à compléter dans faux-supabase.js ».
+
+## Tester les outils qui utilisent une bibliothèque (`tests/test-bibliotheques.js`)
+
+Depuis le 14/11/2026, les bibliothèques du site (lecteur de PDF pdf.js, fabrique de PDF jsPDF, JSZip, KaTeX, html-to-image) ne viennent plus de cdnjs : elles sont dans le dossier `bibliotheques/` du dépôt (origine, licences et marche à suivre pour changer de version dans `bibliotheques/LISEZMOI.txt`).
+
+Depuis la racine du dépôt : `node sources/tests/test-bibliotheques.js` (ou `npm run bibliotheques` depuis `sources/tests/`). Le test essaie pour de vrai, dans le site assemblé et avec sa règle de sécurité : l'éditeur de formules et son image, le bilan PDF, l'annotation d'une copie PDF par le professeur, la fiche PDF et le scanner de l'élève, l'import d'un zip, puis le passage par le service worker. Il échoue si un outil ne marche pas, si une erreur sort dans la console ou si un fichier est demandé à un autre site. Options : `--voir`, `--captures`, `--seul=testsProf` (ou `testsEleve`, `testsServiceWorker`).
+
+À lancer avant une mise en ligne qui touche à ces outils, et à chaque changement de version d'une bibliothèque. Safari (iPhone) n'est pas couvert : seul Chromium est installé.

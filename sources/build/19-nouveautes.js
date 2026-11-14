@@ -39,7 +39,9 @@ function tableCompetencesClasse(c){
 
 /* ---------------------------------------------------------------- 3. Copies annotées et commentaire vocal */
 async function chargerScript(url, test){ if (test()) return; await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = () => ko(new Error("bibliothèque introuvable")); document.head.appendChild(s); }); }
-const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", PDFJS_W = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js", JSPDF = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+/* bibliothèques rangées dans le site depuis le 14/11/2026 (dossier bibliotheques/, fichiers des paquets npm, voir son LISEZMOI.txt) : plus aucun appel à cdnjs.
+   Le numéro de version est dans le nom du dossier ; « ?v=1 » fait garder le fichier par le service worker (copie locale d'abord). */
+const PDFJS = "bibliotheques/pdfjs-3.11.174/pdf.min.js?v=1", PDFJS_W = "bibliotheques/pdfjs-3.11.174/pdf.worker.min.js?v=1", JSPDF = "bibliotheques/jspdf-2.5.1/jspdf.umd.min.js?v=1";
 /* déposer un fichier du prof pour l'élève : OneDrive (partagé avec l'élève et son binôme) ou, sinon, stockage du site */
 async function deposerPourEleve(d, rd, nom, blob){
   if (odActif()) {
@@ -83,7 +85,8 @@ async function ouvrirAnnotation(){
     const fonds = [];
     if (extDe(f.nom) === "pdf") {
       await chargerScript(PDFJS, () => window.pdfjsLib); window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_W;
-      const pdf = await window.pdfjsLib.getDocument({ url }).promise, n = Math.min(pdf.numPages, 15);
+      /* isEvalSupported:false = second verrou contre la faille CVE-2024-4367 de pdf.js (avant 4.2.67), en plus de la règle CSP de index.html */
+      const pdf = await window.pdfjsLib.getDocument({ url, isEvalSupported: false }).promise, n = Math.min(pdf.numPages, 15);
       for (let i = 1; i <= n; i++) { const p = await pdf.getPage(i), vp0 = p.getViewport({ scale: 1 }), vp = p.getViewport({ scale: Math.min(2, 1400 / vp0.width) });
         const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; fonds.push(c); }
       if (pdf.numPages > 15) toast("Seules les 15 premières pages sont annotables.");

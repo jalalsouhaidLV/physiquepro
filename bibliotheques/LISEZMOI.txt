@@ -1,0 +1,50 @@
+Bibliothèques du site PhysiquePro, servies depuis le dépôt depuis le 14/11/2026.
+Avant, elles étaient chargées depuis cdnjs.cloudflare.com. Le site n'appelle plus cdnjs
+(la règle de sécurité CSP d'index.html ne l'autorise plus).
+
+Chaque fichier est la copie exacte du fichier du paquet npm officiel, sans aucune
+modification. Les archives ont été téléchargées avec « npm pack » et comparées à
+l'empreinte « integrity » du registre npm avant la copie.
+
+dossier                  paquet npm             fichiers copiés                              licence du paquet
+jszip-3.10.1/            jszip@3.10.1           dist/jszip.min.js                            MIT ou GPL-3.0-or-later
+jspdf-2.5.1/             jspdf@2.5.1            dist/jspdf.umd.min.js                        MIT
+pdfjs-3.11.174/          pdfjs-dist@3.11.174    build/pdf.min.js, build/pdf.worker.min.js    Apache-2.0
+katex-0.16.9/            katex@0.16.9           dist/katex.min.js, dist/katex.min.css,       MIT
+                                                dist/contrib/mhchem.min.js, dist/fonts/*
+html-to-image-1.11.11/   html-to-image@1.11.11  dist/html-to-image.js                        MIT
+
+Dans chaque dossier, LICENCE.txt est le fichier de licence du paquet (LICENSE ou LICENSE.markdown).
+
+Empreintes des archives npm (champ dist.integrity du registre, relevées le 14/11/2026) :
+jszip@3.10.1           sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g==
+jspdf@2.5.1            sha512-hXObxz7ZqoyhxET78+XR34Xu2qFGrJJ2I2bE5w4SM8eFaFEkW2xcGRVUss360fYelwRSid/jT078kbNvmoW0QA==
+pdfjs-dist@3.11.174    sha512-TdTZPf1trZ8/UFu5Cx/GXB7GZM30LT+wWUNfsi6Bq8ePLnb+woNKtDymI2mxZYBpMbonNFqKmiz684DIfnd8dA==
+katex@0.16.9           sha512-fsSYjWS0EEOwvy81j3vRA8TEAhQhKiqO+FQaKWp0m39qwOzHVBgAUBIXWj1pB+O2W3fIpNa6Y9KSKCVbfPhyAQ==
+html-to-image@1.11.11  sha512-9gux8QhvjRO/erSnDPv28noDZcPZmYE7e1vFsBLKLlRlKDSqNJYebj6Qz1TGd5lsRV+X+xYyjCKjuZdABinWjA==
+
+À quoi sert chaque bibliothèque (modules de sources/build/) :
+- jszip : lire le .zip de Google Drive dans Paramètres > Importer (16-import.js).
+- jspdf : fabriquer un PDF : bilan d'un élève (21-pro.js), copie annotée par le prof (19-nouveautes.js),
+  fiche annotée et travail scanné par l'élève (30-classroom.js).
+- pdfjs : lire un PDF pour l'annoter (19-nouveautes.js, 30-classroom.js). Il est ouvert avec
+  « isEvalSupported: false » : second verrou contre la faille CVE-2024-4367 (corrigée dans pdf.js 4.2.67),
+  en plus de la règle CSP.
+- katex (+ mhchem + polices) : éditeur de formules (23-outils-sciences.js).
+- html-to-image : image PNG d'une formule (23-outils-sciences.js).
+
+Les adresses utilisées par le site finissent par « ?v=1 » : le service worker (sw.js) garde alors le fichier
+dans l'appareil (copie locale d'abord). Le numéro de version est dans le nom du dossier.
+
+Vérifier que rien n'a bougé :   cd bibliotheques && sha256sum -c EMPREINTES.sha256
+Essayer les outils :            node sources/tests/test-bibliotheques.js   (depuis la racine du dépôt)
+
+Changer de version (une bibliothèque à la fois) :
+1. npm pack <paquet>@<version>, puis comparer l'archive à « npm view <paquet>@<version> dist.integrity » ;
+2. copier les fichiers dans un nouveau dossier au nom de la nouvelle version, avec LICENCE.txt ;
+3. changer l'adresse dans le module concerné, lancer ./sources/build/build.sh ;
+4. supprimer l'ancien dossier, refaire EMPREINTES.sha256, mettre ce fichier à jour ;
+5. lancer test-bibliotheques.js, test-site.js et test-telephone.js, puis essayer l'outil sur un vrai fichier.
+
+La bibliothèque qrcode.js (QR code d'un cours) est à la racine du dépôt depuis plus longtemps.
+supabase-js et msal-browser restent chargées depuis jsDelivr, avec vérification d'intégrité (SRI), dans index.html.

@@ -1,6 +1,6 @@
 # Tests Playwright de PhysiquePro
 
-**Pour tester le site aujourd'hui, utiliser `test-site.js`** (avec `faux-supabase.js`, `faux-msal.js` et `serveur.js`) : il charge le site en visiteur, élève et professeur et échoue à la moindre erreur. Mode d'emploi dans `sources/LISEZMOI.md`. Les fichiers ci-dessous sont les bouchons d'origine de l'ancien chat, gardés comme modèles.
+**Pour tester le site aujourd'hui, utiliser `test-site.js`** (avec `faux-supabase.js`, `faux-msal.js` et `serveur.js`) : il charge le site en visiteur, élève et professeur et échoue à la moindre erreur. Mode d'emploi dans `sources/LISEZMOI.md`. Pour les outils qui utilisent une bibliothèque (PDF, formules, zip) : `test-bibliotheques.js` (même mode d'emploi). Les fichiers ci-dessous sont les bouchons d'origine de l'ancien chat, gardés comme modèles.
 
 Le site est testé hors ligne avec Playwright (Chromium) : la vraie bibliothèque Supabase est remplacée par un **bouchon** qui simule la base avec des élèves fictifs.
 

@@ -267,6 +267,7 @@
 
   /* ---------- stockage (buckets « documents » et « rendus ») ---------- */
   const FICHIER_TEST = "data:text/plain;charset=utf-8," + encodeURIComponent("Fichier fictif (test PhysiquePro)");
+  const urlFictive = p => /\.(png|jpe?g)$/i.test(p || "") ? location.origin + "/icon-512.png" : /fiche-test\.pdf$/i.test(p || "") ? location.origin + "/sources/tests/fiche-test.pdf" : FICHIER_TEST;
   const stockage = bucket => {
     const a = (op, data) => { APPELS.push({ bucket, op }); return Promise.resolve(ok(data)); };
     return {
@@ -278,9 +279,10 @@
       copy: (de, vers) => a("copy", { path: vers }),
       move: (de, vers) => a("move", { path: vers }),
       download: () => a("download", new Blob(["Fichier fictif"], { type: "text/plain" })),
-      /* une image fictive (vraie image du site) pour les fichiers .png/.jpg : sert à l'annotation par l'élève */
-      createSignedUrls: (L) => a("createSignedUrls", (L || []).map(p => ({ path: p, signedUrl: /\.(png|jpe?g)$/i.test(p || "") ? location.origin + "/icon-512.png" : FICHIER_TEST }))),
-      createSignedUrl: (p) => a("createSignedUrl", { signedUrl: /\.(png|jpe?g)$/i.test(p || "") ? location.origin + "/icon-512.png" : FICHIER_TEST }),
+      /* une image fictive (vraie image du site) pour les fichiers .png/.jpg : sert à l'annotation par l'élève ;
+         un vrai PDF de 2 pages (sources/tests/fiche-test.pdf) pour un fichier nommé « …fiche-test.pdf » : sert à test-bibliotheques.js */
+      createSignedUrls: (L) => a("createSignedUrls", (L || []).map(p => ({ path: p, signedUrl: urlFictive(p) }))),
+      createSignedUrl: (p) => a("createSignedUrl", { signedUrl: urlFictive(p) }),
       getPublicUrl: () => ({ data: { publicUrl: FICHIER_TEST } })
     };
   };
@@ -314,5 +316,8 @@
       removeChannel: () => Promise.resolve("ok")
     })
   };
+  /* un test peut ajouter ses propres données fictives avant le démarrage du site :
+     window.__PP_DONNEES = DB => { … } posé par addInitScript (voir test-bibliotheques.js) */
+  if (typeof window.__PP_DONNEES === "function") window.__PP_DONNEES(DB);
   window.__PP_BOUCHON = { role, DB };
 })();

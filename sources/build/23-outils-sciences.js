@@ -11,13 +11,13 @@ const OV = {}; // valeurs saisies (gardées entre deux affichages)
 const ov = id => OV[id] ?? "";
 
 /* ---------- Éditeur de formules (KaTeX + mhchem) ---------- */
-const KATEX = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/";
+const KATEX = "bibliotheques/katex-0.16.9/";   /* rangé dans le site (14/11/2026) : feuille de style, programme, mhchem et polices */
 let katexPret = null;
 function chargerKatex(){
   if (katexPret) return katexPret;
   katexPret = new Promise((ok, ko) => {
-    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = KATEX + "katex.min.css"; document.head.appendChild(l);
-    const s = document.createElement("script"); s.src = KATEX + "katex.min.js"; s.onload = () => { const m = document.createElement("script"); m.src = KATEX + "contrib/mhchem.min.js"; m.onload = ok; m.onerror = ok; document.head.appendChild(m); }; s.onerror = ko; document.head.appendChild(s);
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = KATEX + "katex.min.css?v=1"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = KATEX + "katex.min.js?v=1"; s.onload = () => { const m = document.createElement("script"); m.src = KATEX + "contrib/mhchem.min.js?v=1"; m.onload = ok; m.onerror = ok; document.head.appendChild(m); }; s.onerror = ko; document.head.appendChild(s);
   });
   return katexPret;
 }
@@ -55,8 +55,10 @@ function insererFormule(code){
 }
 async function imageFormule(){
   const z = document.querySelector("#fmApercu .katex-display") || document.getElementById("fmApercu"); if (!z) return;
-  await chargerScriptUne("https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js", () => window.htmlToImage);
-  const url = await window.htmlToImage.toPng(z, { backgroundColor: "#ffffff", pixelRatio: 3, style: { margin: "0", padding: "12px" } });
+  await chargerScriptUne("bibliotheques/html-to-image-1.11.11/html-to-image.js?v=1", () => window.htmlToImage);
+  /* marge blanche de 12 px autour de la formule : l'image mesure donc la formule + 24 px (sans cela, la droite et le bas de la formule étaient coupés de 12 px) */
+  const r = z.getBoundingClientRect();
+  const url = await window.htmlToImage.toPng(z, { backgroundColor: "#ffffff", pixelRatio: 3, width: Math.ceil(r.width) + 24, height: Math.ceil(r.height) + 24, style: { margin: "0", padding: "12px" } });
   const l = document.createElement("a"); l.download = "formule.png"; l.href = url; l.click();
 }
 function chargerScriptUne(url, test){ if (test()) return Promise.resolve(); return new Promise((ok, ko) => { const s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }

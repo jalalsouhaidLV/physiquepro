@@ -195,7 +195,8 @@ async function ouvrirAnnotEleve(url, nom, d){
     const fonds = [];
     if (extDe(nom) === "pdf" || /\.pdf(\?|$)/i.test(url)) {
       await chargerScript(PDFJS, () => window.pdfjsLib); window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_W;
-      const pdf = await window.pdfjsLib.getDocument({ url }).promise, n = Math.min(pdf.numPages, 15);
+      /* isEvalSupported:false = second verrou contre la faille CVE-2024-4367 de pdf.js (avant 4.2.67), en plus de la règle CSP de index.html */
+      const pdf = await window.pdfjsLib.getDocument({ url, isEvalSupported: false }).promise, n = Math.min(pdf.numPages, 15);
       for (let i = 1; i <= n; i++) { const p = await pdf.getPage(i), vp0 = p.getViewport({ scale: 1 }), vp = p.getViewport({ scale: Math.min(2, 1400 / vp0.width) });
         const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; fonds.push(c); }
       if (pdf.numPages > 15) toast("Seules les 15 premières pages sont modifiables.");

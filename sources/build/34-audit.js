@@ -35,14 +35,14 @@ VUES_PRO.donnees = function(){
     ${bloc("links", "Les autres services", `<ul>
       <li>Le site n'a <b>aucune publicité</b> et <b>aucun outil de pistage</b>. Tes données ne sont ni vendues ni partagées.</li>
       <li>La connexion passe par <b>Microsoft</b> (ton compte du lycée).</li>
-      <li>Quelques programmes nécessaires au site sont chargés depuis <b>jsDelivr</b> et <b>cdnjs</b>, deux services publics de fichiers. Les polices d'écriture sont rangées dans le site lui-même.</li>
+      <li>Deux programmes nécessaires au site (la liaison avec la base de données et la connexion Microsoft) sont chargés depuis <b>jsDelivr</b>, un service public de fichiers. Les autres outils (lecteur de PDF, éditeur de formules…) et les polices d'écriture sont rangés dans le site lui-même.</li>
       <li>Quand une <b>vidéo YouTube</b> est jointe à un cours, ton navigateur demande son image et son titre à YouTube. Les portraits de scientifiques viennent de Wikipédia.</li>
       <li>Les logos en haut des pages (Pronote, PIX, WhatsApp…) sont de simples liens : rien n'est envoyé tant que tu ne les touches pas.</li>
     </ul>`)}
     ${bloc("trash", "Faire corriger ou effacer tes données", `<p>Toi ou tes parents pouvez demander à ${prof} de corriger ton nom, ou d'effacer ton compte et tout ce qui s'y rattache. Il le fait depuis ses paramètres.</p>
       ${mail ? `<p class="dnact"><a class="btn" href="${esc(lienMail)}">${icon("mail")} Demander l'effacement</a><span class="muted">ou écris à <b class="dnmail">${esc(mail)}</b></span></p>` : ""}
       <p class="muted">Ce bouton ouvre ta messagerie avec un message déjà préparé. Rien n'est effacé tant que le professeur n'a pas répondu.</p>`)}
-    <p class="muted dnmaj">Page mise à jour le 11 novembre 2026.</p>
+    <p class="muted dnmaj">Page mise à jour le 14 novembre 2026.</p>
     ${pageFoot()}</div>`;
 };
 

@@ -1856,7 +1856,7 @@ function admSauvegarde(){
       <div class="classlinks">
         <a href="https://supabase.com/dashboard/project/${esc((CFG.supabaseUrl.match(/https:\/\/([^.]+)/) || [])[1] || "")}" target="_blank" rel="noopener">${icon("links")}<span>Supabase · base de données et fichiers</span></a>
         <a href="https://github.com/jalalsouhaidlv/physiquepro" target="_blank" rel="noopener">${icon("links")}<span>GitHub · fichiers du site</span></a>
-        <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/f52213ef-d098-49cc-ac22-944c23bcab61" target="_blank" rel="noopener">${icon("links")}<span>Microsoft Entra · connexion Microsoft 365 (secret valable jusqu'au 16/10/2028)</span></a>
+        <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/f52213ef-d098-49cc-ac22-944c23bcab61" target="_blank" rel="noopener">${icon("links")}<span>Microsoft Entra · connexion Microsoft 365 (secret à renouveler : un rappel est planifié)</span></a>
       </div></section>`;
 }
 async function sauvegarder(){
@@ -2943,7 +2943,7 @@ async function lancerImport(){
 /* fichiers du zip Google Drive → OneDrive (ou PhysiquePro), à la place des liens Drive */
 async function importerZip(files){
   const I = S.imp || (S.imp = { texte: "", data: null, map: {}, brouillons: true, log: [], busy: false });
-  if (!window.JSZip) { await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+  if (!window.JSZip) { await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "bibliotheques/jszip-3.10.1/jszip.min.js?v=1"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
   I.busy = true; I.log = []; render();
   const log = m => { I.log.push(m); const z = document.querySelector(".implog"); if (z) z.insertAdjacentHTML("beforeend", "<div>" + esc(m) + "</div>"); else render(); };
   /* index des fichiers du zip : nom → [{entrée, cours}] (le cours vient du dossier Classroom « Ter. G1… », « 1ere G3… ») */
@@ -3326,7 +3326,9 @@ function tableCompetencesClasse(c){
 
 /* ---------------------------------------------------------------- 3. Copies annotées et commentaire vocal */
 async function chargerScript(url, test){ if (test()) return; await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = () => ko(new Error("bibliothèque introuvable")); document.head.appendChild(s); }); }
-const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", PDFJS_W = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js", JSPDF = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+/* bibliothèques rangées dans le site depuis le 14/11/2026 (dossier bibliotheques/, fichiers des paquets npm, voir son LISEZMOI.txt) : plus aucun appel à cdnjs.
+   Le numéro de version est dans le nom du dossier ; « ?v=1 » fait garder le fichier par le service worker (copie locale d'abord). */
+const PDFJS = "bibliotheques/pdfjs-3.11.174/pdf.min.js?v=1", PDFJS_W = "bibliotheques/pdfjs-3.11.174/pdf.worker.min.js?v=1", JSPDF = "bibliotheques/jspdf-2.5.1/jspdf.umd.min.js?v=1";
 /* déposer un fichier du prof pour l'élève : OneDrive (partagé avec l'élève et son binôme) ou, sinon, stockage du site */
 async function deposerPourEleve(d, rd, nom, blob){
   if (odActif()) {
@@ -3370,7 +3372,8 @@ async function ouvrirAnnotation(){
     const fonds = [];
     if (extDe(f.nom) === "pdf") {
       await chargerScript(PDFJS, () => window.pdfjsLib); window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_W;
-      const pdf = await window.pdfjsLib.getDocument({ url }).promise, n = Math.min(pdf.numPages, 15);
+      /* isEvalSupported:false = second verrou contre la faille CVE-2024-4367 de pdf.js (avant 4.2.67), en plus de la règle CSP de index.html */
+      const pdf = await window.pdfjsLib.getDocument({ url, isEvalSupported: false }).promise, n = Math.min(pdf.numPages, 15);
       for (let i = 1; i <= n; i++) { const p = await pdf.getPage(i), vp0 = p.getViewport({ scale: 1 }), vp = p.getViewport({ scale: Math.min(2, 1400 / vp0.width) });
         const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; fonds.push(c); }
       if (pdf.numPages > 15) toast("Seules les 15 premières pages sont annotables.");
@@ -4782,13 +4785,13 @@ const OV = {}; // valeurs saisies (gardées entre deux affichages)
 const ov = id => OV[id] ?? "";
 
 /* ---------- Éditeur de formules (KaTeX + mhchem) ---------- */
-const KATEX = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/";
+const KATEX = "bibliotheques/katex-0.16.9/";   /* rangé dans le site (14/11/2026) : feuille de style, programme, mhchem et polices */
 let katexPret = null;
 function chargerKatex(){
   if (katexPret) return katexPret;
   katexPret = new Promise((ok, ko) => {
-    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = KATEX + "katex.min.css"; document.head.appendChild(l);
-    const s = document.createElement("script"); s.src = KATEX + "katex.min.js"; s.onload = () => { const m = document.createElement("script"); m.src = KATEX + "contrib/mhchem.min.js"; m.onload = ok; m.onerror = ok; document.head.appendChild(m); }; s.onerror = ko; document.head.appendChild(s);
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = KATEX + "katex.min.css?v=1"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = KATEX + "katex.min.js?v=1"; s.onload = () => { const m = document.createElement("script"); m.src = KATEX + "contrib/mhchem.min.js?v=1"; m.onload = ok; m.onerror = ok; document.head.appendChild(m); }; s.onerror = ko; document.head.appendChild(s);
   });
   return katexPret;
 }
@@ -4826,8 +4829,10 @@ function insererFormule(code){
 }
 async function imageFormule(){
   const z = document.querySelector("#fmApercu .katex-display") || document.getElementById("fmApercu"); if (!z) return;
-  await chargerScriptUne("https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js", () => window.htmlToImage);
-  const url = await window.htmlToImage.toPng(z, { backgroundColor: "#ffffff", pixelRatio: 3, style: { margin: "0", padding: "12px" } });
+  await chargerScriptUne("bibliotheques/html-to-image-1.11.11/html-to-image.js?v=1", () => window.htmlToImage);
+  /* marge blanche de 12 px autour de la formule : l'image mesure donc la formule + 24 px (sans cela, la droite et le bas de la formule étaient coupés de 12 px) */
+  const r = z.getBoundingClientRect();
+  const url = await window.htmlToImage.toPng(z, { backgroundColor: "#ffffff", pixelRatio: 3, width: Math.ceil(r.width) + 24, height: Math.ceil(r.height) + 24, style: { margin: "0", padding: "12px" } });
   const l = document.createElement("a"); l.download = "formule.png"; l.href = url; l.click();
 }
 function chargerScriptUne(url, test){ if (test()) return Promise.resolve(); return new Promise((ok, ko) => { const s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
@@ -6520,7 +6525,8 @@ async function ouvrirAnnotEleve(url, nom, d){
     const fonds = [];
     if (extDe(nom) === "pdf" || /\.pdf(\?|$)/i.test(url)) {
       await chargerScript(PDFJS, () => window.pdfjsLib); window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_W;
-      const pdf = await window.pdfjsLib.getDocument({ url }).promise, n = Math.min(pdf.numPages, 15);
+      /* isEvalSupported:false = second verrou contre la faille CVE-2024-4367 de pdf.js (avant 4.2.67), en plus de la règle CSP de index.html */
+      const pdf = await window.pdfjsLib.getDocument({ url, isEvalSupported: false }).promise, n = Math.min(pdf.numPages, 15);
       for (let i = 1; i <= n; i++) { const p = await pdf.getPage(i), vp0 = p.getViewport({ scale: 1 }), vp = p.getViewport({ scale: Math.min(2, 1400 / vp0.width) });
         const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; fonds.push(c); }
       if (pdf.numPages > 15) toast("Seules les 15 premières pages sont modifiables.");
@@ -7502,14 +7508,14 @@ VUES_PRO.donnees = function(){
     ${bloc("links", "Les autres services", `<ul>
       <li>Le site n'a <b>aucune publicité</b> et <b>aucun outil de pistage</b>. Tes données ne sont ni vendues ni partagées.</li>
       <li>La connexion passe par <b>Microsoft</b> (ton compte du lycée).</li>
-      <li>Quelques programmes nécessaires au site sont chargés depuis <b>jsDelivr</b> et <b>cdnjs</b>, deux services publics de fichiers. Les polices d'écriture sont rangées dans le site lui-même.</li>
+      <li>Deux programmes nécessaires au site (la liaison avec la base de données et la connexion Microsoft) sont chargés depuis <b>jsDelivr</b>, un service public de fichiers. Les autres outils (lecteur de PDF, éditeur de formules…) et les polices d'écriture sont rangés dans le site lui-même.</li>
       <li>Quand une <b>vidéo YouTube</b> est jointe à un cours, ton navigateur demande son image et son titre à YouTube. Les portraits de scientifiques viennent de Wikipédia.</li>
       <li>Les logos en haut des pages (Pronote, PIX, WhatsApp…) sont de simples liens : rien n'est envoyé tant que tu ne les touches pas.</li>
     </ul>`)}
     ${bloc("trash", "Faire corriger ou effacer tes données", `<p>Toi ou tes parents pouvez demander à ${prof} de corriger ton nom, ou d'effacer ton compte et tout ce qui s'y rattache. Il le fait depuis ses paramètres.</p>
       ${mail ? `<p class="dnact"><a class="btn" href="${esc(lienMail)}">${icon("mail")} Demander l'effacement</a><span class="muted">ou écris à <b class="dnmail">${esc(mail)}</b></span></p>` : ""}
       <p class="muted">Ce bouton ouvre ta messagerie avec un message déjà préparé. Rien n'est effacé tant que le professeur n'a pas répondu.</p>`)}
-    <p class="muted dnmaj">Page mise à jour le 11 novembre 2026.</p>
+    <p class="muted dnmaj">Page mise à jour le 14 novembre 2026.</p>
     ${pageFoot()}</div>`;
 };
 

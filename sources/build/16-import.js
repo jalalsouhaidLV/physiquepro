@@ -94,7 +94,7 @@ async function lancerImport(){
 /* fichiers du zip Google Drive → OneDrive (ou PhysiquePro), à la place des liens Drive */
 async function importerZip(files){
   const I = S.imp || (S.imp = { texte: "", data: null, map: {}, brouillons: true, log: [], busy: false });
-  if (!window.JSZip) { await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+  if (!window.JSZip) { await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "bibliotheques/jszip-3.10.1/jszip.min.js?v=1"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
   I.busy = true; I.log = []; render();
   const log = m => { I.log.push(m); const z = document.querySelector(".implog"); if (z) z.insertAdjacentHTML("beforeend", "<div>" + esc(m) + "</div>"); else render(); };
   /* index des fichiers du zip : nom → [{entrée, cours}] (le cours vient du dossier Classroom « Ter. G1… », « 1ere G3… ») */
