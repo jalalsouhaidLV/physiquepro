@@ -153,6 +153,19 @@ async function testsProf() {
   if (!bl) verif("Bilan PDF : le fichier est créé (jsPDF)", false, await toast(page));
   else { const b = fs.readFileSync(await bl.path()); if (CAPTURES) { fs.mkdirSync(DOSSIER, { recursive: true }); fs.writeFileSync(path.join(DOSSIER, "bilan.pdf"), b); }
     verif("Bilan PDF : le fichier est créé (jsPDF)", b.slice(0, 5).toString() === "%PDF-" && b.length > 2000 && /^bilan-.*\.pdf$/.test(bl.suggestedFilename()), bl.suggestedFilename() + ", " + b.length + " octets"); }
+  /* sauvegarde complète (Administration > Sauvegarde) : fichier téléchargé, toutes les tables du site, aucune clé secrète */
+  await aller(page, "#/admin/sauvegarde");
+  await page.waitForSelector('[data-act="backup"]', { timeout: 5000 }).catch(() => {});
+  const [sv] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }).catch(() => null), page.click('[data-act="backup"]').catch(() => {})]);
+  if (!sv) verif("Sauvegarde complète : le fichier est téléchargé", false, await toast(page));
+  else {
+    let j = null; try { j = JSON.parse(fs.readFileSync(await sv.path(), "utf8")); } catch (_) {}
+    const noms = j ? Object.keys(j.tables || {}) : [];
+    const voulues = ["classes", "devoirs", "rendus", "commentaires_prives", "commentaires_devoirs", "copies", "notes_perso", "messages_urgents", "flashcards", "profiles"];
+    const manque = voulues.filter(t => !noms.includes(t)), secret = noms.filter(t => /pp_push_cles|pp_rappels_cle|pp_push_abonnements|sessions_ouvertes/.test(t));
+    verif("Sauvegarde complète : le fichier contient toutes les tables du site (25), dont les cinq qui manquaient avant", !!j && noms.length === 25 && !manque.length, j ? noms.length + " tables" + (manque.length ? ", manque : " + manque.join(", ") : "") : "fichier illisible");
+    verif("Sauvegarde complète : aucune clé secrète ni abonnement d'appareil dans le fichier", !!j && !secret.length && !JSON.stringify(j).includes("BEGIN PRIVATE KEY"), secret.join(", "));
+  }
   /* annoter la copie PDF d'un élève (pdf.js), puis l'enregistrer (jsPDF) */
   await aller(page, "#/devoir/2");
   await page.evaluate(() => { const b = [...document.querySelectorAll('[data-act="sel"]')].find(x => /Élève Test/.test(x.textContent)); if (b) b.click(); }); await page.waitForTimeout(700);

@@ -251,8 +251,8 @@ async function purgerFichiers(){
 /* ----- onglet Sauvegarde ----- */
 function admSauvegarde(){
   return `<section class="edcard"><h2>${icon("down")} Sauvegarde complète</h2>
-      <p style="margin:0">Télécharge toutes les données du site dans un fichier : cours, thèmes, devoirs, questionnaires, documentations, annonces, listes d'élèves, rendus, notes et réglages.</p>
-      <p class="muted" style="margin:0;font-size:.85rem">Les fichiers eux-mêmes (PDF, photos…) ne sont pas dans la sauvegarde : ils restent dans Supabase et dans ton OneDrive. Fais une sauvegarde au moins une fois par trimestre.</p>
+      <p style="margin:0">Télécharge toutes les données du site dans un fichier : cours, thèmes, devoirs, questionnaires, documentations, annonces, listes d'élèves, rendus, notes, commentaires, messages d'urgence et réglages. Une copie est aussi rangée dans ton OneDrive (dossier « Sauvegardes du site »).</p>
+      <p class="muted" style="margin:0;font-size:.85rem">Les fichiers eux-mêmes (PDF, photos…) ne sont pas dans la sauvegarde : ils restent dans Supabase et dans ton OneDrive. Les clés secrètes ne sont pas dans le fichier. Fais une sauvegarde au moins une fois par mois.</p>
       <div><button class="btn" data-act="backup" ${S.backupBusy ? "disabled" : ""}>${S.backupBusy ? "Préparation…" : "Télécharger la sauvegarde"}</button></div></section>
     <section class="edcard"><h2>${icon("grade")} Notes vers Excel ou Pronote</h2>
       <p class="muted" style="margin:0;font-size:.85rem">Un fichier CSV par cours, qui s'ouvre dans Excel : une ligne par élève, une colonne par devoir ou questionnaire noté, et la moyenne sur 20.</p>
@@ -267,12 +267,31 @@ function admSauvegarde(){
         <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/f52213ef-d098-49cc-ac22-944c23bcab61" target="_blank" rel="noopener">${icon("links")}<span>Microsoft Entra · connexion Microsoft 365 (secret à renouveler : un rappel est planifié)</span></a>
       </div></section>`;
 }
+/* Tables sauvegardées : tout le contenu du site (24 tables). Exclues exprès, pour que le fichier ne contienne aucun secret : clés d'envoi des notifications et des rappels (pp_push_cles, pp_rappels_cle), abonnements des appareils, sessions ouvertes, journal des envois, copies automatiques (sauvegardes). */
+const TABLES_SAUVEGARDE = ["reglages", "classes", "themes", "supports", "devoirs", "quiz", "quiz_solutions", "inscriptions", "annonces", "commentaires", "commentaires_devoirs", "commentaires_prives", "rendus", "corrections", "resultats_quiz", "profiles", "copies", "notes_perso", "flashcards", "messages_urgents", "demandes_materiel", "rdv_series", "rdv_creneaux", "rdv_reservations", "corbeille"];
+/* lit une table entière, 1000 lignes à la fois (limite de Supabase) */
+async function lireTableComplete(t){
+  const tout = [];
+  for (let deb = 0; ; deb += 1000) {
+    const r = await sb.from(t).select("*").range(deb, deb + 999);
+    if (r.error) return { erreur: r.error.message };
+    tout.push(...r.data);
+    if (r.data.length < 1000) return tout;
+  }
+}
 async function sauvegarder(){
-  const tables = ["reglages", "classes", "themes", "supports", "devoirs", "quiz", "quiz_solutions", "inscriptions", "annonces", "commentaires", "commentaires_prives", "rendus", "corrections", "resultats_quiz", "profiles"];
   const out = { site: "PhysiquePro", exporte_le: now().toISOString(), tables: {} };
-  const res = await Promise.all(tables.map(t => sb.from(t).select("*")));
-  res.forEach((r, i) => { out.tables[tables[i]] = r.error ? { erreur: r.error.message } : r.data; });
-  telecharger("physiquepro-sauvegarde-" + ymd(now()) + ".json", JSON.stringify(out, null, 1), "application/json");
+  const res = await Promise.all(TABLES_SAUVEGARDE.map(lireTableComplete));
+  res.forEach((r, i) => { out.tables[TABLES_SAUVEGARDE[i]] = r; });
+  const erreurs = TABLES_SAUVEGARDE.filter(t => out.tables[t] && out.tables[t].erreur);
+  const texte = JSON.stringify(out, null, 1), nom = "physiquepro-sauvegarde-" + ymd(now()) + ".json";
+  telecharger(nom, texte, "application/json");
+  let od = false;
+  if (odActif()) {
+    try { await odPut(cheminOD([OD_RACINE, "Sauvegardes du site", nom]), new Blob([texte], { type: "application/json" })); od = true; }
+    catch (e) { toast("Copie OneDrive impossible : " + (e.message || e)); }
+  }
+  return { erreurs, od, lignes: TABLES_SAUVEGARDE.reduce((n, t) => n + (Array.isArray(out.tables[t]) ? out.tables[t].length : 0), 0) };
 }
 async function exporterNotes(cid){
   const c = cls(cid), data = await chargerClasse(cid), el = data.eleves;

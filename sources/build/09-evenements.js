@@ -172,7 +172,7 @@ document.addEventListener("click", async e => {
     case "admdefaut": S.adm = { prof: { nom: CFG.prof.nom, titre: CFG.prof.titre }, liensUtiles: clone(CFG.liensUtiles), outils: clone(CFG.outils), remarques: R().remarques.join("\n"), busy: false, err: "", modif: true }; render(); return;
     case "admfichiers": S.fich = null; render(); return;
     case "purge": S.modal = {kind:"confirm", action:"purge", ok:"Supprimer", titre:"Supprimer les fichiers inutilisés ?", texte:"Ces fichiers ne sont reliés à aucun devoir, documentation, annonce ou travail rendu. Leur suppression est définitive."}; render(); return;
-    case "backup": S.backupBusy = true; render(); try { await sauvegarder(); toast("Sauvegarde téléchargée"); } catch (err) { toast("Sauvegarde impossible : " + (err.message || err)); } S.backupBusy = false; render(); return;
+    case "backup": S.backupBusy = true; render(); try { const r = await sauvegarder(); toast(r.erreurs.length ? "Sauvegarde incomplète : " + r.erreurs.join(", ") : r.od ? "Sauvegarde téléchargée et copiée dans OneDrive" : "Sauvegarde téléchargée"); } catch (err) { toast("Sauvegarde impossible : " + (err.message || err)); } S.backupBusy = false; render(); return;
     case "exportnotes": try { await exporterNotes(a.dataset.c); } catch (err) { toast("Export impossible : " + (err.message || err)); } return;
     case "exporteleves": exporterEleves(); return;
     case "ajouteleves": { e.preventDefault(); S.menu = null; const cid = a.dataset.c || (r.v === "classe" ? r.a : "") || (S.admF && cls(S.admF) ? S.admF : (actives()[0] || {}).id); S.modal = {kind:"ajouteleves", classe:cid, fixe:!!a.dataset.c, texte:""}; render(); return; }
