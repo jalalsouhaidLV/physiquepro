@@ -21,12 +21,12 @@ async function chargerSessions(){
     if (!x.deconnecter && !e.app.has(x.appareil)) e.app.set(x.appareil, x);
   });
   SES.liste = [...eleves.values()].filter(e => e.app.size).map(e => ({ ...e, app: [...e.app.values()], actif: [...e.app.values()].reduce((m, x) => Math.max(m, new Date(x.actif_le || x.vu_le)), 0) }))
-    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+    .sort((a, b) => b.actif - a.actif || a.nom.localeCompare(b.nom, "fr"));   /* du plus récent au moins récent (demande de Jalal, 14/11/2026) */
   /* déconnectés : élèves des cours sans aucune session ouverte (étape 47) + ceux que le prof vient de déconnecter s'ils ne sont inscrits dans aucun cours */
   const connectes = new Set(SES.liste.map(e => e.cle)), deco = new Map();
   (r2.error ? [] : jsonRpc(r2.data)).forEach(x => { const k = (x.email || "").toLowerCase(); if (!connectes.has(k)) deco.set(k, { nom: x.nom || nomDepuisEmail(x.email), classes: x.classes || "", vu: x.derniere_visite }); });
   eleves.forEach((e, k) => { if (!connectes.has(k) && !deco.has(k)) deco.set(k, { nom: e.nom, classes: e.classes, vu: e.vu }); });
-  SES.deco = [...deco.values()].sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  SES.deco = [...deco.values()].sort((a, b) => (b.vu ? +new Date(b.vu) : 0) - (a.vu ? +new Date(a.vu) : 0) || a.nom.localeCompare(b.nom, "fr"));   /* dernière visite la plus récente d'abord, « Jamais connecté » à la fin */
   dessinerSessions();
 }
 const sesTrouve = (x, q) => !q || sansAccent([x.nom, x.email, x.classes, ...(x.app || []).map(a => a.appareil)].join(" ")).includes(q);
@@ -138,7 +138,7 @@ async function chargerActifs(){
   const z = p.querySelector(".sescorps"), { data, error } = await sb.rpc("pp_eleves_actifs");
   if (!document.getElementById("actPanel")) return;
   if (error) { z.innerHTML = `<p class="ores err">${esc(error.message)}</p>`; return; }
-  const L = jsonRpc(data).map(x => ({ ...x, nom: x.nom && !x.nom.includes("@") ? x.nom : nomDepuisEmail(x.email || "?") })).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  const L = jsonRpc(data).map(x => ({ ...x, nom: x.nom && !x.nom.includes("@") ? x.nom : nomDepuisEmail(x.email || "?") })).sort((a, b) => new Date(b.actif_le) - new Date(a.actif_le) || a.nom.localeCompare(b.nom, "fr"));
   if (S.stv && S.stv.actifs !== L.length) { S.stv.actifs = L.length; document.querySelectorAll(".compteur").forEach(c => c.outerHTML = compteurVisites()); }
   z.innerHTML = `<section><h4>${L.length} élève${L.length > 1 ? "s" : ""} actif${L.length > 1 ? "s" : ""} en ce moment</h4>
     <p class="muted actaide">Page du site à l'écran et un geste (toucher, défilement, clic) il y a moins de 2 minutes. Mise à jour toutes les 20 secondes.</p>
