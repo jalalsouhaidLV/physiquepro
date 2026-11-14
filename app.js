@@ -122,6 +122,7 @@ function appliquerReglages(d){
     liensUtiles: Array.isArray(d.liensUtiles) ? d.liensUtiles : CFG.liensUtiles,
     outils: Array.isArray(d.outils) ? d.outils : CFG.outils,
     onedrive: !!d.onedrive,
+    /* ancienne adresse du préparateur (fonction retirée le 14/11/2026) : gardée telle quelle dans les réglages */
     preparateur: typeof d.preparateur === "string" ? d.preparateur : "",
     simulations: Array.isArray(d.simulations) ? d.simulations : [],
     pratique: d.pratique && typeof d.pratique === "object" && !Array.isArray(d.pratique) ? d.pratique : {},
@@ -271,7 +272,7 @@ function drawer(r){
     <a class="it coinit" href="#" data-act="coinperso" ${document.getElementById("coinPerso") ? 'aria-current="page"' : ""}>${icon("note")}<span class="lbl">Coin Perso</span></a>
     <hr>
     ${S.prof ? "" : `<a class="it" href="#/todo" ${cur("todo")}>${icon("todo")}<span class="lbl">À faire</span></a>`}
-    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it${nbUrgents() ? " actif" : ""}" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a><a class="it" href="#/preparateur" ${cur("preparateur")}>${icon("flask")}<span class="lbl lbl2">Demande de matériel au Préparateur de Labo</span></a>` : ""}
+    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it${nbUrgents() ? " actif" : ""}" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a>` : ""}
     ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve${n ? " actif" : ""}" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à <span class="urgnom">${esc(nomProfCourt())}${supUrg(n)}${statutProf()}</span></span></a>` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt()}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
@@ -838,7 +839,7 @@ function vDevoirProf(d, c){
   const el = elevesDuDevoir(d, (S.cache[c.id] || {eleves:[]}).eleves);
   const sel = S.sel && el.some(e => e.email === S.sel) ? S.sel : null;
   const tabs = `<div class="tabsbar" style="--c:var(${k.c})"><div class="tabs" role="tablist"><button role="tab" aria-selected="${ptab === "instructions"}" data-act="ptab" data-t="instructions">Instructions</button><button role="tab" aria-selected="${ptab === "travaux"}" data-act="ptab" data-t="travaux">Travaux des élèves</button></div>
-    <div class="tabicons">${isQ ? "" : `<button class="ib" data-act="dmnew" data-d="${d.id}" title="Demande au préparateur" aria-label="Demande de matériel au préparateur">${icon("flask")}</button>`}<a class="ib" href="#/editer/${isQ ? "question" : "devoir"}/${d.id}" title="Modifier" aria-label="Modifier">${icon("edit")}</a></div></div>`;
+    <div class="tabicons"><a class="ib" href="#/editer/${isQ ? "question" : "devoir"}/${d.id}" title="Modifier" aria-label="Modifier">${icon("edit")}</a></div></div>`;
   if (ptab === "instructions") {
     return tabs + `<div class="page wide" style="--c:var(${k.c})"><div class="dvhead"><span class="ico">${icon(isQ ? "question" : "devoir", "")}</span><div style="flex:1;min-width:0"><h1>${escTitre(d.titre)}</h1>
       <div class="muted" style="font-size:.88rem;margin-top:4px">${esc(R().prof.nom)} · ${fmtShort(D(d.publie_le))}${d.brouillon ? " · <i>Brouillon</i>" : ""}${d.eleves ? " · attribué à " + d.eleves.length + " élève" + (d.eleves.length > 1 ? "s" : "") : ""}</div>
@@ -1422,8 +1423,6 @@ function vModal(){
       : `<p class="muted" style="margin:0">Une copie sera créée en <b>brouillon</b> dans les cours choisis : tu pourras la relire avant de la publier.</p>
         <div class="ciblelist">${autres.map(c => `<label class="check"><input type="checkbox" class="mDest" value="${esc(c.id)}"> ${esc(c.nom)}</label>`).join("") || `<span class="muted">Aucun autre cours actif.</span>`}</div>`}`; ok = "Copier"; }
   else if (m.kind === "supprclasse") { body = `<h2>Supprimer « ${esc(m.nom)} » ?</h2><p style="margin:0">Le cours, ses devoirs, questionnaires, documentations, annonces, les travaux rendus et les notes seront <b>définitivement supprimés</b>.${odActif() ? " Son dossier OneDrive et tout son contenu partent dans la corbeille de ton OneDrive (récupérables pendant 93 jours)." : ""}</p><div class="field"><label for="mConfirm">Pour confirmer, tape le nom du cours</label><input id="mConfirm" autocomplete="off" placeholder="${esc(m.nom)}"></div>`; ok = "Supprimer"; }
-  else if (m.kind === "demande") { body = modalDemande(m) + `<label class="check"><input type="checkbox" id="dmEnvoi" ${m.x.statut && m.x.statut !== "brouillon" ? "" : "checked"}> Ouvrir Outlook pour l'envoyer au préparateur</label>`; ok = "Enregistrer"; }
-  else if (m.kind === "prep") { body = `<h2>${icon("flask")} Adresse du préparateur</h2><p class="muted" style="margin:0">Les demandes de matériel lui seront adressées par Outlook.</p><div class="field"><label for="dmPrep">Adresse e-mail</label><input id="dmPrep" type="email" value="${esc(emailPrep())}" placeholder="prenom.nom@${esc(CFG.domaine)}"></div>`; }
   else if (m.kind === "rdv") { body = modalRdv(); ok = "Créer les créneaux"; }
   else if (m.kind === "urgchoix") { body = `<h2>${icon("urgent")} Message urgent à ${esc(nomProfCourt())}</h2><p class="muted" style="margin:0">Pour quel cours ?</p><div class="urgchoix">${actives().map(c => `<button class="btn tonal" data-act="urgent" data-c="${esc(c.id)}" style="--c:var(${C(c.couleur).c})">${esc(c.nom)}${supUrg(reponsesNonVues(c.id))}</button>`).join("")}</div><div style="display:flex;justify-content:flex-end"><button class="btn ghost" data-act="mclose">Annuler</button></div>`; foot = false; }
   else if (m.kind === "urgent") { body = modalUrgent(m); ok = "Envoyer"; }
@@ -1480,8 +1479,6 @@ async function modalOk(){
   const stop = msg => { m.err = msg; m.busy = false; render(); };
   m.busy = true;
   try {
-    if (m.kind === "demande") { const env = (document.getElementById("dmEnvoi") || {}).checked; await enregistrerDemande(m, env); S.modal = null; if (route().v !== "preparateur") go("/preparateur"); render(); if (!env) toast("Demande enregistrée"); return; }
-    if (m.kind === "prep") { const v2 = val("dmPrep").trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v2)) return stop("Adresse e-mail invalide."); await sauverPrep(v2); const suite = m.ensuite; S.modal = null; render(); toast("Adresse du préparateur enregistrée"); if (suite) { const x = (S.demandes || []).find(y => y.id === suite); if (x) envoyerDemande(x); } return; }
     if (m.kind === "rdv") { const n = await creerRdv(); S.modal = null; S.rdvFrais = true; if (route().v !== "rendezvous") go("/rendezvous"); render(); toast(n + " créneau(x) créé(s)"); return; }
     if (m.kind === "urgprof") { const nom = await envoyerUrgProf(); S.modal = null; render(); toast("Message d'urgence envoyé à " + nom); return; }
     if (m.kind === "urgent") { await envoyerUrgent(m); S.modal = null; render(); toast("Message envoyé à " + nomProfCourt()); return; }
@@ -1581,7 +1578,6 @@ async function modalOk(){
       if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
       if (m.action === "odorphelins") { let n = 0; for (const id of m.ids) { try { await graph("/me/drive/items/" + encodeURIComponent(id), { method: "DELETE" }, false); n++; } catch (e) { console.warn(e); } }
         S.modal = null; render(); toast(n + " dossier" + (n > 1 ? "s" : "") + " mis à la corbeille OneDrive"); return; }
-      if (m.action === "dmsuppr") { const { error } = await sb.from("demandes_materiel").delete().eq("id", m.id); if (error) throw error; await chargerDemandes(); S.modal = null; render(); toast("Demande supprimée"); return; }
       if (m.action === "rdvsuppr") { const { error } = await sb.from("rdv_series").delete().eq("id", m.id); if (error) throw error; await chargerRdv(); S.modal = null; S.rdvFrais = true; render(); toast("Rendez-vous supprimés"); return; }
       if (m.action === "quitter") { const { error } = await sb.rpc("pp_quitter_cours", { p_classe: m.classe }); if (error) throw error;
         const nom = (cls(m.classe) || {}).nom || "le cours"; S.modal = null; delete S.cache[m.classe]; await rafraichir(); go("/"); render(); toast("Tu as quitté " + nom); return; }
@@ -3290,7 +3286,7 @@ const bandeauNotifs = () => S.prof && !S.pushVerifie && setTimeout(majEtatPush, 
   : notifPossible() ? `<div class="notifbar">${icon("bell")}<span>${S.prof ? "Sois prévenu sur cet ordinateur dès qu'un élève t'envoie un message urgent." : "Sois prévenu sur cet ordinateur dès que ton professeur te répond."}</span><button class="btn sm" data-act="notifon">Activer les notifications</button></div>`
   : `<p class="muted" style="margin:0;font-size:.82rem">${icon("bell")} Les notifications sont bloquées pour ce site : autorise-les dans les réglages du navigateur (cadenas à gauche de l'adresse).</p>`;
 /* =====================================================================
-   Nouveautés : préparateur · compétences · copies annotées et vocal ·
+   Nouveautés : compétences · copies annotées et vocal ·
                 alertes décrochage · rappels · rendez-vous
    ===================================================================== */
 IC.flask = '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/>';
@@ -3300,89 +3296,7 @@ IC.mic = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0
 IC.alerte = '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.1"/>';
 IC.print = '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>';
 
-/* ---------------------------------------------------------------- 1. Préparateur */
-const STATUT_DM = { brouillon: ["Brouillon", ""], envoyee: ["Envoyée", "info"], prete: ["Prête", "ok"] };
-async function chargerDemandes(){ const r = await sb.from("demandes_materiel").select("*").order("date_tp", { ascending: false, nullsFirst: true }); S.demandes = r.error ? [] : r.data; return S.demandes; }
-const emailPrep = () => (R().preparateur || "").trim();
-function texteDemande(x){
-  const c = cls(x.classe_id), d = x.date_tp ? D(x.date_tp) : null;
-  return [`Bonjour,`, ``, `Voici ma demande de matériel pour le TP « ${x.titre} »${c ? " (" + c.nom + ")" : ""}.`, ``,
-    `Date : ${d ? fmtD(d) + " à " + fmtT(d) : "à préciser"}`, `Salle : ${x.salle || "à préciser"}`, `Nombre de postes : ${x.postes || "à préciser"}`, ``,
-    x.solutions.trim() ? `SOLUTIONS ET PRODUITS :\n${x.solutions.trim()}\n` : "", x.materiel.trim() ? `MATÉRIEL ET VERRERIE :\n${x.materiel.trim()}\n` : "",
-    x.remarques.trim() ? `REMARQUES :\n${x.remarques.trim()}\n` : "", `Merci beaucoup,`, R().prof.nom].filter(l => l !== "").join("\n").replace(/\n{3,}/g, "\n\n");
-}
-function vPreparateur(){
-  const L = S.demandes || [];
-  const carte = x => { const c = cls(x.classe_id), st = STATUT_DM[x.statut] || STATUT_DM.brouillon, d = x.date_tp ? D(x.date_tp) : null;
-    return `<article class="dmcard" style="--c:var(${C(c && c.couleur).c})"><header><div style="flex:1;min-width:0"><b>${esc(x.titre)}</b><small class="muted">${esc(c ? c.nom : "Sans cours")} · ${d ? fmtD(d) + " à " + fmtT(d) : "date à préciser"}${x.salle ? " · salle " + esc(x.salle) : ""}${x.postes ? " · " + x.postes + " postes" : ""}</small></div><span class="pill ${st[1]}">${st[0]}</span></header>
-      ${x.solutions.trim() ? `<div class="dmbloc"><b>Solutions et produits</b><p>${esc(x.solutions)}</p></div>` : ""}${x.materiel.trim() ? `<div class="dmbloc"><b>Matériel et verrerie</b><p>${esc(x.materiel)}</p></div>` : ""}${x.remarques.trim() ? `<div class="dmbloc"><b>Remarques</b><p>${esc(x.remarques)}</p></div>` : ""}
-      <div class="urgactions"><button class="btn sm" data-act="dmsend" data-id="${x.id}">${icon("send")} ${x.statut === "brouillon" ? "Envoyer au préparateur" : "Renvoyer"}</button>
-        <button class="btn ghost sm" data-act="dmedit" data-id="${x.id}">${icon("edit")} Modifier</button>
-        <button class="btn ghost sm" data-act="dmprint" data-id="${x.id}">${icon("print")} Imprimer</button>
-        ${x.statut !== "prete" ? `<button class="btn ghost sm" data-act="dmstat" data-id="${x.id}" data-s="prete">${icon("check")} Matériel prêt</button>` : `<button class="btn ghost sm" data-act="dmstat" data-id="${x.id}" data-s="envoyee">Pas encore prêt</button>`}
-        <button class="ib sm" data-act="dmsuppr" data-id="${x.id}" title="Supprimer" aria-label="Supprimer la demande">${icon("trash")}</button></div></article>`; };
-  return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">${icon("flask")} Demande de matériel au Préparateur de Labo</h1><button class="btn" data-act="dmnew">${icon("plus")} Nouvelle demande</button></div>
-    <p class="muted" style="margin:0">Prépare la liste des solutions et du matériel pour chaque TP, puis envoie-la en un clic par Outlook à ${emailPrep() ? "<b>" + esc(emailPrep()) + "</b>" : "ton préparateur (son adresse te sera demandée la première fois)"}.${emailPrep() ? ` <button class="linkbtn" data-act="dmprep">Changer l'adresse</button>` : ""}</p>
-    ${L.length ? `<div class="urglist">${L.map(carte).join("")}</div>` : `<div class="emptystate"><b>Aucune demande pour l'instant.</b><span>Crée ta première demande, ou ouvre un TP et clique sur « Demande au préparateur ».</span></div>`}${pageFoot()}</div>`;
-}
-function modalDemande(m){
-  const x = m.x, dt = x.date_tp ? D(x.date_tp) : null;
-  return `<h2>${icon("flask")} ${x.id ? "Modifier la demande" : "Demande au préparateur"}</h2>
-    <div class="field"><label for="dmTitre">TP</label><input id="dmTitre" value="${esc(x.titre)}" placeholder="ex. TP 2 · Dosage par titrage"></div>
-    <div class="two"><div class="field"><label for="dmCours">Cours</label><select id="dmCours"><option value="">—</option>${actives().map(c => `<option value="${esc(c.id)}" ${c.id === x.classe_id ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></div>
-      <div class="field"><label for="dmPostes">Nombre de postes</label><input id="dmPostes" type="number" min="1" max="40" value="${x.postes || ""}" placeholder="ex. 8"></div></div>
-    <div class="two"><div class="field"><label for="dmDate">Date du TP</label><input id="dmDate" type="date" value="${dt ? ymd(dt) : ""}"></div><div class="field"><label for="dmHeure">Heure</label><input id="dmHeure" type="time" value="${dt ? hm(dt) : ""}"></div></div>
-    <div class="field"><label for="dmSalle">Salle</label><input id="dmSalle" value="${esc(x.salle)}" placeholder="ex. Labo 2"></div>
-    <div class="field"><label for="dmSol">Solutions et produits <span class="muted">(une ligne par produit)</span></label><textarea id="dmSol" rows="4" placeholder="ex. Solution de soude 0,10 mol/L · 1 L\nPhénolphtaléine · 8 flacons">${esc(x.solutions)}</textarea></div>
-    <div class="field"><label for="dmMat">Matériel et verrerie</label><textarea id="dmMat" rows="4" placeholder="ex. Burettes 25 mL × 8\nBéchers 100 mL × 16\nAgitateurs magnétiques × 8">${esc(x.materiel)}</textarea></div>
-    <div class="field"><label for="dmRem">Remarques</label><textarea id="dmRem" rows="2" placeholder="ex. Préparer les solutions la veille.">${esc(x.remarques)}</textarea></div>
-    ${!emailPrep() ? `<div class="field"><label for="dmPrep">Adresse e-mail du préparateur</label><input id="dmPrep" type="email" placeholder="prenom.nom@${esc(CFG.domaine)}"></div>` : ""}`;
-}
-async function enregistrerDemande(m, envoyer){
-  const v = id => ((document.getElementById(id) || {}).value || "").trim();
-  if (!v("dmTitre")) throw new Error("Donne un nom au TP.");
-  const date = v("dmDate"), heure = v("dmHeure") || "08:00";
-  const row = { titre: v("dmTitre"), classe_id: v("dmCours") || null, devoir_id: m.x.devoir_id || null, postes: v("dmPostes") ? Number(v("dmPostes")) : null,
-    date_tp: date ? new Date(date + "T" + heure).toISOString() : null, salle: v("dmSalle"), solutions: v("dmSol"), materiel: v("dmMat"), remarques: v("dmRem") };
-  if (document.getElementById("dmPrep") && v("dmPrep")) await sauverPrep(v("dmPrep"));
-  const r = m.x.id ? await sb.from("demandes_materiel").update(row).eq("id", m.x.id).select().single() : await sb.from("demandes_materiel").insert(row).select().single();
-  if (r.error) throw r.error;
-  await chargerDemandes();
-  if (envoyer) envoyerDemande(r.data);
-  return r.data;
-}
-async function sauverPrep(email){
-  const data = { ...reglagesData(), preparateur: email };
-  const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() }); if (error) throw error;
-  appliquerReglages(data);
-}
-async function envoyerDemande(x){
-  if (!emailPrep()) { S.modal = { kind: "prep", ensuite: x.id }; render(); return; }
-  const d = x.date_tp ? D(x.date_tp) : null;
-  window.open(outlookLink([emailPrep()], "Demande de matériel · " + x.titre + (d ? " · " + fmtShort(d) : ""), texteDemande(x)), "_blank", "noopener");
-  if (x.statut === "brouillon") { await sb.from("demandes_materiel").update({ statut: "envoyee", envoye_le: now().toISOString() }).eq("id", x.id); await chargerDemandes(); render(); }
-  toast("Outlook s'ouvre avec la demande : vérifie puis clique sur Envoyer.");
-}
-function imprimerDemande(x){
-  const c = cls(x.classe_id), d = x.date_tp ? D(x.date_tp) : null, w = window.open("", "_blank"); if (!w) { toast("Autorise les fenêtres pop-up pour imprimer."); return; }
-  const bloc = (t, s) => s.trim() ? `<h2>${t}</h2><ul>${s.trim().split(/\n+/).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
-  w.document.write(`<!doctype html><meta charset="utf-8"><title>Demande · ${esc(x.titre)}</title><style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 20px;color:#111}h1{font-size:22px;margin:0}h2{font-size:15px;margin:18px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}ul{margin:0;padding-left:20px}.m{color:#555}table{border-collapse:collapse;margin-top:10px}td{padding:3px 14px 3px 0}</style>
-    <h1>Demande de matériel · ${esc(x.titre)}</h1><p class="m">${esc(R().prof.nom)} · ${esc(c ? c.nom : "")}</p><table><tr><td><b>Date</b></td><td>${d ? fmtD(d) + " à " + fmtT(d) : "à préciser"}</td></tr><tr><td><b>Salle</b></td><td>${esc(x.salle || "à préciser")}</td></tr><tr><td><b>Postes</b></td><td>${x.postes || "à préciser"}</td></tr></table>
-    ${bloc("Solutions et produits", x.solutions)}${bloc("Matériel et verrerie", x.materiel)}${x.remarques.trim() ? `<h2>Remarques</h2><p>${esc(x.remarques).replace(/\n/g, "<br>")}</p>` : ""}`);
-  w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 300);
-}
-async function actionDemande(act, a){
-  const x = (S.demandes || []).find(y => String(y.id) === a.dataset.id);
-  if (act === "dmnew") { const d = a.dataset.d ? S.devoirs.find(y => String(y.id) === a.dataset.d) : null;
-    S.modal = { kind: "demande", x: { titre: d ? d.titre : "", classe_id: d ? d.classe_id : (route().v === "classe" ? route().a : ""), devoir_id: d ? d.id : null, date_tp: d && d.date_limite ? d.date_limite : null, salle: "", postes: null, solutions: "", materiel: "", remarques: "" } }; render(); return; }
-  if (act === "dmprep") { S.modal = { kind: "prep" }; render(); return; }
-  if (!x) return;
-  if (act === "dmedit") { S.modal = { kind: "demande", x: { ...x } }; render(); return; }
-  if (act === "dmsend") return envoyerDemande(x);
-  if (act === "dmprint") return imprimerDemande(x);
-  if (act === "dmstat") { const { error } = await sb.from("demandes_materiel").update({ statut: a.dataset.s }).eq("id", x.id); if (error) return toast("Action impossible : " + error.message); x.statut = a.dataset.s; render(); return; }
-  if (act === "dmsuppr") { S.modal = { kind: "confirm", action: "dmsuppr", id: x.id, titre: "Supprimer la demande « " + x.titre + " » ?", texte: "La demande disparaît de ta liste. Un e-mail déjà envoyé au préparateur n'est pas annulé.", ok: "Supprimer" }; render(); return; }
-}
+/* 1. (Demande de matériel au préparateur : retirée le 14/11/2026 à la demande de Jalal) */
 
 /* ---------------------------------------------------------------- 2. Compétences */
 const COMP = [["APP", "S'approprier"], ["ANA", "Analyser – Raisonner"], ["REA", "Réaliser"], ["VAL", "Valider"], ["COM", "Communiquer"]];
@@ -3945,7 +3859,6 @@ function chargerPourTableau(){
   if (tdbCharge) return; tdbCharge = true;
   const L = [];
   if (!S.rdv && typeof chargerRdv === "function") L.push(chargerRdv().catch(() => {}));
-  if (S.prof && !S.demandes && typeof chargerDemandes === "function") L.push(chargerDemandes().catch(() => {}));
   if (L.length) Promise.all(L).then(() => { if (route().v === "accueil" && !S.modal) render(); });
 }
 const tuile = (href, ic, n, lib, ton, sous) => n === 0 ? "" : `<a class="kpi ${ton || ""}" href="${href}"><span class="kpiic">${icon(ic)}</span><span class="kpitxt"><b>${n}</b><span>${lib}</span>${sous ? `<small>${sous}</small>` : ""}</span></a>`;
@@ -3959,7 +3872,6 @@ function blocTableauDeBord(){
     const premier = actives().find(c => dvs.some(d => d.classe_id === c.id && aCorriger(d) > 0));
     const urg = typeof nbUrgents === "function" ? nbUrgents() : 0, alertes = typeof alertesEleves === "function" ? alertesEleves().length : 0;
     const crs = S.rdv ? S.rdv.creneaux.filter(c => aujourdhui(c.debut)) : [], rdvJour = S.rdv ? S.rdv.resa.filter(r => crs.some(c => c.id === r.creneau_id)).length : null;
-    const tps = (S.demandes || []).filter(x => x.date_tp && D(x.date_tp) >= new Date(+t - 864e5 / 2) && D(x.date_tp) <= dans7);
     const prochain = dvs.filter(d => d.date_limite && D(d.date_limite) > t).sort((a, b) => D(a.date_limite) - D(b.date_limite))[0];
     /* 5e évaluation : la tuile des copies est toujours là, en premier (« Tout est corrigé ✓ » quand il n'y a rien) ; le clic ouvre le premier devoir à corriger */
     const dvAcor = dvs.filter(d => aCorriger(d) > 0).sort((a, b) => (a.date_limite ? +D(a.date_limite) : 9e15) - (b.date_limite ? +D(b.date_limite) : 9e15))[0];
@@ -3967,7 +3879,6 @@ function blocTableauDeBord(){
       + tuile("#/urgences", "urgent", urg, urg > 1 ? "messages urgents" : "message urgent", urg ? "bad" : "ok", urg ? "non lu" + (urg > 1 ? "s" : "") : "Rien de nouveau")
       + tuile("#/rendezvous", "rdv", rdvJour == null ? "…" : rdvJour, "rendez-vous aujourd'hui", rdvJour ? "info" : "", crs.length ? crs.length + " créneau" + (crs.length > 1 ? "x" : "") + " prévu" + (crs.length > 1 ? "s" : "") : "")
       + tuile("#/suivi", "alerte", alertes, alertes > 1 ? "élèves à surveiller" : "élève à surveiller", alertes ? "warn" : "ok", alertes ? "décrochage possible" : "Tout va bien")
-      + tuile("#/preparateur", "flask", S.demandes ? tps.length : "…", "TP cette semaine", tps.some(x => x.statut === "brouillon") ? "warn" : "", tps.length ? tps.filter(x => x.statut === "prete").length + " prêt(s) · " + tps.filter(x => x.statut === "brouillon").length + " à envoyer" : "")
       + (() => { const n = [...S.devoirs, ...S.quiz].filter(o => !o.brouillon && o.publie_le && D(o.publie_le) > t).length; return n ? tuile("#/programmes", "cal", n, n > 1 ? "publications programmées" : "publication programmée", "info", "apparaîtront automatiquement") : ""; })()
       + (prochain ? tuile(`#/devoir/${prochain.id}`, "cal", fmtShort(D(prochain.date_limite)), "prochaine échéance", "", esc(prochain.titre)) : "");
   } else {
@@ -3995,7 +3906,7 @@ function indexRecherche(){
   const L = [], t = now();
   const pages = [["#/", "home", "Accueil"], ["#/agenda", "cal", "Agenda"], ["#/semaine", "week", "Ma semaine"], [S.prof ? "#/todo" : "#/todo", "todo", S.prof ? "Toutes les copies à corriger" : "À faire"], ["#/rendezvous", "rdv", "Rendez-vous"],
     ["#/outils", "tools", "Boîte à outils"], ["#/physique", "flask", "Outils Scientifiques Importants (unités, éléments, formules, chimie, SNT, SI…)"], ["#/simulations", "eye", "Simulations (PhET, GeoGebra…)"], ["#/revisions", "quiz", "Fiches de révision et flashcards"], ["#/admin/profil", "gear", "Paramètres"]];
-  if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/preparateur", "flask", "Demande de matériel au préparateur"], ["#/archives", "archive", "Cours archivés"]);
+  if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/archives", "archive", "Cours archivés"]);
   pages.forEach(([h, ic, n]) => L.push({ t: "Page", ic, n, h }));
   L.push({ t: "Action", ic: "note", n: "Ouvrir le Coin Perso", act: "coinperso" });
   if (S.prof) { L.push({ t: "Action", ic: "plus", n: "Créer un cours", act: "newclass" }); actives().forEach(c => { L.push({ t: "Action", ic: "devoir", n: "Nouveau devoir · " + c.nom, h: `#/editer/devoir/new/${c.id}` }); L.push({ t: "Action", ic: "support", n: "Nouvelle documentation · " + c.nom, h: `#/editer/documentation/new/${c.id}` }); }); }
@@ -4094,7 +4005,6 @@ VUES_PRO.semaine = function(){
     items.push({ d: D(q.date_limite), titre: q.titre, c, href: "#/quiz/" + q.id, ic: "quiz", fait: S.prof ? D(q.date_limite) < t : !!r, etat: S.prof ? "Questionnaire" : r ? "Fait" : "À faire", k: r ? "ok" : "" }); });
   if (S.rdv) { const mes = S.prof ? S.rdv.resa : S.rdv.resa.filter(r => r.eleve === S.user.id);
     mes.forEach(r => { const cr = S.rdv.creneaux.find(c => c.id === r.creneau_id), se = cr && S.rdv.series.find(s => s.id === cr.serie_id); if (cr && dans(D(cr.debut))) items.push({ d: D(cr.debut), titre: (se ? se.titre : "Rendez-vous") + (S.prof ? " · " + (r.eleve_nom || r.eleve_email) : ""), c: se && cls(se.classe_id), href: "#/rendezvous", ic: "rdv", fait: D(cr.fin) < t, etat: "Rendez-vous", k: "info", rdv: 1 }); }); }
-  if (S.prof && S.demandes) S.demandes.filter(x => x.date_tp && dans(D(x.date_tp))).forEach(x => items.push({ d: D(x.date_tp), titre: "TP · " + x.titre, c: cls(x.classe_id), href: "#/preparateur", ic: "flask", fait: x.statut === "prete", etat: x.statut === "prete" ? "Matériel prêt" : x.statut === "envoyee" ? "Demande envoyée" : "Demande à envoyer", k: x.statut === "prete" ? "ok" : x.statut === "envoyee" ? "info" : "warn" }));
   const travaux = items.filter(x => !x.rdv), faits = travaux.filter(x => x.fait).length, pc = travaux.length ? Math.round(faits / travaux.length * 100) : 100;
   const carte = x => `<a class="smitem${x.fait ? " fait" : ""}" href="${x.href}" style="--c:var(${C(x.c && x.c.couleur).c})"><span class="smh">${fmtT(x.d)}</span><span class="smt">${icon(x.ic)}<b>${esc(x.titre)}</b></span><small>${esc(x.c ? x.c.nom : "")}</small><span class="pill ${x.k || ""}">${esc(x.etat)}</span></a>`;
   return `<div class="page wide semaine"><div class="smhead"><div><h1>${S.prof ? "Ma semaine" : "Ma semaine"}</h1><p class="muted">${jours[0].toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} – ${jours[6].toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p></div>
@@ -4598,7 +4508,7 @@ function compteurVisites(){
   const v = S.stv, noms = (v.noms || []).slice(0, 12);
   return `<div class="compteur"><span class="cpt" title="Élèves qui se sont déjà connectés au site">${icon("people")}<b>${v.comptes}</b> élève${v.comptes > 1 ? "s" : ""} déjà connecté${v.comptes > 1 ? "s" : ""}</span>
     <span class="cpt" title="Visites des élèves (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} d'élèves</span>
-    <span class="cpt" title="Élèves connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</span>
+    <button class="cpt jour" data-act="aujourdhui" title="Voir les élèves qui se sont connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</button>
     <button class="cpt enligne" data-act="enligne" title="Voir les élèves connectés et déconnectés, et déconnecter un élève"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} connecté${v.enligne > 1 ? "s" : ""}</button></div>`;
 }
 
@@ -5569,6 +5479,33 @@ document.addEventListener("click", async e => {
   chargerSessions();
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("sesPanel")) fermerSessions(); });
+/* ---------- « N élèves aujourd'hui » : la liste des élèves venus aujourd'hui (14/11/2026) ----------
+   Même règle que le compteur (pp_stats_visites) : dernière visite depuis minuit (heure UTC de Supabase),
+   le prof n'est jamais listé. Le prof lit déjà la table profiles : aucune nouvelle fonction SQL. */
+async function ouvrirAujourdhui(){
+  if (!S.prof || document.getElementById("jourPanel")) return;
+  const p = document.createElement("div"); p.id = "jourPanel"; p.className = "sesfond";
+  p.innerHTML = `<div class="sesboite" role="dialog" aria-modal="true" aria-label="Élèves connectés aujourd'hui"><header>${icon("cal")}<b>Élèves connectés aujourd'hui</b><button class="ib" data-act="jourfermer" aria-label="Fermer">${icon("x")}</button></header>
+    <div class="sescorps"><p class="muted">Chargement…</p></div></div>`;
+  document.body.appendChild(p);
+  p.addEventListener("click", e => { if (e.target === p) p.remove(); });
+  const z = p.querySelector(".sescorps");
+  const { data, error } = await sb.from("profiles").select("id, email, nom, role, derniere_visite");
+  if (!document.getElementById("jourPanel")) return;
+  if (error) { z.innerHTML = `<p class="ores err">${esc(error.message)}</p>`; return; }
+  const n = new Date(), minuit = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate());
+  const coursDe = em => { em = (em || "").toLowerCase(); return [...new Set((S.toutesInscriptions || []).filter(i => (i.email || "").toLowerCase() === em).map(i => (cls(i.classe_id) || {}).nom).filter(Boolean))].join(" · "); };
+  const L = (data || []).filter(x => (x.role || "eleve") !== "prof" && x.derniere_visite && +new Date(x.derniere_visite) >= minuit)
+    .map(x => ({ nom: x.nom && !x.nom.includes("@") ? x.nom : nomDepuisEmail(x.email || "?"), cours: coursDe(x.email), vu: x.derniere_visite }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  z.innerHTML = `<section><h4>${L.length} élève${L.length > 1 ? "s" : ""} aujourd'hui</h4>${L.map(x => `<div class="sesl">${avatarP(x.nom, "")}<div class="sesinfo"><b>${esc(x.nom)}</b><small>${esc(x.cours || "Aucun cours")}</small><small class="muted">Dernière visite à ${fmtT(D(x.vu))}</small></div></div>`).join("") || `<p class="muted">Aucun élève ne s'est connecté aujourd'hui.</p>`}</section>`;
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest('[data-act="aujourdhui"],[data-act="jourfermer"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  if (a.dataset.act === "aujourdhui") ouvrirAujourdhui(); else document.getElementById("jourPanel")?.remove();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.getElementById("jourPanel")?.remove(); });
+
 /* message affiché à l'élève après une déconnexion à distance */
 try { if (sessionStorage.getItem("pp_kick")) { sessionStorage.removeItem("pp_kick"); setTimeout(() => toast("Tu as été déconnecté par ton professeur. Pense à te déconnecter quand tu quittes un ordinateur du lycée."), 1500); } } catch (_) {}
 
@@ -7733,10 +7670,6 @@ async function render(){
       if (q) await urlsSignees((q.questions || []).map(x => x.img).filter(Boolean));
       if (id !== renderId) return;
       content = enVueEleve(() => vQuiz(r), r);
-    } else if (r.v === "preparateur") {
-      if (!S.prof) { go("/"); return; }
-      if (!S.demandes) { app.innerHTML = chargement(r); await chargerDemandes(); if (id !== renderId) return; }
-      content = vPreparateur();
     } else if (r.v === "rendezvous") {
       if (!S.rdv) { app.innerHTML = chargement(r); await chargerRdv(); if (id !== renderId) return; }
       content = vRendezVous();
@@ -7763,7 +7696,7 @@ async function render(){
     }
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + navMobile(r) + (S.modal ? vModal() : "");
-    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
+    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
       Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées", telephone: "Mon téléphone", partage: "Partager", mesnotes: "Mes notes", donnees: "Tes données" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
       document.title = (dv0 ? dv0.titre + (cd0 ? " · " + cd0.nom : "") + " · " : r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
     { const pg = app.querySelector("main.content > .page"); if (pg && r.v === "accueil" && !dansVueEleve(r) && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
@@ -8002,7 +7935,6 @@ document.addEventListener("click", async e => {
     case "coinperso": e.preventDefault(); if (window.innerWidth < 1100) { S.drawer = false; render(); } await ouvrirCoinPerso(); return;
     case "urgchoix": e.preventDefault(); fermerMenus(); if (window.innerWidth < 1100) S.drawer = false; S.modal = {kind:"urgchoix"}; render(); return;
     case "urgent": e.preventDefault(); fermerMenus(); if (window.innerWidth < 1100) S.drawer = false; S.modal = {kind:"urgent", classe:a.dataset.c}; marquerReponsesVues(); marquerMessagesProfLus(a.dataset.c); render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
-    case "dmnew": case "dmprep": case "dmedit": case "dmsend": case "dmprint": case "dmstat": case "dmsuppr": e.preventDefault(); fermerMenus(); await actionDemande(act, a); return;
     case "rdvnew": case "rdvresa": case "rdvannule": case "rdvretire": case "rdvsuppr": e.preventDefault(); a.disabled = true; await actionRdv(act, a); return;
     case "alertesouv": S.alertesOuv = !S.alertesOuv; render(); return;
     case "vocal": e.preventDefault(); await basculerVocal(a); return;
@@ -8186,7 +8118,6 @@ window.addEventListener("hashchange", () => {
   S.outilsEdit = false;
   S.viewer = null;
   if (r.v === "rendezvous") S.rdv = null;
-  if (r.v === "preparateur") S.demandes = null;
   if (r.v !== "devoir") { S.swFiltre = ""; S.reponse = ""; S.sel = null; S.ptab = "travaux"; S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; }
   fermerMenus(); S.modal = null; S.open = null; S.compose = false; S.pick = new Set(); S.cSub = ""; S.cBody = ""; S.annonce = null; S.filtreTheme = "";
   if (window.innerWidth < 1100) S.drawer = false; window.scrollTo(0, 0); render();

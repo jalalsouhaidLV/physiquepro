@@ -30,7 +30,7 @@ const PAGES = {
     "/rendezvous", "/admin/profil", "/donnees"],
   prof: ["/accueil", "/classe/tle", "/classe/tle/flux", "/classe/tle/travaux", "/classe/tle/personnes", "/classe/tle/notes", "/classe/tle/corriger",
     "/classe/tle/parametres", "/classe/snt", "/devoir/1", "/devoir/2", "/devoir/3", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/programmes",
-    "/corbeille", "/suivi", "/urgences", "/preparateur", "/rendezvous", "/outils", "/simulations", "/physique",
+    "/corbeille", "/suivi", "/urgences", "/rendezvous", "/outils", "/simulations", "/physique",
     "/admin/profil", "/admin/site", "/admin/cours", "/admin/eleves", "/admin/fichiers", "/admin/import", "/admin/sauvegarde", "/donnees",
     "/editer/devoir/new/tle", "/editer/questionnaire/new/tle", "/editer/question/new/tle", "/editer/documentation/new/tle"]
 };

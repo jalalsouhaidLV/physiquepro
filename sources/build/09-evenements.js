@@ -41,10 +41,6 @@ async function render(){
       if (q) await urlsSignees((q.questions || []).map(x => x.img).filter(Boolean));
       if (id !== renderId) return;
       content = enVueEleve(() => vQuiz(r), r);
-    } else if (r.v === "preparateur") {
-      if (!S.prof) { go("/"); return; }
-      if (!S.demandes) { app.innerHTML = chargement(r); await chargerDemandes(); if (id !== renderId) return; }
-      content = vPreparateur();
     } else if (r.v === "rendezvous") {
       if (!S.rdv) { app.innerHTML = chargement(r); await chargerRdv(); if (id !== renderId) return; }
       content = vRendezVous();
@@ -71,7 +67,7 @@ async function render(){
     }
     const foc = document.activeElement && document.activeElement.id;
     app.innerHTML = topbar(r) + `<div class="shell">${drawer(r)}<main class="content">${content}</main></div>` + navMobile(r) + (S.modal ? vModal() : "");
-    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", preparateur: "Demande de matériel", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
+    { const c0 = r.a && typeof cls === "function" ? cls(r.a) : null, T = { agenda: "Agenda", todo: S.prof ? "À corriger" : "À faire", suivi: "Suivi des élèves", urgences: "Messagerie d'urgence", rendezvous: "Rendez-vous", admin: "Paramètres", outils: "Boîte à outils", archives: "Cours archivés" };
       Object.assign(T, { semaine: "Ma semaine", revisions: "Révisions", simulations: "Simulations", physique: "Outils scientifiques", programmes: "Publications programmées", telephone: "Mon téléphone", partage: "Partager", mesnotes: "Mes notes", donnees: "Tes données" }); const dv0 = r.v === "devoir" ? (S.devoirs || []).find(d => String(d.id) === String(r.a)) : r.v === "quiz" ? (S.quiz || []).find(q => String(q.id) === String(r.a)) : null, cd0 = dv0 ? cls(dv0.classe_id) : null;
       document.title = (dv0 ? dv0.titre + (cd0 ? " · " + cd0.nom : "") + " · " : r.v === "classe" && c0 ? c0.nom + " · " : T[r.v] ? T[r.v] + " · " : "") + "PhysiquePro";  titreAvecCompteur(); }
     { const pg = app.querySelector("main.content > .page"); if (pg && r.v === "accueil" && !dansVueEleve(r) && !pg.querySelector(":scope > .headband")) pg.insertAdjacentHTML("afterbegin", pageHead()); }
@@ -310,7 +306,6 @@ document.addEventListener("click", async e => {
     case "coinperso": e.preventDefault(); if (window.innerWidth < 1100) { S.drawer = false; render(); } await ouvrirCoinPerso(); return;
     case "urgchoix": e.preventDefault(); fermerMenus(); if (window.innerWidth < 1100) S.drawer = false; S.modal = {kind:"urgchoix"}; render(); return;
     case "urgent": e.preventDefault(); fermerMenus(); if (window.innerWidth < 1100) S.drawer = false; S.modal = {kind:"urgent", classe:a.dataset.c}; marquerReponsesVues(); marquerMessagesProfLus(a.dataset.c); render(); chargerUrgents().then(() => { if (S.modal && S.modal.kind === "urgent") { const t = (document.getElementById("mUrg") || {}).value; S.modal.texte = t; render(); } }); return;
-    case "dmnew": case "dmprep": case "dmedit": case "dmsend": case "dmprint": case "dmstat": case "dmsuppr": e.preventDefault(); fermerMenus(); await actionDemande(act, a); return;
     case "rdvnew": case "rdvresa": case "rdvannule": case "rdvretire": case "rdvsuppr": e.preventDefault(); a.disabled = true; await actionRdv(act, a); return;
     case "alertesouv": S.alertesOuv = !S.alertesOuv; render(); return;
     case "vocal": e.preventDefault(); await basculerVocal(a); return;
@@ -494,7 +489,6 @@ window.addEventListener("hashchange", () => {
   S.outilsEdit = false;
   S.viewer = null;
   if (r.v === "rendezvous") S.rdv = null;
-  if (r.v === "preparateur") S.demandes = null;
   if (r.v !== "devoir") { S.swFiltre = ""; S.reponse = ""; S.sel = null; S.ptab = "travaux"; S.files = []; S.lien = ""; S.lienOpen = false; S.partenaire = ""; }
   fermerMenus(); S.modal = null; S.open = null; S.compose = false; S.pick = new Set(); S.cSub = ""; S.cBody = ""; S.annonce = null; S.filtreTheme = "";
   if (window.innerWidth < 1100) S.drawer = false; window.scrollTo(0, 0); render();

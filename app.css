@@ -972,12 +972,9 @@ select[data-urgf]{max-width:100%;padding:8px 10px;border-radius:8px;border:1px s
 .drawer .it .urgn{position:absolute;top:-11px;right:-15px;margin:0;min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;background:var(--bad);color:#fff;font-size:.75rem;font-weight:700;line-height:1;box-shadow:0 0 0 2px var(--surface)}
 /* ===== Nouveautés (18/10) ===== */
 /* préparateur */
-.dmcard,.rdvcard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));border-radius:10px;padding:14px 16px;display:grid;gap:10px}
-.dmcard header,.rdvcard header{display:flex;gap:10px;align-items:flex-start}
-.dmcard header small,.rdvcard header small{display:block}
-.dmbloc{background:var(--bg);border-radius:8px;padding:8px 10px}
-.dmbloc b{font-size:.82rem;color:var(--muted)}
-.dmbloc p{margin:2px 0 0;white-space:pre-wrap}
+.rdvcard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));border-radius:10px;padding:14px 16px;display:grid;gap:10px}
+.rdvcard header{display:flex;gap:10px;align-items:flex-start}
+.rdvcard header small{display:block}
 /* compétences */
 .compbloc{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .compbloc summary{cursor:pointer;font-size:.9rem}
@@ -1795,6 +1792,8 @@ kbd{display:inline-block;min-width:22px;text-align:center;padding:2px 7px;border
 /* ===== Personnes connectées (prof) ===== */
 button.cpt.enligne{border:0;font:inherit;font-size:.78rem;cursor:pointer}
 button.cpt.enligne:hover{box-shadow:0 0 0 2px var(--ok),var(--shadow)}
+button.cpt.jour{border:0;font:inherit;font-size:.78rem;cursor:pointer}
+button.cpt.jour:hover{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
 .sesfond{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9500;display:grid;place-items:center;padding:16px}
 .sesboite{width:min(760px,100%);max-height:min(86vh,820px);display:flex;flex-direction:column;background:var(--surface,#fff);color:var(--ink);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden}
 .sesboite>header{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--accent);color:#fff}

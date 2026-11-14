@@ -64,8 +64,6 @@ function vModal(){
       : `<p class="muted" style="margin:0">Une copie sera créée en <b>brouillon</b> dans les cours choisis : tu pourras la relire avant de la publier.</p>
         <div class="ciblelist">${autres.map(c => `<label class="check"><input type="checkbox" class="mDest" value="${esc(c.id)}"> ${esc(c.nom)}</label>`).join("") || `<span class="muted">Aucun autre cours actif.</span>`}</div>`}`; ok = "Copier"; }
   else if (m.kind === "supprclasse") { body = `<h2>Supprimer « ${esc(m.nom)} » ?</h2><p style="margin:0">Le cours, ses devoirs, questionnaires, documentations, annonces, les travaux rendus et les notes seront <b>définitivement supprimés</b>.${odActif() ? " Son dossier OneDrive et tout son contenu partent dans la corbeille de ton OneDrive (récupérables pendant 93 jours)." : ""}</p><div class="field"><label for="mConfirm">Pour confirmer, tape le nom du cours</label><input id="mConfirm" autocomplete="off" placeholder="${esc(m.nom)}"></div>`; ok = "Supprimer"; }
-  else if (m.kind === "demande") { body = modalDemande(m) + `<label class="check"><input type="checkbox" id="dmEnvoi" ${m.x.statut && m.x.statut !== "brouillon" ? "" : "checked"}> Ouvrir Outlook pour l'envoyer au préparateur</label>`; ok = "Enregistrer"; }
-  else if (m.kind === "prep") { body = `<h2>${icon("flask")} Adresse du préparateur</h2><p class="muted" style="margin:0">Les demandes de matériel lui seront adressées par Outlook.</p><div class="field"><label for="dmPrep">Adresse e-mail</label><input id="dmPrep" type="email" value="${esc(emailPrep())}" placeholder="prenom.nom@${esc(CFG.domaine)}"></div>`; }
   else if (m.kind === "rdv") { body = modalRdv(); ok = "Créer les créneaux"; }
   else if (m.kind === "urgchoix") { body = `<h2>${icon("urgent")} Message urgent à ${esc(nomProfCourt())}</h2><p class="muted" style="margin:0">Pour quel cours ?</p><div class="urgchoix">${actives().map(c => `<button class="btn tonal" data-act="urgent" data-c="${esc(c.id)}" style="--c:var(${C(c.couleur).c})">${esc(c.nom)}${supUrg(reponsesNonVues(c.id))}</button>`).join("")}</div><div style="display:flex;justify-content:flex-end"><button class="btn ghost" data-act="mclose">Annuler</button></div>`; foot = false; }
   else if (m.kind === "urgent") { body = modalUrgent(m); ok = "Envoyer"; }
@@ -122,8 +120,6 @@ async function modalOk(){
   const stop = msg => { m.err = msg; m.busy = false; render(); };
   m.busy = true;
   try {
-    if (m.kind === "demande") { const env = (document.getElementById("dmEnvoi") || {}).checked; await enregistrerDemande(m, env); S.modal = null; if (route().v !== "preparateur") go("/preparateur"); render(); if (!env) toast("Demande enregistrée"); return; }
-    if (m.kind === "prep") { const v2 = val("dmPrep").trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v2)) return stop("Adresse e-mail invalide."); await sauverPrep(v2); const suite = m.ensuite; S.modal = null; render(); toast("Adresse du préparateur enregistrée"); if (suite) { const x = (S.demandes || []).find(y => y.id === suite); if (x) envoyerDemande(x); } return; }
     if (m.kind === "rdv") { const n = await creerRdv(); S.modal = null; S.rdvFrais = true; if (route().v !== "rendezvous") go("/rendezvous"); render(); toast(n + " créneau(x) créé(s)"); return; }
     if (m.kind === "urgprof") { const nom = await envoyerUrgProf(); S.modal = null; render(); toast("Message d'urgence envoyé à " + nom); return; }
     if (m.kind === "urgent") { await envoyerUrgent(m); S.modal = null; render(); toast("Message envoyé à " + nomProfCourt()); return; }
@@ -223,7 +219,6 @@ async function modalOk(){
       if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
       if (m.action === "odorphelins") { let n = 0; for (const id of m.ids) { try { await graph("/me/drive/items/" + encodeURIComponent(id), { method: "DELETE" }, false); n++; } catch (e) { console.warn(e); } }
         S.modal = null; render(); toast(n + " dossier" + (n > 1 ? "s" : "") + " mis à la corbeille OneDrive"); return; }
-      if (m.action === "dmsuppr") { const { error } = await sb.from("demandes_materiel").delete().eq("id", m.id); if (error) throw error; await chargerDemandes(); S.modal = null; render(); toast("Demande supprimée"); return; }
       if (m.action === "rdvsuppr") { const { error } = await sb.from("rdv_series").delete().eq("id", m.id); if (error) throw error; await chargerRdv(); S.modal = null; S.rdvFrais = true; render(); toast("Rendez-vous supprimés"); return; }
       if (m.action === "quitter") { const { error } = await sb.rpc("pp_quitter_cours", { p_classe: m.classe }); if (error) throw error;
         const nom = (cls(m.classe) || {}).nom || "le cours"; S.modal = null; delete S.cache[m.classe]; await rafraichir(); go("/"); render(); toast("Tu as quitté " + nom); return; }

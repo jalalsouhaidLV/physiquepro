@@ -122,6 +122,7 @@ function appliquerReglages(d){
     liensUtiles: Array.isArray(d.liensUtiles) ? d.liensUtiles : CFG.liensUtiles,
     outils: Array.isArray(d.outils) ? d.outils : CFG.outils,
     onedrive: !!d.onedrive,
+    /* ancienne adresse du préparateur (fonction retirée le 14/11/2026) : gardée telle quelle dans les réglages */
     preparateur: typeof d.preparateur === "string" ? d.preparateur : "",
     simulations: Array.isArray(d.simulations) ? d.simulations : [],
     pratique: d.pratique && typeof d.pratique === "object" && !Array.isArray(d.pratique) ? d.pratique : {},

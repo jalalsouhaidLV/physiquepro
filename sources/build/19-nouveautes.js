@@ -1,5 +1,5 @@
 /* =====================================================================
-   Nouveautés : préparateur · compétences · copies annotées et vocal ·
+   Nouveautés : compétences · copies annotées et vocal ·
                 alertes décrochage · rappels · rendez-vous
    ===================================================================== */
 IC.flask = '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/>';
@@ -9,89 +9,7 @@ IC.mic = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0
 IC.alerte = '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.1"/>';
 IC.print = '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>';
 
-/* ---------------------------------------------------------------- 1. Préparateur */
-const STATUT_DM = { brouillon: ["Brouillon", ""], envoyee: ["Envoyée", "info"], prete: ["Prête", "ok"] };
-async function chargerDemandes(){ const r = await sb.from("demandes_materiel").select("*").order("date_tp", { ascending: false, nullsFirst: true }); S.demandes = r.error ? [] : r.data; return S.demandes; }
-const emailPrep = () => (R().preparateur || "").trim();
-function texteDemande(x){
-  const c = cls(x.classe_id), d = x.date_tp ? D(x.date_tp) : null;
-  return [`Bonjour,`, ``, `Voici ma demande de matériel pour le TP « ${x.titre} »${c ? " (" + c.nom + ")" : ""}.`, ``,
-    `Date : ${d ? fmtD(d) + " à " + fmtT(d) : "à préciser"}`, `Salle : ${x.salle || "à préciser"}`, `Nombre de postes : ${x.postes || "à préciser"}`, ``,
-    x.solutions.trim() ? `SOLUTIONS ET PRODUITS :\n${x.solutions.trim()}\n` : "", x.materiel.trim() ? `MATÉRIEL ET VERRERIE :\n${x.materiel.trim()}\n` : "",
-    x.remarques.trim() ? `REMARQUES :\n${x.remarques.trim()}\n` : "", `Merci beaucoup,`, R().prof.nom].filter(l => l !== "").join("\n").replace(/\n{3,}/g, "\n\n");
-}
-function vPreparateur(){
-  const L = S.demandes || [];
-  const carte = x => { const c = cls(x.classe_id), st = STATUT_DM[x.statut] || STATUT_DM.brouillon, d = x.date_tp ? D(x.date_tp) : null;
-    return `<article class="dmcard" style="--c:var(${C(c && c.couleur).c})"><header><div style="flex:1;min-width:0"><b>${esc(x.titre)}</b><small class="muted">${esc(c ? c.nom : "Sans cours")} · ${d ? fmtD(d) + " à " + fmtT(d) : "date à préciser"}${x.salle ? " · salle " + esc(x.salle) : ""}${x.postes ? " · " + x.postes + " postes" : ""}</small></div><span class="pill ${st[1]}">${st[0]}</span></header>
-      ${x.solutions.trim() ? `<div class="dmbloc"><b>Solutions et produits</b><p>${esc(x.solutions)}</p></div>` : ""}${x.materiel.trim() ? `<div class="dmbloc"><b>Matériel et verrerie</b><p>${esc(x.materiel)}</p></div>` : ""}${x.remarques.trim() ? `<div class="dmbloc"><b>Remarques</b><p>${esc(x.remarques)}</p></div>` : ""}
-      <div class="urgactions"><button class="btn sm" data-act="dmsend" data-id="${x.id}">${icon("send")} ${x.statut === "brouillon" ? "Envoyer au préparateur" : "Renvoyer"}</button>
-        <button class="btn ghost sm" data-act="dmedit" data-id="${x.id}">${icon("edit")} Modifier</button>
-        <button class="btn ghost sm" data-act="dmprint" data-id="${x.id}">${icon("print")} Imprimer</button>
-        ${x.statut !== "prete" ? `<button class="btn ghost sm" data-act="dmstat" data-id="${x.id}" data-s="prete">${icon("check")} Matériel prêt</button>` : `<button class="btn ghost sm" data-act="dmstat" data-id="${x.id}" data-s="envoyee">Pas encore prêt</button>`}
-        <button class="ib sm" data-act="dmsuppr" data-id="${x.id}" title="Supprimer" aria-label="Supprimer la demande">${icon("trash")}</button></div></article>`; };
-  return `<div class="page"><div class="homehead"><h1 style="font-size:1.6rem">${icon("flask")} Demande de matériel au Préparateur de Labo</h1><button class="btn" data-act="dmnew">${icon("plus")} Nouvelle demande</button></div>
-    <p class="muted" style="margin:0">Prépare la liste des solutions et du matériel pour chaque TP, puis envoie-la en un clic par Outlook à ${emailPrep() ? "<b>" + esc(emailPrep()) + "</b>" : "ton préparateur (son adresse te sera demandée la première fois)"}.${emailPrep() ? ` <button class="linkbtn" data-act="dmprep">Changer l'adresse</button>` : ""}</p>
-    ${L.length ? `<div class="urglist">${L.map(carte).join("")}</div>` : `<div class="emptystate"><b>Aucune demande pour l'instant.</b><span>Crée ta première demande, ou ouvre un TP et clique sur « Demande au préparateur ».</span></div>`}${pageFoot()}</div>`;
-}
-function modalDemande(m){
-  const x = m.x, dt = x.date_tp ? D(x.date_tp) : null;
-  return `<h2>${icon("flask")} ${x.id ? "Modifier la demande" : "Demande au préparateur"}</h2>
-    <div class="field"><label for="dmTitre">TP</label><input id="dmTitre" value="${esc(x.titre)}" placeholder="ex. TP 2 · Dosage par titrage"></div>
-    <div class="two"><div class="field"><label for="dmCours">Cours</label><select id="dmCours"><option value="">—</option>${actives().map(c => `<option value="${esc(c.id)}" ${c.id === x.classe_id ? "selected" : ""}>${esc(c.nom)}</option>`).join("")}</select></div>
-      <div class="field"><label for="dmPostes">Nombre de postes</label><input id="dmPostes" type="number" min="1" max="40" value="${x.postes || ""}" placeholder="ex. 8"></div></div>
-    <div class="two"><div class="field"><label for="dmDate">Date du TP</label><input id="dmDate" type="date" value="${dt ? ymd(dt) : ""}"></div><div class="field"><label for="dmHeure">Heure</label><input id="dmHeure" type="time" value="${dt ? hm(dt) : ""}"></div></div>
-    <div class="field"><label for="dmSalle">Salle</label><input id="dmSalle" value="${esc(x.salle)}" placeholder="ex. Labo 2"></div>
-    <div class="field"><label for="dmSol">Solutions et produits <span class="muted">(une ligne par produit)</span></label><textarea id="dmSol" rows="4" placeholder="ex. Solution de soude 0,10 mol/L · 1 L\nPhénolphtaléine · 8 flacons">${esc(x.solutions)}</textarea></div>
-    <div class="field"><label for="dmMat">Matériel et verrerie</label><textarea id="dmMat" rows="4" placeholder="ex. Burettes 25 mL × 8\nBéchers 100 mL × 16\nAgitateurs magnétiques × 8">${esc(x.materiel)}</textarea></div>
-    <div class="field"><label for="dmRem">Remarques</label><textarea id="dmRem" rows="2" placeholder="ex. Préparer les solutions la veille.">${esc(x.remarques)}</textarea></div>
-    ${!emailPrep() ? `<div class="field"><label for="dmPrep">Adresse e-mail du préparateur</label><input id="dmPrep" type="email" placeholder="prenom.nom@${esc(CFG.domaine)}"></div>` : ""}`;
-}
-async function enregistrerDemande(m, envoyer){
-  const v = id => ((document.getElementById(id) || {}).value || "").trim();
-  if (!v("dmTitre")) throw new Error("Donne un nom au TP.");
-  const date = v("dmDate"), heure = v("dmHeure") || "08:00";
-  const row = { titre: v("dmTitre"), classe_id: v("dmCours") || null, devoir_id: m.x.devoir_id || null, postes: v("dmPostes") ? Number(v("dmPostes")) : null,
-    date_tp: date ? new Date(date + "T" + heure).toISOString() : null, salle: v("dmSalle"), solutions: v("dmSol"), materiel: v("dmMat"), remarques: v("dmRem") };
-  if (document.getElementById("dmPrep") && v("dmPrep")) await sauverPrep(v("dmPrep"));
-  const r = m.x.id ? await sb.from("demandes_materiel").update(row).eq("id", m.x.id).select().single() : await sb.from("demandes_materiel").insert(row).select().single();
-  if (r.error) throw r.error;
-  await chargerDemandes();
-  if (envoyer) envoyerDemande(r.data);
-  return r.data;
-}
-async function sauverPrep(email){
-  const data = { ...reglagesData(), preparateur: email };
-  const { error } = await sb.from("reglages").upsert({ id: 1, data, modifie_le: now().toISOString() }); if (error) throw error;
-  appliquerReglages(data);
-}
-async function envoyerDemande(x){
-  if (!emailPrep()) { S.modal = { kind: "prep", ensuite: x.id }; render(); return; }
-  const d = x.date_tp ? D(x.date_tp) : null;
-  window.open(outlookLink([emailPrep()], "Demande de matériel · " + x.titre + (d ? " · " + fmtShort(d) : ""), texteDemande(x)), "_blank", "noopener");
-  if (x.statut === "brouillon") { await sb.from("demandes_materiel").update({ statut: "envoyee", envoye_le: now().toISOString() }).eq("id", x.id); await chargerDemandes(); render(); }
-  toast("Outlook s'ouvre avec la demande : vérifie puis clique sur Envoyer.");
-}
-function imprimerDemande(x){
-  const c = cls(x.classe_id), d = x.date_tp ? D(x.date_tp) : null, w = window.open("", "_blank"); if (!w) { toast("Autorise les fenêtres pop-up pour imprimer."); return; }
-  const bloc = (t, s) => s.trim() ? `<h2>${t}</h2><ul>${s.trim().split(/\n+/).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
-  w.document.write(`<!doctype html><meta charset="utf-8"><title>Demande · ${esc(x.titre)}</title><style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 20px;color:#111}h1{font-size:22px;margin:0}h2{font-size:15px;margin:18px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}ul{margin:0;padding-left:20px}.m{color:#555}table{border-collapse:collapse;margin-top:10px}td{padding:3px 14px 3px 0}</style>
-    <h1>Demande de matériel · ${esc(x.titre)}</h1><p class="m">${esc(R().prof.nom)} · ${esc(c ? c.nom : "")}</p><table><tr><td><b>Date</b></td><td>${d ? fmtD(d) + " à " + fmtT(d) : "à préciser"}</td></tr><tr><td><b>Salle</b></td><td>${esc(x.salle || "à préciser")}</td></tr><tr><td><b>Postes</b></td><td>${x.postes || "à préciser"}</td></tr></table>
-    ${bloc("Solutions et produits", x.solutions)}${bloc("Matériel et verrerie", x.materiel)}${x.remarques.trim() ? `<h2>Remarques</h2><p>${esc(x.remarques).replace(/\n/g, "<br>")}</p>` : ""}`);
-  w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 300);
-}
-async function actionDemande(act, a){
-  const x = (S.demandes || []).find(y => String(y.id) === a.dataset.id);
-  if (act === "dmnew") { const d = a.dataset.d ? S.devoirs.find(y => String(y.id) === a.dataset.d) : null;
-    S.modal = { kind: "demande", x: { titre: d ? d.titre : "", classe_id: d ? d.classe_id : (route().v === "classe" ? route().a : ""), devoir_id: d ? d.id : null, date_tp: d && d.date_limite ? d.date_limite : null, salle: "", postes: null, solutions: "", materiel: "", remarques: "" } }; render(); return; }
-  if (act === "dmprep") { S.modal = { kind: "prep" }; render(); return; }
-  if (!x) return;
-  if (act === "dmedit") { S.modal = { kind: "demande", x: { ...x } }; render(); return; }
-  if (act === "dmsend") return envoyerDemande(x);
-  if (act === "dmprint") return imprimerDemande(x);
-  if (act === "dmstat") { const { error } = await sb.from("demandes_materiel").update({ statut: a.dataset.s }).eq("id", x.id); if (error) return toast("Action impossible : " + error.message); x.statut = a.dataset.s; render(); return; }
-  if (act === "dmsuppr") { S.modal = { kind: "confirm", action: "dmsuppr", id: x.id, titre: "Supprimer la demande « " + x.titre + " » ?", texte: "La demande disparaît de ta liste. Un e-mail déjà envoyé au préparateur n'est pas annulé.", ok: "Supprimer" }; render(); return; }
-}
+/* 1. (Demande de matériel au préparateur : retirée le 14/11/2026 à la demande de Jalal) */
 
 /* ---------------------------------------------------------------- 2. Compétences */
 const COMP = [["APP", "S'approprier"], ["ANA", "Analyser – Raisonner"], ["REA", "Réaliser"], ["VAL", "Valider"], ["COM", "Communiquer"]];

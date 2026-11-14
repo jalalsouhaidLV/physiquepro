@@ -48,7 +48,6 @@ function chargerPourTableau(){
   if (tdbCharge) return; tdbCharge = true;
   const L = [];
   if (!S.rdv && typeof chargerRdv === "function") L.push(chargerRdv().catch(() => {}));
-  if (S.prof && !S.demandes && typeof chargerDemandes === "function") L.push(chargerDemandes().catch(() => {}));
   if (L.length) Promise.all(L).then(() => { if (route().v === "accueil" && !S.modal) render(); });
 }
 const tuile = (href, ic, n, lib, ton, sous) => n === 0 ? "" : `<a class="kpi ${ton || ""}" href="${href}"><span class="kpiic">${icon(ic)}</span><span class="kpitxt"><b>${n}</b><span>${lib}</span>${sous ? `<small>${sous}</small>` : ""}</span></a>`;
@@ -62,7 +61,6 @@ function blocTableauDeBord(){
     const premier = actives().find(c => dvs.some(d => d.classe_id === c.id && aCorriger(d) > 0));
     const urg = typeof nbUrgents === "function" ? nbUrgents() : 0, alertes = typeof alertesEleves === "function" ? alertesEleves().length : 0;
     const crs = S.rdv ? S.rdv.creneaux.filter(c => aujourdhui(c.debut)) : [], rdvJour = S.rdv ? S.rdv.resa.filter(r => crs.some(c => c.id === r.creneau_id)).length : null;
-    const tps = (S.demandes || []).filter(x => x.date_tp && D(x.date_tp) >= new Date(+t - 864e5 / 2) && D(x.date_tp) <= dans7);
     const prochain = dvs.filter(d => d.date_limite && D(d.date_limite) > t).sort((a, b) => D(a.date_limite) - D(b.date_limite))[0];
     /* 5e évaluation : la tuile des copies est toujours là, en premier (« Tout est corrigé ✓ » quand il n'y a rien) ; le clic ouvre le premier devoir à corriger */
     const dvAcor = dvs.filter(d => aCorriger(d) > 0).sort((a, b) => (a.date_limite ? +D(a.date_limite) : 9e15) - (b.date_limite ? +D(b.date_limite) : 9e15))[0];
@@ -70,7 +68,6 @@ function blocTableauDeBord(){
       + tuile("#/urgences", "urgent", urg, urg > 1 ? "messages urgents" : "message urgent", urg ? "bad" : "ok", urg ? "non lu" + (urg > 1 ? "s" : "") : "Rien de nouveau")
       + tuile("#/rendezvous", "rdv", rdvJour == null ? "…" : rdvJour, "rendez-vous aujourd'hui", rdvJour ? "info" : "", crs.length ? crs.length + " créneau" + (crs.length > 1 ? "x" : "") + " prévu" + (crs.length > 1 ? "s" : "") : "")
       + tuile("#/suivi", "alerte", alertes, alertes > 1 ? "élèves à surveiller" : "élève à surveiller", alertes ? "warn" : "ok", alertes ? "décrochage possible" : "Tout va bien")
-      + tuile("#/preparateur", "flask", S.demandes ? tps.length : "…", "TP cette semaine", tps.some(x => x.statut === "brouillon") ? "warn" : "", tps.length ? tps.filter(x => x.statut === "prete").length + " prêt(s) · " + tps.filter(x => x.statut === "brouillon").length + " à envoyer" : "")
       + (() => { const n = [...S.devoirs, ...S.quiz].filter(o => !o.brouillon && o.publie_le && D(o.publie_le) > t).length; return n ? tuile("#/programmes", "cal", n, n > 1 ? "publications programmées" : "publication programmée", "info", "apparaîtront automatiquement") : ""; })()
       + (prochain ? tuile(`#/devoir/${prochain.id}`, "cal", fmtShort(D(prochain.date_limite)), "prochaine échéance", "", esc(prochain.titre)) : "");
   } else {
@@ -98,7 +95,7 @@ function indexRecherche(){
   const L = [], t = now();
   const pages = [["#/", "home", "Accueil"], ["#/agenda", "cal", "Agenda"], ["#/semaine", "week", "Ma semaine"], [S.prof ? "#/todo" : "#/todo", "todo", S.prof ? "Toutes les copies à corriger" : "À faire"], ["#/rendezvous", "rdv", "Rendez-vous"],
     ["#/outils", "tools", "Boîte à outils"], ["#/physique", "flask", "Outils Scientifiques Importants (unités, éléments, formules, chimie, SNT, SI…)"], ["#/simulations", "eye", "Simulations (PhET, GeoGebra…)"], ["#/revisions", "quiz", "Fiches de révision et flashcards"], ["#/admin/profil", "gear", "Paramètres"]];
-  if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/preparateur", "flask", "Demande de matériel au préparateur"], ["#/archives", "archive", "Cours archivés"]);
+  if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/archives", "archive", "Cours archivés"]);
   pages.forEach(([h, ic, n]) => L.push({ t: "Page", ic, n, h }));
   L.push({ t: "Action", ic: "note", n: "Ouvrir le Coin Perso", act: "coinperso" });
   if (S.prof) { L.push({ t: "Action", ic: "plus", n: "Créer un cours", act: "newclass" }); actives().forEach(c => { L.push({ t: "Action", ic: "devoir", n: "Nouveau devoir · " + c.nom, h: `#/editer/devoir/new/${c.id}` }); L.push({ t: "Action", ic: "support", n: "Nouvelle documentation · " + c.nom, h: `#/editer/documentation/new/${c.id}` }); }); }
@@ -197,7 +194,6 @@ VUES_PRO.semaine = function(){
     items.push({ d: D(q.date_limite), titre: q.titre, c, href: "#/quiz/" + q.id, ic: "quiz", fait: S.prof ? D(q.date_limite) < t : !!r, etat: S.prof ? "Questionnaire" : r ? "Fait" : "À faire", k: r ? "ok" : "" }); });
   if (S.rdv) { const mes = S.prof ? S.rdv.resa : S.rdv.resa.filter(r => r.eleve === S.user.id);
     mes.forEach(r => { const cr = S.rdv.creneaux.find(c => c.id === r.creneau_id), se = cr && S.rdv.series.find(s => s.id === cr.serie_id); if (cr && dans(D(cr.debut))) items.push({ d: D(cr.debut), titre: (se ? se.titre : "Rendez-vous") + (S.prof ? " · " + (r.eleve_nom || r.eleve_email) : ""), c: se && cls(se.classe_id), href: "#/rendezvous", ic: "rdv", fait: D(cr.fin) < t, etat: "Rendez-vous", k: "info", rdv: 1 }); }); }
-  if (S.prof && S.demandes) S.demandes.filter(x => x.date_tp && dans(D(x.date_tp))).forEach(x => items.push({ d: D(x.date_tp), titre: "TP · " + x.titre, c: cls(x.classe_id), href: "#/preparateur", ic: "flask", fait: x.statut === "prete", etat: x.statut === "prete" ? "Matériel prêt" : x.statut === "envoyee" ? "Demande envoyée" : "Demande à envoyer", k: x.statut === "prete" ? "ok" : x.statut === "envoyee" ? "info" : "warn" }));
   const travaux = items.filter(x => !x.rdv), faits = travaux.filter(x => x.fait).length, pc = travaux.length ? Math.round(faits / travaux.length * 100) : 100;
   const carte = x => `<a class="smitem${x.fait ? " fait" : ""}" href="${x.href}" style="--c:var(${C(x.c && x.c.couleur).c})"><span class="smh">${fmtT(x.d)}</span><span class="smt">${icon(x.ic)}<b>${esc(x.titre)}</b></span><small>${esc(x.c ? x.c.nom : "")}</small><span class="pill ${x.k || ""}">${esc(x.etat)}</span></a>`;
   return `<div class="page wide semaine"><div class="smhead"><div><h1>${S.prof ? "Ma semaine" : "Ma semaine"}</h1><p class="muted">${jours[0].toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} – ${jours[6].toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p></div>
@@ -701,7 +697,7 @@ function compteurVisites(){
   const v = S.stv, noms = (v.noms || []).slice(0, 12);
   return `<div class="compteur"><span class="cpt" title="Élèves qui se sont déjà connectés au site">${icon("people")}<b>${v.comptes}</b> élève${v.comptes > 1 ? "s" : ""} déjà connecté${v.comptes > 1 ? "s" : ""}</span>
     <span class="cpt" title="Visites des élèves (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} d'élèves</span>
-    <span class="cpt" title="Élèves connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</span>
+    <button class="cpt jour" data-act="aujourdhui" title="Voir les élèves qui se sont connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</button>
     <button class="cpt enligne" data-act="enligne" title="Voir les élèves connectés et déconnectés, et déconnecter un élève"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} connecté${v.enligne > 1 ? "s" : ""}</button></div>`;
 }
 

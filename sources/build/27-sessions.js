@@ -78,6 +78,33 @@ document.addEventListener("click", async e => {
   chargerSessions();
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("sesPanel")) fermerSessions(); });
+/* ---------- « N élèves aujourd'hui » : la liste des élèves venus aujourd'hui (14/11/2026) ----------
+   Même règle que le compteur (pp_stats_visites) : dernière visite depuis minuit (heure UTC de Supabase),
+   le prof n'est jamais listé. Le prof lit déjà la table profiles : aucune nouvelle fonction SQL. */
+async function ouvrirAujourdhui(){
+  if (!S.prof || document.getElementById("jourPanel")) return;
+  const p = document.createElement("div"); p.id = "jourPanel"; p.className = "sesfond";
+  p.innerHTML = `<div class="sesboite" role="dialog" aria-modal="true" aria-label="Élèves connectés aujourd'hui"><header>${icon("cal")}<b>Élèves connectés aujourd'hui</b><button class="ib" data-act="jourfermer" aria-label="Fermer">${icon("x")}</button></header>
+    <div class="sescorps"><p class="muted">Chargement…</p></div></div>`;
+  document.body.appendChild(p);
+  p.addEventListener("click", e => { if (e.target === p) p.remove(); });
+  const z = p.querySelector(".sescorps");
+  const { data, error } = await sb.from("profiles").select("id, email, nom, role, derniere_visite");
+  if (!document.getElementById("jourPanel")) return;
+  if (error) { z.innerHTML = `<p class="ores err">${esc(error.message)}</p>`; return; }
+  const n = new Date(), minuit = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate());
+  const coursDe = em => { em = (em || "").toLowerCase(); return [...new Set((S.toutesInscriptions || []).filter(i => (i.email || "").toLowerCase() === em).map(i => (cls(i.classe_id) || {}).nom).filter(Boolean))].join(" · "); };
+  const L = (data || []).filter(x => (x.role || "eleve") !== "prof" && x.derniere_visite && +new Date(x.derniere_visite) >= minuit)
+    .map(x => ({ nom: x.nom && !x.nom.includes("@") ? x.nom : nomDepuisEmail(x.email || "?"), cours: coursDe(x.email), vu: x.derniere_visite }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  z.innerHTML = `<section><h4>${L.length} élève${L.length > 1 ? "s" : ""} aujourd'hui</h4>${L.map(x => `<div class="sesl">${avatarP(x.nom, "")}<div class="sesinfo"><b>${esc(x.nom)}</b><small>${esc(x.cours || "Aucun cours")}</small><small class="muted">Dernière visite à ${fmtT(D(x.vu))}</small></div></div>`).join("") || `<p class="muted">Aucun élève ne s'est connecté aujourd'hui.</p>`}</section>`;
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest('[data-act="aujourdhui"],[data-act="jourfermer"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  if (a.dataset.act === "aujourdhui") ouvrirAujourdhui(); else document.getElementById("jourPanel")?.remove();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.getElementById("jourPanel")?.remove(); });
+
 /* message affiché à l'élève après une déconnexion à distance */
 try { if (sessionStorage.getItem("pp_kick")) { sessionStorage.removeItem("pp_kick"); setTimeout(() => toast("Tu as été déconnecté par ton professeur. Pense à te déconnecter quand tu quittes un ordinateur du lycée."), 1500); } } catch (_) {}
 

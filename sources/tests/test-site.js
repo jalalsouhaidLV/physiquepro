@@ -35,7 +35,7 @@ const PAGES = {
     "/rendezvous", "/admin/profil", "/donnees"],
   prof: ["/accueil", "/classe/tle", "/classe/tle/flux", "/classe/tle/travaux", "/classe/tle/personnes", "/classe/tle/notes", "/classe/tle/corriger",
     "/classe/tle/parametres", "/classe/snt", "/devoir/1", "/devoir/2", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/programmes",
-    "/corbeille", "/suivi", "/urgences", "/preparateur", "/rendezvous", "/outils", "/simulations", "/physique",
+    "/corbeille", "/suivi", "/urgences", "/rendezvous", "/outils", "/simulations", "/physique",
     "/admin/profil", "/admin/site", "/admin/cours", "/admin/eleves", "/admin/fichiers", "/admin/import", "/admin/sauvegarde", "/donnees"]
 };
 /* ce que la page doit montrer pour être considérée comme chargée */
@@ -93,6 +93,18 @@ async function testerRole(navigateur, base, role) {
     if (CAPTURES) await page.screenshot({ path: path.join(DOSSIER_CAPTURES, "prof_eleves-connectes.png") });
     await page.keyboard.press("Escape");
     for (let i = avant; i < erreurs.length; i++) if (!erreurs[i].startsWith("panneau")) erreurs[i] = "panneau Élèves connectés → " + erreurs[i];
+  }
+  /* bouton « N élèves aujourd'hui » : liste des élèves venus aujourd'hui, jamais le prof (14/11/2026) */
+  if (role === "prof") {
+    await page.evaluate(() => { location.hash = "#/accueil"; }); await page.waitForTimeout(700);
+    await page.click('[data-act="aujourdhui"]').catch(() => note("liste du jour : bouton « élèves aujourd'hui » introuvable"));
+    await page.waitForSelector("#jourPanel .sescorps section", { timeout: 8000 }).catch(() => note("liste du jour : ne s'affiche pas"));
+    const noms = await page.evaluate(() => [...document.querySelectorAll("#jourPanel .sesl b")].map(b => b.textContent.trim()));
+    if (!noms.length) note("liste du jour : aucun élève listé");
+    if (noms.some(n => /prof/i.test(n))) note("liste du jour : le professeur est listé " + JSON.stringify(noms));
+    if (CAPTURES) await page.screenshot({ path: path.join(DOSSIER_CAPTURES, "prof_eleves-aujourdhui.png") });
+    await page.keyboard.press("Escape");
+    if (await page.$("#jourPanel")) note("liste du jour : Échap ne ferme pas la fenêtre");
   }
   /* message d'urgence du prof : « Toute la classe » (une case) ou quelques élèves cochés */
   if (role === "prof") {
