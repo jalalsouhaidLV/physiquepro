@@ -4512,7 +4512,8 @@ function compteurVisites(){
   return `<div class="compteur"><span class="cpt" title="Élèves qui se sont déjà connectés au site">${icon("people")}<b>${v.comptes}</b> élève${v.comptes > 1 ? "s" : ""} déjà connecté${v.comptes > 1 ? "s" : ""}</span>
     <span class="cpt" title="Visites des élèves (une nouvelle visite après 30 minutes d'absence)">${icon("eye")}<b>${v.visites}</b> visite${v.visites > 1 ? "s" : ""} d'élèves</span>
     <button class="cpt jour" data-act="aujourdhui" title="Voir les élèves qui se sont connectés aujourd'hui">${icon("cal")}<b>${v.aujourdhui}</b> élève${v.aujourdhui > 1 ? "s" : ""} aujourd'hui</button>
-    <button class="cpt enligne" data-act="enligne" title="Voir les élèves connectés et déconnectés, et déconnecter un élève"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} connecté${v.enligne > 1 ? "s" : ""}</button></div>`;
+    <button class="cpt enligne" data-act="enligne" title="Voir les élèves connectés et déconnectés, et déconnecter un élève"><i class="pastille"></i><b>${v.enligne}</b> élève${v.enligne > 1 ? "s" : ""} connecté${v.enligne > 1 ? "s" : ""}</button>${v.actifs == null ? "" : `
+    <button class="cpt actifs" data-act="actifs" title="Voir les élèves qui utilisent le site en ce moment (page à l'écran et un geste il y a moins de 2 minutes)">${icon("eclair")}<b>${v.actifs}</b> élève${v.actifs > 1 ? "s" : ""} actif${v.actifs > 1 ? "s" : ""}</button>`}</div>`;
 }
 
 /* ---------- Glisser-déposer des cours dans le menu de gauche ---------- */
@@ -5530,6 +5531,41 @@ async function chargerStatutProf(){
 }
 const _demarrerPresence = demarrerPresence;
 demarrerPresence = function(){ _demarrerPresence(); if (!S.prof && !STP.t) { chargerStatutProf(); STP.t = setInterval(chargerStatutProf, 15000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") chargerStatutProf(); }); } };
+
+/* ---------- « N élèves actifs » : élèves qui utilisent le site en ce moment (14/11/2026, script 49) ----------
+   Actif = page du site à l'écran ET un geste (toucher, défilement, clic, clavier) il y a moins de 2 minutes
+   (délai choisi par Jalal). Aucun signal en plus chez les élèves : on lit celui de pp_presence2.
+   La liste se met à jour toute seule toutes les 20 secondes tant qu'elle est ouverte. Le prof n'est jamais listé. */
+IC.eclair = IC.eclair || '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/>';
+const ACTF = { t: null };
+const appareilCourt = a => (a || "").split(",").map(x => x.trim().split(" · ")[0]).filter((x, i, l) => x && l.indexOf(x) === i).map(x => /iPhone|Android/.test(x) ? "📱 " + x : /iPad/.test(x) ? "📱 iPad" : "💻 " + x).join(" + ");
+const ilYaSec = d => { const s = Math.max(0, Math.round((Date.now() - new Date(d)) / 1000)); return s < 15 ? "à l'instant" : s < 60 ? `il y a ${s} s` : `il y a ${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}`; };
+async function chargerActifs(){
+  const p = document.getElementById("actPanel"); if (!p) { clearInterval(ACTF.t); return; }
+  const z = p.querySelector(".sescorps"), { data, error } = await sb.rpc("pp_eleves_actifs");
+  if (!document.getElementById("actPanel")) return;
+  if (error) { z.innerHTML = `<p class="ores err">${esc(error.message)}</p>`; return; }
+  const L = jsonRpc(data).map(x => ({ ...x, nom: x.nom && !x.nom.includes("@") ? x.nom : nomDepuisEmail(x.email || "?") })).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  if (S.stv && S.stv.actifs !== L.length) { S.stv.actifs = L.length; document.querySelectorAll(".compteur").forEach(c => c.outerHTML = compteurVisites()); }
+  z.innerHTML = `<section><h4>${L.length} élève${L.length > 1 ? "s" : ""} actif${L.length > 1 ? "s" : ""} en ce moment</h4>
+    <p class="muted actaide">Page du site à l'écran et un geste (toucher, défilement, clic) il y a moins de 2 minutes. Mise à jour toutes les 20 secondes.</p>
+    ${L.map(x => `<div class="sesl">${avatarP(x.nom, "")}<div class="sesinfo"><b>${esc(x.nom)}</b><small>${esc(x.classes || "Aucun cours")}</small><small class="muted">${esc(appareilCourt(x.appareils))} · actif ${ilYaSec(x.actif_le)}</small></div><i class="pastille actp"></i></div>`).join("") || `<p class="muted">Aucun élève n'utilise le site en ce moment.</p>`}</section>`;
+}
+function ouvrirActifs(){
+  if (!S.prof || document.getElementById("actPanel")) return;
+  const p = document.createElement("div"); p.id = "actPanel"; p.className = "sesfond";
+  p.innerHTML = `<div class="sesboite" role="dialog" aria-modal="true" aria-label="Élèves actifs en ce moment"><header>${icon("eclair")}<b>Élèves actifs en ce moment</b><button class="ib" data-act="actfermer" aria-label="Fermer">${icon("x")}</button></header>
+    <div class="sescorps"><p class="muted">Chargement…</p></div></div>`;
+  document.body.appendChild(p);
+  p.addEventListener("click", e => { if (e.target === p) fermerActifs(); });
+  chargerActifs(); clearInterval(ACTF.t); ACTF.t = setInterval(() => { if (document.visibilityState === "visible") chargerActifs(); }, 20000);
+}
+function fermerActifs(){ document.getElementById("actPanel")?.remove(); clearInterval(ACTF.t); }
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest('[data-act="actifs"],[data-act="actfermer"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  if (a.dataset.act === "actifs") ouvrirActifs(); else fermerActifs();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("actPanel")) fermerActifs(); });
 /* =====================================================================
    « Pour s'entraîner » : le professeur relie simulations et outils aux chapitres
    + nom court des cours dans le menu

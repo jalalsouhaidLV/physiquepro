@@ -106,6 +106,18 @@ async function testerRole(navigateur, base, role) {
     await page.keyboard.press("Escape");
     if (await page.$("#jourPanel")) note("liste du jour : Échap ne ferme pas la fenêtre");
   }
+  /* bouton « N élèves actifs » : élèves qui utilisent le site en ce moment, jamais le prof (14/11/2026) */
+  if (role === "prof") {
+    await page.evaluate(() => { location.hash = "#/accueil"; }); await page.waitForTimeout(700);
+    await page.click('[data-act="actifs"]').catch(() => note("élèves actifs : bouton introuvable"));
+    await page.waitForSelector("#actPanel .sescorps section", { timeout: 8000 }).catch(() => note("élèves actifs : la liste ne s'affiche pas"));
+    const noms = await page.evaluate(() => [...document.querySelectorAll("#actPanel .sesl b")].map(b => b.textContent.trim()));
+    if (!noms.length) note("élèves actifs : aucun élève listé");
+    if (noms.some(n => /prof/i.test(n))) note("élèves actifs : le professeur est listé " + JSON.stringify(noms));
+    if (CAPTURES) await page.screenshot({ path: path.join(DOSSIER_CAPTURES, "prof_eleves-actifs.png") });
+    await page.keyboard.press("Escape");
+    if (await page.$("#actPanel")) note("élèves actifs : Échap ne ferme pas la fenêtre");
+  }
   /* message d'urgence du prof : « Toute la classe » (une case) ou quelques élèves cochés */
   if (role === "prof") {
     const avant = erreurs.length;

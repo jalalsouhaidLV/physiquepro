@@ -2733,3 +2733,13 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,[contenteditable
 /* 12/11/2026 : raccourcis techniques du prof (Paramètres) : le texte passe à la ligne au lieu d'être coupé sur téléphone */
 .edcard .classlinks a span{white-space:normal;overflow:visible;text-overflow:clip}
 .urgpush{display:flex;align-items:center;gap:6px;margin:6px 0 0;font-size:.8rem}.urgpush svg{width:14px;height:14px;flex:none}
+/* bouton « N élèves actifs » (14/11/2026) */
+button.cpt.actifs{border:0;font:inherit;font-size:.78rem;cursor:pointer}
+button.cpt.actifs svg{color:#e8a200}
+button.cpt.actifs b{color:#b57d00}
+button.cpt.actifs:hover{box-shadow:0 0 0 2px #e8a200,var(--shadow)}
+#actPanel .actaide{font-size:.8rem;margin:-2px 0 8px}
+#actPanel .sesl{align-items:center}
+#actPanel .actp{margin-left:auto;flex:none}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.cpt.actifs b{color:#f0b429}}
+:root[data-theme="dark"] button.cpt.actifs b{color:#f0b429}
