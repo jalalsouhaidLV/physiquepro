@@ -22,8 +22,9 @@ function cataloguePratique(){
 const elemPratique = k => { const c = cataloguePratique().find(x => x.k === k); if (c) return c; if (k.startsWith("s:")) return { k, t: "Simulation", type: "Simulation", ic: "atom" }; return null; };
 function blocPratique(tid){
   const L = ((R().pratique || {})[tid] || []).map(elemPratique).filter(Boolean);
-  if (!L.length && !S.prof) return "";
-  return `<div class="pratique"><span class="prlbl">${icon("flask")} Pour s'entraîner</span>${L.map(x => `<span class="prchip"><button data-act="prouvrir" data-k="${esc(x.k)}" title="${esc(x.type)}">${icon(x.ic)}${esc(x.t)}</button>${S.prof ? `<button class="prx" data-act="prretire" data-tid="${esc(tid)}" data-k="${esc(x.k)}" aria-label="Retirer">×</button>` : ""}</span>`).join("")}${S.prof ? `<button class="prplus" data-act="prajout" data-tid="${esc(tid)}">${icon("plus")} ${L.length ? "Ajouter" : "Ajouter une simulation ou un outil"}</button>` : ""}</div>`;
+  if (!L.length) return ""; /* 24/11/2026 : le bouton « Ajouter une simulation ou un outil » est passé dans le menu ⋮ du thème */
+  /* 24/11/2026 (demande de Jalal) : plus de mention « Pour s'entraîner » devant les simulations et outils */
+  return `<div class="pratique">${L.map(x => `<span class="prchip"><button data-act="prouvrir" data-k="${esc(x.k)}" title="${esc(x.type)}">${icon(x.ic)}${esc(x.t)}</button>${S.prof ? `<button class="prx" data-act="prretire" data-tid="${esc(tid)}" data-k="${esc(x.k)}" aria-label="Retirer">×</button>` : ""}</span>`).join("")}</div>`;
 }
 async function sauverPratique(tid, liste){
   const p = { ...(R().pratique || {}) }; if (liste.length) p[tid] = liste; else delete p[tid];
@@ -62,7 +63,7 @@ document.addEventListener("click", async e => {
   const a = e.target.closest && e.target.closest('[data-act="prouvrir"],[data-act="prretire"],[data-act="prajout"],[data-act="prfermer"],[data-act="prbascule"]'); if (!a) return; e.preventDefault(); e.stopPropagation();
   const act = a.dataset.act;
   if (act === "prouvrir") ouvrirPratique(a.dataset.k);
-  else if (act === "prajout") { if (S.prof) ouvrirChoixPratique(a.dataset.tid); }
+  else if (act === "prajout") { if (S.prof) { S.menu = null; ouvrirChoixPratique(a.dataset.tid); } }
   else if (act === "prfermer") fermerChoixPratique();
   else if (act === "prretire") { const L = ((R().pratique || {})[a.dataset.tid] || []).filter(k => k !== a.dataset.k); if (await sauverPratique(a.dataset.tid, L)) render(); }
   else if (act === "prbascule") { const L = ((R().pratique || {})[PR.tid] || []).slice(), i = L.indexOf(a.dataset.k); if (i >= 0) L.splice(i, 1); else L.push(a.dataset.k); if (await sauverPratique(PR.tid, L)) dessinerChoixPratique(); }

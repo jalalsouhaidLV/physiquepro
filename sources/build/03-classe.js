@@ -229,6 +229,7 @@ function vTravaux(c, data){
   const visibles = groupes.filter(g => (S.prof || g.items.length) && (!S.prof || !S.filtreTheme || (g.t ? String(g.t.id) : "none") === S.filtreTheme));
   const themeMenu = g => !S.prof || !g.t ? "" : `<div class="dd kebab"><button class="ib" data-act="menu" data-m="t${g.t.id}" aria-label="Options du thème">${icon("more")}</button>${S.menu === "t" + g.t.id ? `<div class="dd-menu">
     <a href="#" data-act="renomtheme" data-id="${g.t.id}" data-titre="${esc(g.t.titre)}">${icon("edit")} Renommer</a>
+    <a href="#" data-act="prajout" data-tid="${g.t.id}">${icon("flask")} Simulations et outils…</a>
     <a href="#" data-act="placertheme" data-id="${g.t.id}" data-titre="${esc(g.t.titre)}" data-c="${esc(c.id)}">${icon("reuse")} Déplacer avant / après…</a>
     ${g.i > 0 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-to="0" data-c="${esc(c.id)}">${icon("up")} Placer en premier</a><a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="-1" data-c="${esc(c.id)}">${icon("up")} Monter</a>` : ""}
     ${g.i < data.themes.length - 1 ? `<a href="#" data-act="movetheme" data-id="${g.t.id}" data-dir="1" data-c="${esc(c.id)}">${icon("down")} Descendre</a><a href="#" data-act="movetheme" data-id="${g.t.id}" data-to="999" data-c="${esc(c.id)}">${icon("down")} Placer en dernier</a>` : ""}
