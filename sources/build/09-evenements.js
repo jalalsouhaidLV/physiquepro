@@ -436,7 +436,7 @@ document.addEventListener("change", async e => {
   if (t.dataset.act === "inscr") { const on = t.checked, cid = t.dataset.c, email = t.dataset.e; t.disabled = true;
     const { error } = on ? await sb.from("inscriptions").upsert({ classe_id: cid, email, nom: t.dataset.n }, { onConflict: "classe_id,email", ignoreDuplicates: true }) : await sb.from("inscriptions").delete().eq("classe_id", cid).eq("email", email);
     if (error) { toast("Action impossible : " + error.message); t.checked = !on; t.disabled = false; return; }
-    await rafraichir(); toast((on ? "Inscrit en " : "Retiré de ") + cls(cid).nom); render(); return; }
+    await rafraichir(); toast((on ? "Inscrit en " : "Retiré de ") + cls(cid).nom); render(); if (on) setTimeout(() => genererCopies(true), 1500); return; }
   if (S.adm && t.dataset.ad) { setPath(S.adm, t.dataset.ad, t.type === "checkbox" ? t.checked : t.value); S.adm.modif = true; render(); return; }
   if (t.dataset.pref) { const p = { ...prefs() }; p[t.dataset.pref] = t.checked; await sauverPrefs(p); render(); return; }
   if (t.dataset.prefc) { const p = { ...prefs() }, off = new Set(p.cours_off || []); t.checked ? off.delete(t.dataset.prefc) : off.add(t.dataset.prefc); p.cours_off = [...off]; await sauverPrefs(p); return; }
@@ -533,7 +533,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   chargerNotifs().catch(() => {});
   demarrerPresence();
   if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
-  if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
+  if (S.prof) setInterval(async () => { if (document.visibilityState === "visible") { await transfererRendus(true); await genererCopies(true); } }, 600000);
   setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
   setInterval(() => { chargerUrgents(); }, 45000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });

@@ -255,9 +255,14 @@ async function genererCopies(silencieux){
     for (const d of S.devoirs) if (visible(d) && d.type !== "question" && office(d).length) lots.push({ objet: "devoir", o: d });
     for (const c of actives()) { const data = await chargerClasse(c.id); (data.supports || []).forEach(sp => { if (visible(sp) && office(sp).length) lots.push({ objet: "support", o: sp }); }); }
     const faits = new Set((S.copies || []).map(x => x.objet + ":" + x.objet_id + ":" + x.source + ":" + x.eleve_email));
+    /* liste des élèves relue à chaque fois : un élève ajouté au cours APRÈS la publication (par le prof ou avec le code)
+       reçoit aussi sa copie (cas de Rémi, 24/11/2026 : sans copie, il n'avait que l'original en lecture seule) */
+    let frais = null;
+    if (lots.length) { const { data, error } = await sb.from("inscriptions").select("classe_id, email, nom"); if (!error && data) frais = data; }
+    const inscrits = cid => frais ? frais.filter(x => x.classe_id === cid) : inscritsDe(cid);
     const taches = [];
     for (const l of lots) {
-      const el = elevesDuDevoir(l.o, inscritsDe(l.o.classe_id));
+      const el = elevesDuDevoir(l.o, inscrits(l.o.classe_id));
       for (const r of office(l.o)) for (const e of el) if (!faits.has(l.objet + ":" + l.o.id + ":" + r.od.id + ":" + e.email)) taches.push({ ...l, r, e });
     }
     if (!taches.length) return;

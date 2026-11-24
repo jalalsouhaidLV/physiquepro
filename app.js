@@ -443,7 +443,8 @@ function carteRes(r, ctx = {}){
   const tip = appOffice(nom) ? `title="Ouvrir dans ${appOffice(nom)} en ligne"` : `title="${esc(nom)}"`;
   const office = !S.prof && appOffice(nom) && r.od, copie = office ? copieDe(r, ctx) : null, tel = telephone();
   let lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
-  let tip2 = tip, etat = office ? " · à lire seulement" : "";
+  /* devoir ou support sans copie à son nom (élève arrivé après la publication) : le dire clairement au lieu de « à lire seulement » */
+  let tip2 = tip, etat = office ? (ctx.support || (ctx.devoir && ((S.devoirs || []).find(d => String(d.id) === String(ctx.devoir)) || {}).type !== "question") ? " · à lire seulement : ta copie à ton nom arrive bientôt, sinon préviens ton professeur" : " · à lire seulement") : "";
   if (copie) {
     /* téléphone : Word en ligne n'y permet que la lecture → fenêtre d'aide qui ouvre la copie dans l'appli Word */
     lien = tel ? `href="#" data-act="wordtel" data-copie="${esc(copie.id)}" data-devoir="${esc(ctx.devoir || "")}"` : `href="${esc(copie.web)}" target="_blank" rel="noopener"`;
@@ -1514,6 +1515,7 @@ async function modalOk(){
       if (!ok.length) return stop(L.length ? "Aucun nouvel élève à ajouter (erreurs ou déjà inscrits)." : "Colle au moins une ligne.");
       const { error } = await sb.from("inscriptions").upsert(ok.map(x => ({ classe_id: cid, email: x.email, nom: x.nom })), { onConflict: "classe_id,email", ignoreDuplicates: true });
       if (error) throw error;
+      setTimeout(() => genererCopies(true), 2500); /* copies Word des travaux déjà publiés pour les nouveaux élèves */
       return done(ok.length + " élève" + (ok.length > 1 ? "s ajoutés" : " ajouté") + " à " + cls(cid).nom, cid);
     }
     if (m.kind === "renomeleve") {
@@ -2650,9 +2652,14 @@ async function genererCopies(silencieux){
     for (const d of S.devoirs) if (visible(d) && d.type !== "question" && office(d).length) lots.push({ objet: "devoir", o: d });
     for (const c of actives()) { const data = await chargerClasse(c.id); (data.supports || []).forEach(sp => { if (visible(sp) && office(sp).length) lots.push({ objet: "support", o: sp }); }); }
     const faits = new Set((S.copies || []).map(x => x.objet + ":" + x.objet_id + ":" + x.source + ":" + x.eleve_email));
+    /* liste des élèves relue à chaque fois : un élève ajouté au cours APRÈS la publication (par le prof ou avec le code)
+       reçoit aussi sa copie (cas de Rémi, 24/11/2026 : sans copie, il n'avait que l'original en lecture seule) */
+    let frais = null;
+    if (lots.length) { const { data, error } = await sb.from("inscriptions").select("classe_id, email, nom"); if (!error && data) frais = data; }
+    const inscrits = cid => frais ? frais.filter(x => x.classe_id === cid) : inscritsDe(cid);
     const taches = [];
     for (const l of lots) {
-      const el = elevesDuDevoir(l.o, inscritsDe(l.o.classe_id));
+      const el = elevesDuDevoir(l.o, inscrits(l.o.classe_id));
       for (const r of office(l.o)) for (const e of el) if (!faits.has(l.objet + ":" + l.o.id + ":" + r.od.id + ":" + e.email)) taches.push({ ...l, r, e });
     }
     if (!taches.length) return;
@@ -8130,7 +8137,7 @@ document.addEventListener("change", async e => {
   if (t.dataset.act === "inscr") { const on = t.checked, cid = t.dataset.c, email = t.dataset.e; t.disabled = true;
     const { error } = on ? await sb.from("inscriptions").upsert({ classe_id: cid, email, nom: t.dataset.n }, { onConflict: "classe_id,email", ignoreDuplicates: true }) : await sb.from("inscriptions").delete().eq("classe_id", cid).eq("email", email);
     if (error) { toast("Action impossible : " + error.message); t.checked = !on; t.disabled = false; return; }
-    await rafraichir(); toast((on ? "Inscrit en " : "Retiré de ") + cls(cid).nom); render(); return; }
+    await rafraichir(); toast((on ? "Inscrit en " : "Retiré de ") + cls(cid).nom); render(); if (on) setTimeout(() => genererCopies(true), 1500); return; }
   if (S.adm && t.dataset.ad) { setPath(S.adm, t.dataset.ad, t.type === "checkbox" ? t.checked : t.value); S.adm.modif = true; render(); return; }
   if (t.dataset.pref) { const p = { ...prefs() }; p[t.dataset.pref] = t.checked; await sauverPrefs(p); render(); return; }
   if (t.dataset.prefc) { const p = { ...prefs() }, off = new Set(p.cours_off || []); t.checked ? off.delete(t.dataset.prefc) : off.add(t.dataset.prefc); p.cours_off = [...off]; await sauverPrefs(p); return; }
@@ -8227,7 +8234,7 @@ window.addEventListener("resize", () => { const w = window.innerWidth; if ((last
   chargerNotifs().catch(() => {});
   demarrerPresence();
   if (S.prof) setTimeout(async () => { await synchroPartages(true); await transfererRendus(true); await genererCopies(true); }, 4000);
-  if (S.prof) setInterval(() => { if (document.visibilityState === "visible") transfererRendus(true); }, 600000);
+  if (S.prof) setInterval(async () => { if (document.visibilityState === "visible") { await transfererRendus(true); await genererCopies(true); } }, 600000);
   setInterval(() => { if (document.visibilityState === "visible") chargerNotifs().catch(() => {}); }, 180000);
   setInterval(() => { chargerUrgents(); }, 45000);
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") location.replace(ICI); });

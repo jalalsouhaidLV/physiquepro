@@ -154,6 +154,7 @@ async function modalOk(){
       if (!ok.length) return stop(L.length ? "Aucun nouvel élève à ajouter (erreurs ou déjà inscrits)." : "Colle au moins une ligne.");
       const { error } = await sb.from("inscriptions").upsert(ok.map(x => ({ classe_id: cid, email: x.email, nom: x.nom })), { onConflict: "classe_id,email", ignoreDuplicates: true });
       if (error) throw error;
+      setTimeout(() => genererCopies(true), 2500); /* copies Word des travaux déjà publiés pour les nouveaux élèves */
       return done(ok.length + " élève" + (ok.length > 1 ? "s ajoutés" : " ajouté") + " à " + cls(cid).nom, cid);
     }
     if (m.kind === "renomeleve") {

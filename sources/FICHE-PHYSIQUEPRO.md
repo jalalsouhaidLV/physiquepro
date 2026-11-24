@@ -61,7 +61,7 @@
 > - Connexion Microsoft 365 via Supabase Auth (Azure), domaine @lycee-verdun.edu.lb ; prof = jalal.souhaid@lycee-verdun.edu.lb.
 > - Supabase : 32 tables, toutes avec RLS, aucune lisible par anon ; est_prof() pour les fonctions prof. Seules deux fonctions sont ouvertes aux visiteurs, et c'est voulu : pp_accueil_public (page publique) et pp_ping (maintien en éveil).
 > - Stockage privé : documents (prof, dossier prof/ jamais purgé) et rendus.
-> - OneDrive : chaque activité a « Copies élèves » (copie Word modifiable par élève) et « Travaux rendus » (rendus des élèves + corrections du prof, seul exemplaire).
+> - OneDrive : chaque activité a « Copies élèves » (copie Word modifiable par élève) et « Travaux rendus » (rendus des élèves + corrections du prof, seul exemplaire). Les copies sont créées par le navigateur du prof (ouverture du site, puis toutes les 10 min, et juste après l'ajout d'un élève) : un élève ajouté après la publication reçoit aussi la sienne (24/11/2026).
 > - Notifications : push (fonction pp-push) quand le prof rend une note ou écrit un message urgent, et e-mail via Microsoft Graph pour les notes. Depuis le 12/11/2026 (script 48) : la notification au prof d'un message urgent d'élève est envoyée par Supabase lui-même (fonction pp-urgent, nouvel essai chaque minute par pg_cron pp-urgent-filet, 6 essais), quelle que soit la version du site de l'élève.
 > - Tâches pg_cron : pp-rappels-veille (16 h UTC), pp-rappels-menage (dimanche 3 h UTC), pp-urgent-filet (chaque minute).
 >

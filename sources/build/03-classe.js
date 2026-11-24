@@ -63,7 +63,8 @@ function carteRes(r, ctx = {}){
   const tip = appOffice(nom) ? `title="Ouvrir dans ${appOffice(nom)} en ligne"` : `title="${esc(nom)}"`;
   const office = !S.prof && appOffice(nom) && r.od, copie = office ? copieDe(r, ctx) : null, tel = telephone();
   let lien = r.path ? `href="#" data-act="openfile" data-bucket="${esc(r.bucket || "documents")}" data-path="${esc(r.path)}"` : `href="${esc(S.prof && r.od && r.od.web ? r.od.web : r.url)}" target="_blank" rel="noopener"`;
-  let tip2 = tip, etat = office ? " · à lire seulement" : "";
+  /* devoir ou support sans copie à son nom (élève arrivé après la publication) : le dire clairement au lieu de « à lire seulement » */
+  let tip2 = tip, etat = office ? (ctx.support || (ctx.devoir && ((S.devoirs || []).find(d => String(d.id) === String(ctx.devoir)) || {}).type !== "question") ? " · à lire seulement : ta copie à ton nom arrive bientôt, sinon préviens ton professeur" : " · à lire seulement") : "";
   if (copie) {
     /* téléphone : Word en ligne n'y permet que la lecture → fenêtre d'aide qui ouvre la copie dans l'appli Word */
     lien = tel ? `href="#" data-act="wordtel" data-copie="${esc(copie.id)}" data-devoir="${esc(ctx.devoir || "")}"` : `href="${esc(copie.web)}" target="_blank" rel="noopener"`;
