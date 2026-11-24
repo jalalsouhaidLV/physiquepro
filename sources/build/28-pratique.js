@@ -79,7 +79,7 @@ function relEch(date, fait){
   return `<span class="rel ${cl}">${txt}</span>`;
 }
 
-/* ---------- Chapitre en 3 étapes : Comprendre → S'entraîner → Vérifier ---------- */
+/* ---------- Chapitre : documents, puis entraînement, puis « Vérifier » (seul titre affiché) ---------- */
 function etapeDe(it){ if (it.k === "support") return 0; if (it.q || it.k === "quiz") return 2; const o = it.d || it.s || it.q; return o && o.type === "question" ? 2 : 1; }
 function etapesChapitre(g, c){
   const tid = String(g.t.id), E = [[], [], []]; g.items.forEach(it => E[etapeDe(it)].push(it));
@@ -89,7 +89,9 @@ function etapesChapitre(g, c){
   return T.map(([n, titre, sous], i) => {
     const extra = i === 1 ? pr : i === 2 && fc ? `<div class="pratique"><span class="prlbl">${icon("cards")} Révisions</span><span class="prchip"><button data-act="prreviser" data-c="${esc(c.id)}">${icon("cards")}${fc} carte${fc > 1 ? "s" : ""} à réviser</button></span></div>` : "";
     if (!E[i].length && !extra) return "";
-    return `<div class="etape"><div class="etapeh"><span class="etn">${n}</span><b>${titre}</b><small>${sous}</small></div>${extra}${E[i].map(workItem).join("")}</div>`;
+    /* 24/11/2026 (demande de Jalal) : plus de bandeaux « 1 Comprendre » ni « 2 S'entraîner » ; seul « Vérifier » garde son titre, sans numéro */
+    const tete = i === 2 ? `<div class="etapeh"><b>${titre}</b><small>${sous}</small></div>` : "";
+    return `<div class="etape">${tete}${extra}${E[i].map(workItem).join("")}</div>`;
   }).join("");
 }
 document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('[data-act="prreviser"]'); if (!a) return; e.preventDefault(); e.stopPropagation(); S.fcCours = a.dataset.c; go("/revisions"); }, true);
