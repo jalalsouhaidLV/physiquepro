@@ -31,10 +31,10 @@ const DOSSIER_CAPTURES = path.join(__dirname, "captures");
 const PAGES = {
   visiteur: ["/accueil", "/outils", "/simulations", "/physique", "/donnees"],
   eleve: ["/accueil", "/classe/tle", "/classe/tle/flux", "/classe/tle/travaux", "/classe/tle/personnes", "/classe/tle/notes", "/classe/snt",
-    "/devoir/1", "/devoir/2", "/devoir/3", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/outils", "/simulations", "/physique",
+    "/devoir/1", "/devoir/2", "/devoir/3", "/devoir/4", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/outils", "/simulations", "/physique",
     "/rendezvous", "/admin/profil", "/donnees"],
   prof: ["/accueil", "/classe/tle", "/classe/tle/flux", "/classe/tle/travaux", "/classe/tle/personnes", "/classe/tle/notes", "/classe/tle/corriger",
-    "/classe/tle/parametres", "/classe/snt", "/devoir/1", "/devoir/2", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/programmes",
+    "/classe/tle/parametres", "/classe/snt", "/devoir/1", "/devoir/2", "/devoir/4", "/quiz/1", "/todo", "/agenda", "/semaine", "/revisions", "/programmes",
     "/corbeille", "/suivi", "/urgences", "/rendezvous", "/outils", "/simulations", "/physique",
     "/admin/profil", "/admin/site", "/admin/cours", "/admin/eleves", "/admin/fichiers", "/admin/import", "/admin/sauvegarde", "/donnees"]
 };
@@ -174,6 +174,38 @@ async function testerRole(navigateur, base, role) {
   /* laisse tourner les minuteries (présence, statut du prof, notifications) */
   await page.waitForTimeout(1500);
   const inconnus = await page.evaluate(() => window.__PP_INCONNUS || []);
+  /* notes sans copie et liens du commentaire de correction (25/11/2026, étape 50) */
+  if (role === "eleve") {
+    await page.evaluate(() => { location.hash = "#/classe/tle/notes"; }); await page.waitForTimeout(800);
+    const v = await page.evaluate(() => ({ lien: !!document.querySelector('.notecom a[href^="https://drive.google.com"]'), imbrique: !!document.querySelector("a a"),
+      sans: [...document.querySelectorAll(".work")].some(w => /TP noté sans copie/.test(w.textContent) && /13/.test(w.textContent)) }));
+    if (!v.lien) note("Notes : le lien du commentaire de correction n'est pas cliquable");
+    if (v.imbrique) note("Notes : un lien est placé dans un autre lien");
+    if (!v.sans) note("Notes : la note « sans copie » n'apparaît pas");
+    await page.evaluate(() => { location.hash = "#/devoir/4"; }); await page.waitForTimeout(800);
+    const t = await page.evaluate(() => document.querySelector("#app").innerText);
+    if (!/sans copie déposée/.test(t)) note("devoir sans copie : l'élève ne voit pas l'explication");
+    if (await page.$('[data-act="unsubmit"]')) note("devoir sans copie : l'élève peut annuler la fiche du prof");
+    if (!await page.$('.retour a[href^="https://drive.google.com"]')) note("devoir sans copie : le lien du commentaire n'est pas cliquable");
+  }
+  if (role === "prof") {
+    await page.evaluate(() => { location.hash = "#/devoir/1"; }); await page.waitForTimeout(800);
+    const sel = await page.$('button.st[data-act="sel"][data-n*="@"]');
+    if (sel) { await sel.click(); await page.waitForTimeout(500); }
+    const b = await page.$('[data-act="sanscopie"]');
+    if (!b) note("devoir : bouton « Noter sans copie » absent pour un élève sans dépôt : " + (await page.evaluate(() => document.querySelector("#app").innerText)).slice(0, 1500).replace(/\n/g, " | "));
+    else {
+      await b.click(); await page.waitForTimeout(800);
+      if (!await page.$(".att.sanscopie")) note("devoir : la fiche sans copie ne s'affiche pas après le clic");
+      const c = await page.$("#noteCom");
+      if (!c) note("devoir : pas de champ de note après « Noter sans copie »");
+      else { await c.fill("Copie corrigée : https://drive.google.com/file/d/abc/view."); await page.waitForTimeout(200);
+        const h = await page.evaluate(() => { const a = document.querySelector("#noteComApercu a"); return a ? a.getAttribute("href") : null; });
+        if (h !== "https://drive.google.com/file/d/abc/view") note("devoir : l'aperçu du commentaire ne rend pas le lien cliquable (" + h + ")"); }
+    }
+    await page.evaluate(() => { location.hash = "#/classe/tle/notes"; }); await page.waitForTimeout(800);
+    if (!await page.$('.gradebook [data-act="sanscopie"]')) note("tableau des notes : pas de bouton « Noter » pour un élève sans dépôt");
+  }
   await contexte.close();
   return { erreurs, inconnus };
 }

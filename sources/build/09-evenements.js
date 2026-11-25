@@ -292,6 +292,18 @@ document.addEventListener("click", async e => {
     case "lienopen": e.preventDefault(); S.menu = null; S.lienOpen = true; render(); setTimeout(() => { const l = document.getElementById("lien"); if (l) l.focus(); }, 0); return;
     case "rmfile": S.files.splice(Number(a.dataset.i), 1); render(); return;
     case "submit": rendreDevoir(S.devoirs.find(x => String(x.id) === a.dataset.id)); return;
+    case "sanscopie": { const d = S.devoirs.find(x => String(x.id) === a.dataset.d), email = a.dataset.e, uid = uidEleve(email); if (!d) return;
+      if (renduDe(d, email)) { render(); return; }
+      if (!uid) { toast("Cet élève ne s'est encore jamais connecté au site : il faut qu'il se connecte une fois pour pouvoir être noté."); return; }
+      a.disabled = true;
+      const { data, error } = await sb.from("rendus").insert({ devoir_id: d.id, auteur: uid, auteur_email: email, sans_copie: true }).select().single();
+      a.disabled = false;
+      if (error) { toast("Fiche impossible : " + error.message); return; }
+      S.rendus.push(data); render(); toast("Tu peux maintenant noter cet élève sans copie.");
+      if (a.dataset.focus) { const i = document.querySelector(`input.gin[data-rendu="${data.id}"]`); if (i) i.focus(); }
+      return; }
+    case "sanscopiex": { const rd = S.rendus.find(x => String(x.id) === a.dataset.id); if (!rd || !rd.sans_copie) return;
+      S.modal = { kind: "confirm", action: "sanscopiex", id: rd.id, ok: "Retirer", titre: "Retirer cette fiche sans copie ?", texte: "La note et le commentaire de cet élève pour ce devoir seront effacés (ils restent récupérables dans la corbeille)." }; render(); return; }
     case "unsubmit": { const rd = S.rendus.find(x => String(x.id) === a.dataset.id); if (rd && rd.reponse) S.reponse = rd.reponse; const { error } = await sb.from("rendus").delete().eq("id", a.dataset.id);
       if (error) { toast("Annulation impossible : " + error.message); return; }
       const f = (rd.fichiers || []).map(x => x.chemin).filter(Boolean); if (f.length) await sb.storage.from("rendus").remove(f);

@@ -48,7 +48,7 @@ async function chargerNotifs(){
       if (S.prof || mention || x.auteur_nom === R().prof.nom) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); }); }
   cp.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id); add("prives", D(x.cree_le), esc(x.auteur_nom) + " : commentaire privé sur « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
   if (S.prof) {
-    ((res[2] && res[2].data) || []).forEach(x => { const d = dv(x.devoir_id); add("rendus", D(x.rendu_le), esc(nomDe(d.classe_id, x.auteur_email)) + (d.type === "question" ? " a répondu à « " : " a rendu « ") + esc(d.titre || "") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
+    ((res[2] && res[2].data) || []).filter(x => !(S.rendus.find(r => r.id === x.id) || {}).sans_copie).forEach(x => { const d = dv(x.devoir_id); add("rendus", D(x.rendu_le), esc(nomDe(d.classe_id, x.auteur_email)) + (d.type === "question" ? " a répondu à « " : " a rendu « ") + esc(d.titre || "") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
     S.devoirs.filter(d => !d.brouillon && d.date_limite && D(d.date_limite) > vu && D(d.date_limite) <= now()).forEach(d => {
       const el = elevesDuDevoir(d, inscritsDe(d.classe_id)), n = el.filter(e => !renduDe(d, e.email)).length;
       if (n) add("manquants", D(d.date_limite), n + " élève" + (n > 1 ? "s n'ont" : " n'a") + " pas rendu « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id); });

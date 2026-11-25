@@ -29,7 +29,7 @@ const dueTxt = d => {
 };
 const ouvert = d => !d.date_limite || D(d.date_limite) > now();
 const depotOuvert = d => d.accepte !== false && (ouvert(d) || !!d.retard_ok);
-const enRetard = (d, r) => !!(r && d.date_limite && D(r.rendu_le) > D(d.date_limite));
+const enRetard = (d, r) => !!(r && !r.sans_copie && d.date_limite && D(r.rendu_le) > D(d.date_limite));
 const dueOf = d => d.date_limite ? dueTxt(D(d.date_limite)) : "Aucune date limite";
 const pts = d => d.points == null ? "Non noté" : d.points + " points";
 const pad = n => String(n).padStart(2, "0");
@@ -194,6 +194,8 @@ const actives = () => { const l = S.classes.filter(c => !c.archive); if (S.prof)
   const rang = id => { const i = o.indexOf(id); return i < 0 ? 1e6 : i; }; return l.slice().sort((a, b) => rang(a.id) - rang(b.id)); };
 const moi = () => S.profil.email;
 const renduDe = (d, email) => S.rendus.find(r => r.devoir_id === d.id && (r.auteur_email === email || r.binome_email === email));
+/* étape 50 : identifiant du compte d'un élève (pour lui créer une fiche « sans copie ») */
+const uidEleve = email => Object.keys(S.profils || {}).find(id => S.profils[id] === email);
 const correctionDe = r => r && S.corrections.find(c => c.rendu_id === r.id);
 const rendusDe = d => S.rendus.filter(r => r.devoir_id === d.id);
 const aCorriger = d => rendusDe(d).filter(r => !(correctionDe(r) || {}).publiee).length;
@@ -669,8 +671,8 @@ function vNotes(c, data){
     if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? `<td class="cell"><span class="nv">${fmtNote(noteQuiz(col.o, r))}</span><span class="muted">/${col.o.points}</span></td>` : (col.o.date_limite && D(col.o.date_limite) > now() ? `<td class="cell"><span class="s muted">À faire</span></td>` : `<td class="cell"><span class="s" style="color:var(--bad)">Non fait</span></td>`); }
     const d = col.o; if (d.eleves && !d.eleves.includes(e.email)) return `<td class="cell na"></td>`;
     const r = renduDe(d, e.email), cr = correctionDe(r);
-    if (!r) return `<td class="cell">${ouvert(d) ? `<span class="s muted">À faire</span>` : `<span class="s" style="color:var(--bad)">Manquant</span>`}</td>`;
-    return `<td class="cell"><input class="gin" data-act="note" data-rendu="${r.id}" data-max="${d.points}" value="${cr && cr.note != null ? fmtNote(cr.note) : ""}" placeholder="__" aria-label="Note de ${esc(e.nom)}"><span class="muted">/${d.points}</span><span class="s ${cr && cr.publiee ? "" : "draftnote"}">${cr && cr.note != null ? (cr.publiee ? "" : "Brouillon") : "Rendu"}</span></td>`;
+    if (!r) return `<td class="cell">${ouvert(d) ? `<span class="s muted">À faire</span>` : `<span class="s" style="color:var(--bad)">Manquant</span>`}${d.type === "question" ? "" : `<button class="linkbtn gsans" data-act="sanscopie" data-d="${d.id}" data-e="${esc(e.email)}" data-focus="1" title="Noter sans copie (absent, copie sur papier, groupe de TP)" aria-label="Noter ${esc(e.nom)} sans copie">Noter</button>`}</td>`;
+    return `<td class="cell"><input class="gin" data-act="note" data-rendu="${r.id}" data-max="${d.points}" value="${cr && cr.note != null ? fmtNote(cr.note) : ""}" placeholder="__" aria-label="Note de ${esc(e.nom)}"><span class="muted">/${d.points}</span><span class="s ${cr && cr.publiee ? "" : "draftnote"}">${cr && cr.note != null ? (cr.publiee ? "" : "Brouillon") : r.sans_copie ? "Sans copie" : "Rendu"}</span></td>`;
   };
   const moyEleve = e => moyenneDe(c, e.email, uidDe(e.email), false).moy;
   const moyCol = col => { const v = el.map(e => { if (col.k === "q") { const uid = uidDe(e.email), r = uid && resultatDe(col.o, uid); return r ? noteQuiz(col.o, r) : null; } const cr = correctionDe(renduDe(col.o, e.email)); return cr && cr.note != null ? Number(cr.note) : null; }).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
@@ -732,7 +734,10 @@ function vDevoir(r){
   const e = etat(d, moi()), rd = e.r, open = depotOuvert(d), isQ = d.type === "question", Q = d.question || {};
   let work;
   if (isQ) work = travailQuestion(d, c, e, rd, open, Q);
-  else if (rd) {
+  else if (rd && rd.sans_copie) {
+    work = `<div class="att"><span class="muted">${e.t === "Noté" ? "Ton professeur t'a noté sans copie déposée sur le site (absence ou copie rendue sur papier)." : "Ton professeur va te noter sans copie déposée sur le site (absence ou copie rendue sur papier)."}</span></div>
+      ${e.t === "Noté" && e.note != null && d.points != null ? `<div class="grade">${fmtNote(e.note)}<small>/${d.points}</small></div>` : ""}${retourProf(e, d)}`;
+  } else if (rd) {
     work = `${ressources([...(rd.fichiers || []).map(f => f.od ? { label: f.nom, url: f.od.web } : { label: f.nom, path: f.chemin, bucket: "rendus" }), ...(rd.lien ? [{ label: rd.lien, url: rd.lien }] : [])], {}, "mini")}
       ${rd.binome_email ? `<p style="margin:0;font-size:.85rem">Rendu en binôme avec <b>${esc(nomDe(c.id, rd.auteur_email === moi() ? rd.binome_email : rd.auteur_email))}</b></p>` : ""}
       <p class="muted" style="margin:0;font-size:.8rem">Rendu le ${fmtShort(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}</p>
@@ -850,7 +855,7 @@ function vDevoirProf(d, c){
   }
   const rendusE = el.filter(e => renduDe(d, e.email)), autres = el.filter(e => !renduDe(d, e.email));
   const noteDe = e => { const cr = correctionDe(renduDe(d, e.email)); return cr && cr.note != null ? fmtNote(cr.note) : "__"; };
-  const row = e => { const s = etat(d, e.email), cr = correctionDe(renduDe(d, e.email)); return `<button class="st" data-act="sel" data-n="${esc(e.email)}" aria-current="${sel === e.email}">${avatarP(e.nom, "sm")}<span class="nm">${esc(e.nom)}<small style="color:var(--${s.k === "bad" ? "bad" : s.k === "info" ? "accent" : "muted"})">${cr && cr.note != null && !cr.publiee ? "Brouillon" : s.t}${s.retard ? " · en retard" : ""}</small></span>${d.points != null ? `<span class="nt">${noteDe(e)}<span class="muted">/${d.points}</span></span>` : ""}</button>`; };
+  const row = e => { const s = etat(d, e.email), cr = correctionDe(renduDe(d, e.email)); return `<button class="st" data-act="sel" data-n="${esc(e.email)}" aria-current="${sel === e.email}">${avatarP(e.nom, "sm")}<span class="nm">${esc(e.nom)}<small style="color:var(--${s.k === "bad" ? "bad" : s.k === "info" ? "accent" : "muted"})">${cr && cr.note != null && !cr.publiee ? "Brouillon" : s.t === "Rendu" && s.r.sans_copie ? "Sans copie" : s.t}${s.retard ? " · en retard" : ""}</small></span>${d.points != null ? `<span class="nt">${noteDe(e)}<span class="muted">/${d.points}</span></span>` : ""}</button>`; };
   let detail;
   if (!sel) {
     detail = `<h2 style="font-size:1.3rem">${esc(d.titre)}</h2>${statsDevoir(d)}${statsAvancees(d)}
@@ -867,11 +872,13 @@ function vDevoirProf(d, c){
   } else {
     const e = el.find(x => x.email === sel), rd = renduDe(d, sel), cr = correctionDe(rd);
     detail = `${barreCorrection()}<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:1.35rem">${esc(e.nom)}${rd && rd.binome_email ? ` <span class="muted" style="font-size:.95rem">avec ${esc(nomDe(c.id, rd.auteur_email === sel ? rd.binome_email : rd.auteur_email))}</span>` : ""}</h2><span class="pill ${etat(d, sel).k}">${etat(d, sel).t}</span></div>
-      ${rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
+      ${rd && rd.sans_copie ? `<div class="att sanscopie"><span class="muted">${icon("edit")} Noté sans copie déposée (absence, copie sur papier, membre d'un groupe de TP…). La note et le commentaire s'affichent pour cet élève comme pour les autres, une fois rendus.</span><button class="btn ghost sm" data-act="sanscopiex" data-id="${rd.id}">${icon("x")} Retirer cette fiche</button></div>
+        ${blocNotation(d, rd, cr)}`
+      : rd ? `<p class="muted" style="margin:0;font-size:.85rem">Rendu le ${fmtD(D(rd.rendu_le))} à ${fmtT(D(rd.rendu_le))}${enRetard(d, rd) ? ` <span class="pill bad">en retard</span>` : ""}</p>
         ${isQ ? `<div class="reponse">${linkify(rd.reponse || "")}</div>` : `${(rd.fichiers || []).length || rd.lien ? `<div class="att rcards mini">${(rd.fichiers || []).map((f, fj) => { const fam = familleRes(f.nom), lien = `href="#" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="${fj}"`; return `<div class="rcard"><a class="rtxt" ${lien} title="${esc(f.nom)}"><b>${esc(f.nom)}</b><small>${esc(fam ? TYPE_RES[fam][0] : "Fichier")}</small></a><a class="rthumb-l" ${lien} tabindex="-1" aria-hidden="true">${vignetteRes({ label: f.nom, bucket: "rendus" }, fam)}</a></div>`; }).join("")}${rd.lien ? carteRes({ label: rd.lien, url: rd.lien }) : ""}</div>` : `<div class="att"><span class="muted">Marqué comme terminé, sans fichier joint.</span></div>`}`}
         ${(rd.fichiers || []).length ? `<div><button class="btn ghost sm" data-act="voir" data-d="${d.id}" data-e="${esc(sel)}" data-i="0">${icon("expand")} Ouvrir dans la visionneuse</button></div>` : ""}
         ${blocNotation(d, rd, cr)}`
-      : `<p class="muted" style="margin:0">${ouvert(d) ? "Cet élève n'a pas encore rendu son travail." : "Cet élève n'a rien rendu avant la date limite."}</p>`}
+      : `<p class="muted" style="margin:0">${ouvert(d) ? "Cet élève n'a pas encore rendu son travail." : "Cet élève n'a rien rendu avant la date limite."}</p>${isQ ? "" : `<div class="sanscopie-aide"><button class="btn tonal" data-act="sanscopie" data-d="${d.id}" data-e="${esc(sel)}">${icon("edit")} Noter sans copie</button><small class="muted">Absent, copie rendue sur papier, membre d'un groupe de TP dont un camarade a déposé la copie : tu peux quand même mettre une note et un commentaire.</small></div>`}`}
       ${copiesEleve("devoir", d.id, sel).length ? `<div class="copierow" style="flex-direction:column;align-items:stretch">${copiesEleve("devoir", d.id, sel).map(x => `<div style="display:flex;gap:8px;align-items:center">${icon("edit")}<span style="flex:1">Copie de l'élève : <b>${esc(x.nom)}</b></span>${telephone() ? `<a href="#" data-act="wordtel" data-copie="${esc(x.id)}" data-devoir="${esc(d.id)}" class="btn sm">Ouvrir</a>` : `<a href="${esc(x.web)}" target="_blank" rel="noopener" class="btn ghost sm">Ouvrir</a>`}</div>`).join("")}</div>` : ""}
       ${vCP(d.id, sel)}`;
   }
@@ -1578,6 +1585,8 @@ async function modalOk(){
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
       if (m.action === "retirer") { const { error } = await sb.from("inscriptions").delete().eq("classe_id", m.classe).in("email", m.emails); if (error) throw error; m.emails.forEach(x => S.pick.delete(x)); return done(m.emails.length > 1 ? "Élèves retirés du cours" : "Élève retiré du cours", m.classe); }
       if (m.action === "rien") { S.modal = null; render(); return; }
+      if (m.action === "sanscopiex") { const { error } = await sb.from("rendus").delete().eq("id", m.id); if (error) throw error;
+        S.rendus = S.rendus.filter(x => x.id !== m.id); S.corrections = S.corrections.filter(x => x.rendu_id !== m.id); S.modal = null; render(); toast("Fiche retirée"); return; }
       if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
       if (m.action === "odorphelins") { let n = 0; for (const id of m.ids) { try { await graph("/me/drive/items/" + encodeURIComponent(id), { method: "DELETE" }, false); n++; } catch (e) { console.warn(e); } }
         S.modal = null; render(); toast(n + " dossier" + (n > 1 ? "s" : "") + " mis à la corbeille OneDrive"); return; }
@@ -2145,7 +2154,7 @@ async function chargerNotifs(){
       if (S.prof || mention || x.auteur_nom === R().prof.nom) add("coms", D(x.cree_le), esc(x.auteur_nom) + " a commenté « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); }); }
   cp.filter(x => x.auteur !== moiId).forEach(x => { const d = dv(x.devoir_id); add("prives", D(x.cree_le), esc(x.auteur_nom) + " : commentaire privé sur « " + esc(d.titre || "un devoir") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
   if (S.prof) {
-    ((res[2] && res[2].data) || []).forEach(x => { const d = dv(x.devoir_id); add("rendus", D(x.rendu_le), esc(nomDe(d.classe_id, x.auteur_email)) + (d.type === "question" ? " a répondu à « " : " a rendu « ") + esc(d.titre || "") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
+    ((res[2] && res[2].data) || []).filter(x => !(S.rendus.find(r => r.id === x.id) || {}).sans_copie).forEach(x => { const d = dv(x.devoir_id); add("rendus", D(x.rendu_le), esc(nomDe(d.classe_id, x.auteur_email)) + (d.type === "question" ? " a répondu à « " : " a rendu « ") + esc(d.titre || "") + " »", "#/devoir/" + x.devoir_id, d.classe_id); });
     S.devoirs.filter(d => !d.brouillon && d.date_limite && D(d.date_limite) > vu && D(d.date_limite) <= now()).forEach(d => {
       const el = elevesDuDevoir(d, inscritsDe(d.classe_id)), n = el.filter(e => !renduDe(d, e.email)).length;
       if (n) add("manquants", D(d.date_limite), n + " élève" + (n > 1 ? "s n'ont" : " n'a") + " pas rendu « " + esc(d.titre) + " »", "#/devoir/" + d.id, d.classe_id); });
@@ -7999,6 +8008,18 @@ document.addEventListener("click", async e => {
     case "lienopen": e.preventDefault(); S.menu = null; S.lienOpen = true; render(); setTimeout(() => { const l = document.getElementById("lien"); if (l) l.focus(); }, 0); return;
     case "rmfile": S.files.splice(Number(a.dataset.i), 1); render(); return;
     case "submit": rendreDevoir(S.devoirs.find(x => String(x.id) === a.dataset.id)); return;
+    case "sanscopie": { const d = S.devoirs.find(x => String(x.id) === a.dataset.d), email = a.dataset.e, uid = uidEleve(email); if (!d) return;
+      if (renduDe(d, email)) { render(); return; }
+      if (!uid) { toast("Cet élève ne s'est encore jamais connecté au site : il faut qu'il se connecte une fois pour pouvoir être noté."); return; }
+      a.disabled = true;
+      const { data, error } = await sb.from("rendus").insert({ devoir_id: d.id, auteur: uid, auteur_email: email, sans_copie: true }).select().single();
+      a.disabled = false;
+      if (error) { toast("Fiche impossible : " + error.message); return; }
+      S.rendus.push(data); render(); toast("Tu peux maintenant noter cet élève sans copie.");
+      if (a.dataset.focus) { const i = document.querySelector(`input.gin[data-rendu="${data.id}"]`); if (i) i.focus(); }
+      return; }
+    case "sanscopiex": { const rd = S.rendus.find(x => String(x.id) === a.dataset.id); if (!rd || !rd.sans_copie) return;
+      S.modal = { kind: "confirm", action: "sanscopiex", id: rd.id, ok: "Retirer", titre: "Retirer cette fiche sans copie ?", texte: "La note et le commentaire de cet élève pour ce devoir seront effacés (ils restent récupérables dans la corbeille)." }; render(); return; }
     case "unsubmit": { const rd = S.rendus.find(x => String(x.id) === a.dataset.id); if (rd && rd.reponse) S.reponse = rd.reponse; const { error } = await sb.from("rendus").delete().eq("id", a.dataset.id);
       if (error) { toast("Annulation impossible : " + error.message); return; }
       const f = (rd.fichiers || []).map(x => x.chemin).filter(Boolean); if (f.length) await sb.storage.from("rendus").remove(f);

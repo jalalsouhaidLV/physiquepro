@@ -217,6 +217,8 @@ async function modalOk(){
       if (m.action === "supprtheme") { const { error } = await sb.from("themes").delete().eq("id", m.id); if (error) throw error; return done("Thème supprimé", m.classe); }
       if (m.action === "retirer") { const { error } = await sb.from("inscriptions").delete().eq("classe_id", m.classe).in("email", m.emails); if (error) throw error; m.emails.forEach(x => S.pick.delete(x)); return done(m.emails.length > 1 ? "Élèves retirés du cours" : "Élève retiré du cours", m.classe); }
       if (m.action === "rien") { S.modal = null; render(); return; }
+      if (m.action === "sanscopiex") { const { error } = await sb.from("rendus").delete().eq("id", m.id); if (error) throw error;
+        S.rendus = S.rendus.filter(x => x.id !== m.id); S.corrections = S.corrections.filter(x => x.rendu_id !== m.id); S.modal = null; render(); toast("Fiche retirée"); return; }
       if (m.action === "perte") { S.modal = null; S.outilsEdit = false; S.adm = null; render(); return; }
       if (m.action === "odorphelins") { let n = 0; for (const id of m.ids) { try { await graph("/me/drive/items/" + encodeURIComponent(id), { method: "DELETE" }, false); n++; } catch (e) { console.warn(e); } }
         S.modal = null; render(); toast(n + " dossier" + (n > 1 ? "s" : "") + " mis à la corbeille OneDrive"); return; }

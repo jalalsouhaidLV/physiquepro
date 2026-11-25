@@ -60,13 +60,16 @@
     devoirs: [
       { id: 1, classe_id: "tle", theme_id: 1, titre: "Exercices sur les ondes", consigne: "<p>Faire les exercices 3 et 4.</p><ol><li>Lire l'énoncé</li><li>Faire le schéma</li><li>Rédiger la réponse</li></ol>", ressources: [{ type: "DOCX", label: "Fiche ondes.docx", url: "https://exemple.sharepoint.com/:w:/g/fiche", od: { id: "OD-FICHE", web: "https://exemple.sharepoint.com/fiche.docx" } }, { type: "Fichier", label: "Schéma à compléter.png", path: "tle/schema.png" }], date_limite: jour(3), mode: "individuel", formats: "", points: 20, publie_le: jour(-2), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: true, position: 2, accepte: true },
       { id: 2, classe_id: "tle", theme_id: 2, titre: "Compte rendu de TP", consigne: "Rendre le compte rendu du dosage.", ressources: [], date_limite: jour(-1), mode: "binome", formats: "", points: 20, publie_le: jour(-8), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: false, position: 1, accepte: true },
-      { id: 3, classe_id: "snt", theme_id: 3, titre: "Question : qu'est-ce qu'un routeur ?", consigne: "Réponds en deux phrases.", ressources: [], date_limite: jour(6), mode: "individuel", formats: "", points: null, publie_le: jour(-1), brouillon: false, eleves: null, type: "question", question: { type: "courte" }, categorie: "", grille: null, retard_ok: true, position: 1, accepte: true }
+      { id: 3, classe_id: "snt", theme_id: 3, titre: "Question : qu'est-ce qu'un routeur ?", consigne: "Réponds en deux phrases.", ressources: [], date_limite: jour(6), mode: "individuel", formats: "", points: null, publie_le: jour(-1), brouillon: false, eleves: null, type: "question", question: { type: "courte" }, categorie: "", grille: null, retard_ok: true, position: 1, accepte: true },
+      { id: 4, classe_id: "tle", theme_id: 2, titre: "TP noté sans copie", consigne: "TP en groupe.", ressources: [], date_limite: jour(-2), mode: "individuel", formats: "", points: 20, publie_le: jour(-9), brouillon: false, eleves: null, type: "devoir", question: null, categorie: "", grille: null, retard_ok: false, position: 1, accepte: true },
     ],
     rendus: [
-      { id: 1, devoir_id: 2, auteur: ELEVE.id, auteur_email: ELEVE.email, binome_email: ELEVE2.email, fichiers: [], lien: "https://example.org/compte-rendu", rendu_le: jour(-2), reponse: null }
+      { id: 1, devoir_id: 2, auteur: ELEVE.id, auteur_email: ELEVE.email, binome_email: ELEVE2.email, fichiers: [], lien: "https://example.org/compte-rendu", rendu_le: jour(-2), reponse: null },
+      { id: 2, devoir_id: 4, auteur: ELEVE.id, auteur_email: ELEVE.email, binome_email: null, fichiers: [], lien: null, rendu_le: jour(-1), reponse: null, sans_copie: true }
     ],
     corrections: [
-      { rendu_id: 1, note: 15.5, commentaire: "Bon travail, attention aux unités.", publiee: true, modifie_le: jour(-1), grille: null, competences: null, annotations: null, audio: null }
+      { rendu_id: 1, note: 15.5, commentaire: "Bon travail, attention aux unités.", publiee: true, modifie_le: jour(-1), grille: null, competences: null, annotations: null, audio: null },
+      { rendu_id: 2, note: 13, commentaire: "Copie corrigée : https://drive.google.com/file/d/ZZtest/view. Bon TP.", publiee: true, modifie_le: jour(-1), grille: null, competences: null, annotations: null, audio: null }
     ],
     quiz: [
       { id: 1, classe_id: "tle", theme_id: 1, titre: "Questionnaire : ondes", mode: "note", consigne: "", points: 4, date_limite: jour(5), publie_le: jour(-1), brouillon: false, eleves: null, montrer_correction: true, categorie: "", melanger: false, position: 3,

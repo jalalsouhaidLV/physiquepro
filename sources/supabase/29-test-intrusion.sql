@@ -13,7 +13,7 @@ grant all on t_res, t_ids to authenticated; grant usage on sequence t_res_n_seq 
 
 -- ---------- données de test (en tant qu'administrateur) ----------
 do $$
-declare a uuid := gen_random_uuid(); b uuid := gen_random_uuid(); d1 bigint; d2 bigint; d3 bigint; r bigint; q bigint; an bigint; s bigint; c bigint; sy bigint;
+declare a uuid := gen_random_uuid(); b uuid := gen_random_uuid(); d1 bigint; d2 bigint; d3 bigint; r bigint; r2 bigint; d4 bigint; q bigint; an bigint; s bigint; c bigint; sy bigint;
 begin
   insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
   values (a, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'lv.zz.testa@lycee-verdun.edu.lb', '{"full_name":"ZZ Test A"}', now(), now()),
@@ -51,6 +51,11 @@ begin
   insert into annonces (classe_id, auteur, auteur_nom, texte) values ('zz_x', null, 'ZZ Test A', 'ZZ annonce de A');
   update annonces set auteur = a where texte = 'ZZ annonce de A';
   insert into t_ids values ('CY', (select code from classes where id = 'zz_y'));
+  -- étape 50 : fiche « sans copie » créée par le prof pour A (note en brouillon)
+  insert into devoirs (classe_id, titre, date_limite) values ('zz_x', 'ZZ TP noté sans copie', now() + interval '7 days') returning id into d4;
+  insert into rendus (devoir_id, auteur, auteur_email, sans_copie) values (d4, a, 'lv.zz.testa@lycee-verdun.edu.lb', true) returning id into r2;
+  insert into corrections (rendu_id, note, commentaire, publiee) values (r2, 12, 'Brouillon pour A', false);
+  insert into t_ids values ('D4', d4), ('R2', r2);
   insert into t_ids values ('A', a), ('B', b), ('D1', d1), ('D2', d2), ('D3', d3), ('R', r), ('Q', q), ('AN', an), ('S', s), ('C', c);
 end $$;
 
@@ -184,6 +189,11 @@ select pg_temp.appel('Fonctions', 'Liste des élèves déconnectés (pp_eleves_d
 -- ÉTAPE 48 : la file des notifications urgentes du prof ne s'écrit que par le serveur
 select pg_temp.ecrire('Tricher', 'Marquer une notification urgente comme déjà remise (pp_push_urgents)', $$insert into pp_push_urgents (message_id) values ((select max(id) from messages_urgents))$$);
 select pg_temp.appel('Fonctions', 'Lancer soi-même l''envoi serveur (pp_urgent_signaler)', $$select pp_urgent_signaler()$$);
+
+-- 5 bis. ÉTAPE 50 : fiche « sans copie » créée par le professeur
+select pg_temp.ecrire('Tricher', 'Annuler la fiche « sans copie » que le prof a créée pour A', $$delete from rendus where id = (select v::bigint from t_ids where k = 'R2')$$);
+select pg_temp.ecrire('Tricher', 'Se créer soi-même une fiche « sans copie »', $$insert into rendus (devoir_id, auteur, auteur_email, sans_copie) values ((select v::bigint from t_ids where k = 'D1'), auth.uid(), 'lv.zz.testa@lycee-verdun.edu.lb', true)$$);
+select pg_temp.lire('Lire', 'Note en brouillon de sa fiche « sans copie »', $$select * from corrections where rendu_id = (select v::bigint from t_ids where k = 'R2')$$);
 
 -- 6. ÉTAPE 44 (audit sur 20) : à garder EN DERNIER, car A finit inscrit dans la classe Y
 select pg_temp.ecrire('Tricher', 'Déplacer sa propre annonce dans une classe où A n''est pas inscrit', $$update annonces set classe_id = 'zz_y' where texte = 'ZZ annonce de A'$$);

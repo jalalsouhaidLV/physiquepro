@@ -29,7 +29,7 @@ const dueTxt = d => {
 };
 const ouvert = d => !d.date_limite || D(d.date_limite) > now();
 const depotOuvert = d => d.accepte !== false && (ouvert(d) || !!d.retard_ok);
-const enRetard = (d, r) => !!(r && d.date_limite && D(r.rendu_le) > D(d.date_limite));
+const enRetard = (d, r) => !!(r && !r.sans_copie && d.date_limite && D(r.rendu_le) > D(d.date_limite));
 const dueOf = d => d.date_limite ? dueTxt(D(d.date_limite)) : "Aucune date limite";
 const pts = d => d.points == null ? "Non noté" : d.points + " points";
 const pad = n => String(n).padStart(2, "0");
@@ -194,6 +194,8 @@ const actives = () => { const l = S.classes.filter(c => !c.archive); if (S.prof)
   const rang = id => { const i = o.indexOf(id); return i < 0 ? 1e6 : i; }; return l.slice().sort((a, b) => rang(a.id) - rang(b.id)); };
 const moi = () => S.profil.email;
 const renduDe = (d, email) => S.rendus.find(r => r.devoir_id === d.id && (r.auteur_email === email || r.binome_email === email));
+/* étape 50 : identifiant du compte d'un élève (pour lui créer une fiche « sans copie ») */
+const uidEleve = email => Object.keys(S.profils || {}).find(id => S.profils[id] === email);
 const correctionDe = r => r && S.corrections.find(c => c.rendu_id === r.id);
 const rendusDe = d => S.rendus.filter(r => r.devoir_id === d.id);
 const aCorriger = d => rendusDe(d).filter(r => !(correctionDe(r) || {}).publiee).length;
