@@ -104,7 +104,7 @@ function rich(html){
 const sci = t => esc(t).replace(/\^\{([^}]{1,12})\}/g, "<sup>$1</sup>").replace(/\^(-?[\w.]{1,6})/g, "<sup>$1</sup>").replace(/_\{([^}]{1,12})\}/g, "<sub>$1</sub>").replace(/([A-Za-z\)])_([0-9]{1,3}|[a-z]{1,3})/g, "$1<sub>$2</sub>");
 const SYMBOLES = ["Δ","√","×","·","÷","±","≈","≠","≤","≥","→","⇌","⟶","°","µ","λ","Ω","π","θ","α","β","γ","ε","ρ","σ","τ","φ","ω","∞","∑","∫","²","³","⁻¹","⁻","⁺","₀","₁","₂","₃","₄","‰","℃","Å"];
 const paletteSymb = () => `<div class="symbs" role="toolbar" aria-label="Symboles scientifiques">${SYMBOLES.map(x => `<button class="sym" data-act="ins" data-s="${x}" data-keepfocus="1" title="Insérer ${x}">${x}</button>`).join("")}<span class="muted" style="font-size:.78rem;padding:0 6px">Astuce : dans les questions, écris 10^-3 ou H_2O</span></div>`;
-const linkify = t => esc(t).replace(/ ([?!;:»])/g, "\u00a0$1").replace(/« /g, "«\u00a0").replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
+const linkify = t => esc(t).replace(/ ([?!;:»])/g, "\u00a0$1").replace(/« /g, "«\u00a0").replace(/(https?:\/\/[^\s<]*[^\s<.,;:!?)\]])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
 
 /* ---------- Supabase ---------- */
 if (!window.supabase) { app.innerHTML = `<div class="loading"><div class="notice">Impossible de charger PhysiquePro. Vérifie ta connexion Internet puis recharge la page.</div></div>`; return; }
@@ -696,7 +696,7 @@ function vMesNotes(c){
     <div class="mesnotes-head"><div class="who2">${avatarP(S.nom, "lg")}<div><b style="font-size:1.2rem">${esc(S.nom)}</b><small class="muted" style="display:block">${esc(moi())}</small></div></div>
       ${c.moyenne_visible ? `<div class="grade">${moy == null ? "–" : fmtNote(moy)}<small>/20</small></div>` : ""}</div>
     ${md.parCat.length ? `<div class="chips">${md.parCat.map(x => `<span class="chip static">${esc(x.nom)} · coef ${fmtNote(x.coef)} : <b>${fmtNote(arrondi1(x.moy))}</b>/20</span>`).join("")}</div>` : ""}
-    ${lignes.length ? `<section class="group">${lignes.map(l => `<div class="work"><a class="workrow" href="${l.href}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(l.ic, "")}</span><span class="tt">${esc(l.titre)}<br><small class="muted" style="font-weight:400">${l.due ? esc(l.due) + " · " : ""}<span class="pill ${l.k}">${esc(l.statut)}</span></small>${l.com ? `<small class="muted" style="display:block;font-weight:400">${icon("comment")} ${esc(l.com)}</small>` : ""}</span><span class="dt mono">${esc(l.note)}</span></a></div>`).join("")}</section>`
+    ${lignes.length ? `<section class="group">${lignes.map(l => `<div class="work"><a class="workrow" href="${l.href}" style="padding:12px 18px;gap:16px"><span class="ico">${icon(l.ic, "")}</span><span class="tt">${esc(l.titre)}<br><small class="muted" style="font-weight:400">${l.due ? esc(l.due) + " · " : ""}<span class="pill ${l.k}">${esc(l.statut)}</span></small></span><span class="dt mono">${esc(l.note)}</span></a>${l.com ? `<div class="notecom">${icon("comment")}<div>${linkify(l.com)}</div></div>` : ""}</div>`).join("")}</section>`
       : `<div class="emptystate"><b>Aucun travail pour l'instant.</b><span>Tes devoirs, questions et questionnaires notés apparaîtront ici avec tes notes.</span></div>`}
     ${tableCompetencesEleve(c.id, moi())}
     ${pageFoot()}</div>`;
@@ -2239,11 +2239,17 @@ function blocNotation(d, rd, cr){
   return `${G ? `<div class="grille"><b>Grille d'évaluation</b>${G.map((g, i) => `<label class="grow"><span>${esc(g.c)}</span><input id="gr-${i}" data-gr="${i}" type="number" min="0" max="${g.p}" step="0.25" inputmode="decimal" value="${gv[i] != null ? gv[i] : ""}" aria-label="${esc(g.c)}"><span class="muted">/${g.p}</span></label>`).join("")}</div>` : ""}
     ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9]+([,.][0-9]+)?" aria-describedby="noteErr" value="${cr && cr.note != null ? String(cr.note).replace(".", ",") : ""}" ${G ? "readonly" : ""}><span class="muted">/${d.points}</span>${G ? `<small class="muted">calculée avec la grille</small>` : ""}</div>` : ""}
     <div class="field"><label for="noteCom">Commentaire pour l'élève <span class="muted">(visible quand tu rends le travail)</span></label><textarea id="noteCom" rows="2" placeholder="ex. Bon raisonnement, attention aux unités.">${esc(cr && cr.commentaire || "")}</textarea>
+      <div id="noteComApercu" class="notecom apercu" aria-live="polite"${cr && cr.commentaire ? "" : " hidden"}>${icon("comment")}<div><small class="muted">Aperçu pour l'élève (les liens sont cliquables)</small><div class="nca">${linkify(cr && cr.commentaire || "")}</div></div></div>
       ${rem.length ? `<div class="chips">${rem.map(t => `<button class="chip" data-act="remarque" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}</div>
     ${blocCompetences(cr)}${blocVocal(rd, cr)}
     <div id="noteErr" class="err" hidden></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null ? `<button class="btn ghost" data-act="savenote" data-id="${rd.id}" data-pub="0">Enregistrer le brouillon</button>` : ""}<button class="btn" data-act="savenote" data-id="${rd.id}" data-pub="1">${cr && cr.publiee ? "Mettre à jour" : "Rendre"}</button><button class="btn tonal" data-act="savenote" data-id="${rd.id}" data-pub="1" data-next="1" title="Ctrl + Entrée">${cr && cr.publiee ? "Mettre à jour" : "Rendre"} et passer au suivant ${icon("right")}</button></div>
     <p class="muted" style="margin:0;font-size:.8rem">${rd.binome_email ? "La note s'affiche pour les deux élèves du binôme." : "Seul l'élève voit sa note, une fois rendue."}</p>`;
+}
+/* aperçu du commentaire sous le champ : les liens deviennent cliquables */
+function majApercuCom(){
+  const t = document.getElementById("noteCom"), b = document.getElementById("noteComApercu"); if (!t || !b) return;
+  const v = t.value.trim(); b.hidden = !v; const z = b.querySelector(".nca"); if (z) z.innerHTML = linkify(v);
 }
 function grilleEleve(d, c){
   if (!d.grille || !d.grille.length || !c || !c.grille) return "";
@@ -8054,7 +8060,7 @@ document.addEventListener("click", async e => {
     case "ins": { const el = document.activeElement; if (el && (el.isContentEditable || el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && !["checkbox", "radio", "number", "color", "file"].includes(el.type)))) document.execCommand("insertText", false, a.dataset.s); else toast("Clique d'abord dans un champ de texte."); return; }
     case "qimg": S.qimgFor = Number(a.dataset.qi); document.getElementById("qimgFile").click(); return;
     case "rmqimg": { const q = S.ed.questions[Number(a.dataset.qi)]; if (q.img && S.ed.uploaded.includes(q.img)) { sb.storage.from("documents").remove([q.img]); S.ed.uploaded = S.ed.uploaded.filter(p => p !== q.img); } q.img = null; render(); return; }
-    case "remarque": { const t = document.getElementById("noteCom"); if (t) { t.value = (t.value.trim() ? t.value.trim() + " " : "") + a.dataset.t; t.focus(); } return; }
+    case "remarque": { const t = document.getElementById("noteCom"); if (t) { t.value = (t.value.trim() ? t.value.trim() + " " : "") + a.dataset.t; majApercuCom(); t.focus(); } return; }
     case "savenote": { const v = (document.getElementById("note") || {}).value, d = S.devoirs.find(x => x.id === (S.rendus.find(y => String(y.id) === a.dataset.id) || {}).devoir_id);
       const dejaRendu = !!(correctionDe(S.rendus.find(y => String(y.id) === a.dataset.id)) || {}).publiee;
       const n = v === "" || v == null ? null : Number(String(v).replace(",", ".")), pub = a.dataset.pub === "1";
@@ -8085,6 +8091,7 @@ document.addEventListener("click", async e => {
 document.addEventListener("mousedown", e => { if (e.target.closest && e.target.closest("[data-keepfocus]")) e.preventDefault(); });
 document.addEventListener("input", e => {
   const t = e.target;
+  if (t.id === "noteCom") { majApercuCom(); return; }
   if (t.id === "edHtml" && S.ed) { S.ed.html = t.innerHTML; return; }
   if (t.id === "anHtml" && S.annonce) { S.annonce.html = t.innerHTML; return; }
   if (S.ed && t.dataset.qi != null && t.dataset.qk === "q") { S.ed.questions[Number(t.dataset.qi)].q = t.value; return; }

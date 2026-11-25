@@ -30,11 +30,17 @@ function blocNotation(d, rd, cr){
   return `${G ? `<div class="grille"><b>Grille d'évaluation</b>${G.map((g, i) => `<label class="grow"><span>${esc(g.c)}</span><input id="gr-${i}" data-gr="${i}" type="number" min="0" max="${g.p}" step="0.25" inputmode="decimal" value="${gv[i] != null ? gv[i] : ""}" aria-label="${esc(g.c)}"><span class="muted">/${g.p}</span></label>`).join("")}</div>` : ""}
     ${d.points != null ? `<div class="gradeline"><label for="note">Note</label><input id="note" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9]+([,.][0-9]+)?" aria-describedby="noteErr" value="${cr && cr.note != null ? String(cr.note).replace(".", ",") : ""}" ${G ? "readonly" : ""}><span class="muted">/${d.points}</span>${G ? `<small class="muted">calculée avec la grille</small>` : ""}</div>` : ""}
     <div class="field"><label for="noteCom">Commentaire pour l'élève <span class="muted">(visible quand tu rends le travail)</span></label><textarea id="noteCom" rows="2" placeholder="ex. Bon raisonnement, attention aux unités.">${esc(cr && cr.commentaire || "")}</textarea>
+      <div id="noteComApercu" class="notecom apercu" aria-live="polite"${cr && cr.commentaire ? "" : " hidden"}>${icon("comment")}<div><small class="muted">Aperçu pour l'élève (les liens sont cliquables)</small><div class="nca">${linkify(cr && cr.commentaire || "")}</div></div></div>
       ${rem.length ? `<div class="chips">${rem.map(t => `<button class="chip" data-act="remarque" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}</div>
     ${blocCompetences(cr)}${blocVocal(rd, cr)}
     <div id="noteErr" class="err" hidden></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${d.points != null ? `<button class="btn ghost" data-act="savenote" data-id="${rd.id}" data-pub="0">Enregistrer le brouillon</button>` : ""}<button class="btn" data-act="savenote" data-id="${rd.id}" data-pub="1">${cr && cr.publiee ? "Mettre à jour" : "Rendre"}</button><button class="btn tonal" data-act="savenote" data-id="${rd.id}" data-pub="1" data-next="1" title="Ctrl + Entrée">${cr && cr.publiee ? "Mettre à jour" : "Rendre"} et passer au suivant ${icon("right")}</button></div>
     <p class="muted" style="margin:0;font-size:.8rem">${rd.binome_email ? "La note s'affiche pour les deux élèves du binôme." : "Seul l'élève voit sa note, une fois rendue."}</p>`;
+}
+/* aperçu du commentaire sous le champ : les liens deviennent cliquables */
+function majApercuCom(){
+  const t = document.getElementById("noteCom"), b = document.getElementById("noteComApercu"); if (!t || !b) return;
+  const v = t.value.trim(); b.hidden = !v; const z = b.querySelector(".nca"); if (z) z.innerHTML = linkify(v);
 }
 function grilleEleve(d, c){
   if (!d.grille || !d.grille.length || !c || !c.grille) return "";

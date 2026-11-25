@@ -353,7 +353,7 @@ document.addEventListener("click", async e => {
     case "ins": { const el = document.activeElement; if (el && (el.isContentEditable || el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && !["checkbox", "radio", "number", "color", "file"].includes(el.type)))) document.execCommand("insertText", false, a.dataset.s); else toast("Clique d'abord dans un champ de texte."); return; }
     case "qimg": S.qimgFor = Number(a.dataset.qi); document.getElementById("qimgFile").click(); return;
     case "rmqimg": { const q = S.ed.questions[Number(a.dataset.qi)]; if (q.img && S.ed.uploaded.includes(q.img)) { sb.storage.from("documents").remove([q.img]); S.ed.uploaded = S.ed.uploaded.filter(p => p !== q.img); } q.img = null; render(); return; }
-    case "remarque": { const t = document.getElementById("noteCom"); if (t) { t.value = (t.value.trim() ? t.value.trim() + " " : "") + a.dataset.t; t.focus(); } return; }
+    case "remarque": { const t = document.getElementById("noteCom"); if (t) { t.value = (t.value.trim() ? t.value.trim() + " " : "") + a.dataset.t; majApercuCom(); t.focus(); } return; }
     case "savenote": { const v = (document.getElementById("note") || {}).value, d = S.devoirs.find(x => x.id === (S.rendus.find(y => String(y.id) === a.dataset.id) || {}).devoir_id);
       const dejaRendu = !!(correctionDe(S.rendus.find(y => String(y.id) === a.dataset.id)) || {}).publiee;
       const n = v === "" || v == null ? null : Number(String(v).replace(",", ".")), pub = a.dataset.pub === "1";
@@ -384,6 +384,7 @@ document.addEventListener("click", async e => {
 document.addEventListener("mousedown", e => { if (e.target.closest && e.target.closest("[data-keepfocus]")) e.preventDefault(); });
 document.addEventListener("input", e => {
   const t = e.target;
+  if (t.id === "noteCom") { majApercuCom(); return; }
   if (t.id === "edHtml" && S.ed) { S.ed.html = t.innerHTML; return; }
   if (t.id === "anHtml" && S.annonce) { S.annonce.html = t.innerHTML; return; }
   if (S.ed && t.dataset.qi != null && t.dataset.qk === "q") { S.ed.questions[Number(t.dataset.qi)].q = t.value; return; }
