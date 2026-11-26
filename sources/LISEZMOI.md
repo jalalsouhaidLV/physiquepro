@@ -8,6 +8,7 @@ Ce dossier est une **sauvegarde des fichiers de travail** du site. Le site publi
   Les fichiers `29-test-intrusion.sql` et `30-test-fichiers.sql` sont des tests de sécurité : ils annulent tout à la fin et ne modifient rien.
 - `tests/` : le test automatique du site (`test-site.js` + `faux-supabase.js`, prêt à lancer, voir plus bas), et les bouchons d'origine de l'ancien chat avec leurs exemples (`tests/LISEZMOI-tests.md`).
 - `FICHE-PHYSIQUEPRO.md` : la fiche complète du projet (adresses, construction, mise en ligne, choix de Jalal, sécurité, réglages externes).
+- `HISTORIQUE.md` : l'historique daté des évolutions du site (sorti de la fiche le 26/11/2026).
 
 Pour reconstruire `app.js` : depuis la racine du dépôt, lancer `./sources/build/build.sh` (ou `./build.sh` depuis `sources/build/`). Le script écrit directement `app.js` à la racine du dépôt ; si `node --check` trouve une erreur, `app.js` n'est pas modifié. Changer ensuite le numéro `?v=` dans `index.html` si `app.js` a changé.
 
