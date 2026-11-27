@@ -270,11 +270,11 @@ function drawer(r){
   return `<nav class="drawer" ${S.drawer ? "" : "hidden"} aria-label="Menu principal">
     <a class="it" href="#/" ${cur("accueil")}>${icon("home")}<span class="lbl">Accueil</span></a>
     <a class="it" href="#/agenda" ${cur("agenda")}>${icon("cal")}<span class="lbl">Agenda</span></a>
-    <a class="it" href="#/semaine" ${cur("semaine")}>${icon("week")}<span class="lbl">Ma semaine</span></a>
+    ${S.prof ? "" : `<a class="it" href="#/semaine" ${cur("semaine")}>${icon("week")}<span class="lbl">Ma semaine</span></a>`}
     <a class="it coinit" href="#" data-act="coinperso" ${document.getElementById("coinPerso") ? 'aria-current="page"' : ""}>${icon("note")}<span class="lbl">Coin Perso</span></a>
     <hr>
     ${S.prof ? "" : `<a class="it" href="#/todo" ${cur("todo")}>${icon("todo")}<span class="lbl">À faire</span></a>`}
-    ${S.prof ? `<a class="it" href="#/suivi" ${cur("suivi")}>${icon("grade")}<span class="lbl">Suivi des élèves</span></a><a class="it${nbUrgents() ? " actif" : ""}" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a>` : ""}
+    ${S.prof ? `<a class="it${nbUrgents() ? " actif" : ""}" href="#/urgences" ${cur("urgences")}><span class="urgico">${icon("urgent")}${nbUrgents() ? `<b class="urgn" title="${nbUrgents()} message(s) non lu(s)">${nbUrgents() > 99 ? "99+" : nbUrgents()}</b>` : ""}</span><span class="lbl urglbl">Messagerie d'urgence</span></a>` : ""}
     ${S.prof ? "" : (() => { const cs = actives(), rc = route(), cc = rc.v === "classe" && cls(rc.a) ? rc.a : (cs.length === 1 ? cs[0].id : ""), n = reponsesNonVues(); return cs.length ? `<a class="it urgeleve${n ? " actif" : ""}" href="#" data-act="${cc ? "urgent" : "urgchoix"}" data-c="${esc(cc)}">${icon("urgent")}<span class="lbl lbl2">Message urgent à <span class="urgnom">${esc(nomProfCourt())}${supUrg(n)}${statutProf()}</span></span></a>` : ""; })()}
     <a class="it" href="#/rendezvous" ${cur("rendezvous")}>${icon("rdv")}<span class="lbl lbl2">${S.prof ? "Rendez-vous avec des élèves" : "Rendez-vous avec " + nomProfCourt()}</span></a>
     <hr><div class="sect">${icon("people")} ${S.prof ? "Cours enseignés" : "Cours suivis"}</div>
@@ -348,7 +348,7 @@ function vAccueil(){
     `<div class="emptystate"><b>Tu n'es inscrit dans aucun cours pour l'instant.</b><span>Demande le code du cours à ton professeur, puis rejoins-le.</span><div><button class="btn" data-act="join">${icon("plus")} Rejoindre un cours</button></div></div>`}${pageFoot()}</div>`;
   const replie = !S.prof && window.innerWidth <= 600;   /* téléphone élève : l'essentiel d'abord, la « Découverte du jour » repliée en bas */
   const decouverte = replie ? `<details class="decjour"${S.decOuvert ? " open" : ""}><summary>${icon("idea")} Découverte du jour <small>scientifique, simulation, défi, anecdote</small></summary>${blocScientifique()}${blocDecouvertes()}</details>` : "";
-  return `<div class="page wide home">${carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${S.prof ? blocAlertes() : ""}${blocRecent()}
+  return `<div class="page wide home">${carteNotifsEleve()}${blocTableauDeBord()}${blocRappels()}${blocRecent()}
     ${replie ? "" : blocScientifique()}<section class="homepanel"><div class="homehead"><h2 class="hcours">Cours <small class="ordreaide">${list.length > 1 ? "· glisse une carte pour changer l'ordre" : ""}</small></h2><button class="linkbtn" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Ajouter un cours" : "Rejoindre un cours"}</button></div>
     <div class="cards">${list.map(c => carte(c, false)).join("")}</div></section>${replie ? decouverte : blocDecouvertes()}${pageFoot()}</div>`;
 }
@@ -3915,7 +3915,7 @@ function blocTableauDeBord(){
   if (S.prof) {
     const dvs = S.devoirs.filter(vis), acor = dvs.reduce((a, d) => a + aCorriger(d), 0);
     const premier = actives().find(c => dvs.some(d => d.classe_id === c.id && aCorriger(d) > 0));
-    const urg = typeof nbUrgents === "function" ? nbUrgents() : 0, alertes = typeof alertesEleves === "function" ? alertesEleves().length : 0;
+    const urg = typeof nbUrgents === "function" ? nbUrgents() : 0;
     const crs = S.rdv ? S.rdv.creneaux.filter(c => aujourdhui(c.debut)) : [], rdvJour = S.rdv ? S.rdv.resa.filter(r => crs.some(c => c.id === r.creneau_id)).length : null;
     const prochain = dvs.filter(d => d.date_limite && D(d.date_limite) > t).sort((a, b) => D(a.date_limite) - D(b.date_limite))[0];
     /* 5e évaluation : la tuile des copies est toujours là, en premier (« Tout est corrigé ✓ » quand il n'y a rien) ; le clic ouvre le premier devoir à corriger */
@@ -3923,7 +3923,6 @@ function blocTableauDeBord(){
     tuiles = tuile(dvAcor ? `#/devoir/${dvAcor.id}` : "#/todo", "check", acor || "0", acor > 1 ? "copies à corriger" : "copie à corriger", acor ? "warn" : "ok", dvAcor ? esc(dvAcor.titre) + (premier ? " · " + esc(premier.nom) : "") : "Tout est corrigé ✓")
       + tuile("#/urgences", "urgent", urg, urg > 1 ? "messages urgents" : "message urgent", urg ? "bad" : "ok", urg ? "non lu" + (urg > 1 ? "s" : "") : "Rien de nouveau")
       + tuile("#/rendezvous", "rdv", rdvJour == null ? "…" : rdvJour, "rendez-vous aujourd'hui", rdvJour ? "info" : "", crs.length ? crs.length + " créneau" + (crs.length > 1 ? "x" : "") + " prévu" + (crs.length > 1 ? "s" : "") : "")
-      + tuile("#/suivi", "alerte", alertes, alertes > 1 ? "élèves à surveiller" : "élève à surveiller", alertes ? "warn" : "ok", alertes ? "décrochage possible" : "Tout va bien")
       + (() => { const n = [...S.devoirs, ...S.quiz].filter(o => !o.brouillon && o.publie_le && D(o.publie_le) > t).length; return n ? tuile("#/programmes", "cal", n, n > 1 ? "publications programmées" : "publication programmée", "info", "apparaîtront automatiquement") : ""; })()
       + (prochain ? tuile(`#/devoir/${prochain.id}`, "cal", fmtShort(D(prochain.date_limite)), "prochaine échéance", "", esc(prochain.titre)) : "");
   } else {
@@ -3943,15 +3942,15 @@ function blocTableauDeBord(){
   }
   return `<section class="tdb"><div class="tdbhead"><div><h1>${salut()} ${esc(premierPrenom())}</h1><p>${esc(fmtD(t).replace(/^./, m => m.toUpperCase()))}</p></div>
       <button class="tdbsearch" data-act="recherche">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
-    ${tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent, aucun élève à surveiller." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
+    ${tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
 }
 
 /* ---------- #7 Recherche universelle (Ctrl+K) ---------- */
 function indexRecherche(){
   const L = [], t = now();
-  const pages = [["#/", "home", "Accueil"], ["#/agenda", "cal", "Agenda"], ["#/semaine", "week", "Ma semaine"], [S.prof ? "#/todo" : "#/todo", "todo", S.prof ? "Toutes les copies à corriger" : "À faire"], ["#/rendezvous", "rdv", "Rendez-vous"],
+  const pages = [["#/", "home", "Accueil"], ["#/agenda", "cal", "Agenda"], ...(S.prof ? [] : [["#/semaine", "week", "Ma semaine"]]), [S.prof ? "#/todo" : "#/todo", "todo", S.prof ? "Toutes les copies à corriger" : "À faire"], ["#/rendezvous", "rdv", "Rendez-vous"],
     ["#/outils", "tools", "Boîte à outils"], ["#/physique", "flask", "Outils Scientifiques Importants (unités, éléments, formules, chimie, SNT, SI…)"], ["#/simulations", "eye", "Simulations (PhET, GeoGebra…)"], ["#/revisions", "quiz", "Fiches de révision et flashcards"], ["#/admin/profil", "gear", "Paramètres"]];
-  if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/suivi", "grade", "Suivi des élèves"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/archives", "archive", "Cours archivés"]);
+  if (S.prof) pages.push(["#/programmes", "cal", "Publications programmées"], ["#/urgences", "urgent", "Messagerie d'urgence"], ["#/archives", "archive", "Cours archivés"]);
   pages.forEach(([h, ic, n]) => L.push({ t: "Page", ic, n, h }));
   L.push({ t: "Action", ic: "note", n: "Ouvrir le Coin Perso", act: "coinperso" });
   if (S.prof) { L.push({ t: "Action", ic: "plus", n: "Créer un cours", act: "newclass" }); actives().forEach(c => { L.push({ t: "Action", ic: "devoir", n: "Nouveau devoir · " + c.nom, h: `#/editer/devoir/new/${c.id}` }); L.push({ t: "Action", ic: "support", n: "Nouvelle documentation · " + c.nom, h: `#/editer/documentation/new/${c.id}` }); }); }
@@ -4254,7 +4253,7 @@ document.addEventListener("click", async e => { const a = e.target.closest && e.
 function navMobile(r){
   if (!S.user || S.public) return "";
   const it = (h, ic, l, on) => `<a href="${h}" class="${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""}>${icon(ic)}<span>${l}</span></a>`;
-  return `<nav class="navbas" aria-label="Navigation rapide">${it("#/", "home", "Accueil", r.v === "accueil")}${it("#/semaine", "week", "Semaine", r.v === "semaine")}${it("#/todo", S.prof ? "check" : "todo", S.prof ? "Corriger" : "À faire", r.v === "todo")}${it("#/agenda", "cal", "Agenda", r.v === "agenda")}<a href="#" data-act="drawer" class="${S.drawer ? "on" : ""}">${icon("menu")}<span>Menu</span></a></nav>`;
+  return `<nav class="navbas${S.prof ? " n4" : ""}" aria-label="Navigation rapide">${it("#/", "home", "Accueil", r.v === "accueil")}${S.prof ? "" : it("#/semaine", "week", "Semaine", r.v === "semaine")}${it("#/todo", S.prof ? "check" : "todo", S.prof ? "Corriger" : "À faire", r.v === "todo")}${it("#/agenda", "cal", "Agenda", r.v === "agenda")}<a href="#" data-act="drawer" class="${S.drawer ? "on" : ""}">${icon("menu")}<span>Menu</span></a></nav>`;
 }
 
 /* ---------- #17 Bibliothèque de simulations (ouverture dans le panneau latéral) ---------- */

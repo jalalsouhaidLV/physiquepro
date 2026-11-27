@@ -77,6 +77,17 @@ async function testerRole(navigateur, base, role) {
     if (CAPTURES) { fs.mkdirSync(DOSSIER_CAPTURES, { recursive: true }); await page.screenshot({ path: path.join(DOSSIER_CAPTURES, role + p.replace(/\//g, "_") + ".png"), fullPage: false }); }
     for (let i = avant; i < erreurs.length; i++) if (!erreurs[i].startsWith(p)) erreurs[i] = p + " → " + erreurs[i];
   }
+  /* 27/11/2026 : côté prof, plus de carte ni de panneau « Élèves à surveiller », ni de « Ma semaine » / « Suivi des élèves » dans les menus ; l'élève garde « Ma semaine » */
+  {
+    await page.evaluate(() => { location.hash = "#/accueil"; }); await page.waitForTimeout(700);
+    const vu = await page.evaluate(() => ({ accueil: document.querySelector("#app") ? document.querySelector("#app").innerText : "",
+      menu: [...document.querySelectorAll("nav.drawer .lbl, nav.navbas span")].map(e => e.textContent.trim()) }));
+    if (role === "prof") {
+      if (/à surveiller/i.test(vu.accueil)) note("accueil prof : « élèves à surveiller » est encore affiché");
+      ["Ma semaine", "Semaine", "Suivi des élèves"].forEach(m => { if (vu.menu.includes(m)) note("menu prof : « " + m + " » est encore affiché"); });
+    }
+    if (role === "eleve" && !vu.menu.includes("Ma semaine")) note("menu élève : « Ma semaine » a disparu");
+  }
   /* panneau « Élèves connectés » : deux groupes seulement, une ligne par élève, bouton Déconnecter */
   if (role === "prof") {
     const avant = erreurs.length;

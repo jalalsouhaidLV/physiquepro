@@ -2751,3 +2751,6 @@ button.cpt.actifs:hover{box-shadow:0 0 0 2px #e8a200,var(--shadow)}
 #actPanel .actp{margin-left:auto;flex:none}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.cpt.actifs b{color:#f0b429}}
 :root[data-theme="dark"] button.cpt.actifs b{color:#f0b429}
+
+/* 27/11/2026 : barre du bas du prof à 4 boutons (« Semaine » retiré côté prof) */
+.navbas.n4{grid-template-columns:repeat(4,1fr)}
