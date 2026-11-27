@@ -86,7 +86,7 @@ function blocTableauDeBord(){
   }
   return `<section class="tdb"><div class="tdbhead"><div><h1>${salut()} ${esc(premierPrenom())}</h1><p>${esc(fmtD(t).replace(/^./, m => m.toUpperCase()))}</p></div>
       <button class="tdbsearch" data-act="recherche">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
-    ${tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
+    ${S.prof ? "" : tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
 }
 
 /* ---------- #7 Recherche universelle (Ctrl+K) ---------- */

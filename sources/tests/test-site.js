@@ -84,9 +84,19 @@ async function testerRole(navigateur, base, role) {
       menu: [...document.querySelectorAll("nav.drawer .lbl, nav.navbas span")].map(e => e.textContent.trim()) }));
     if (role === "prof") {
       if (/à surveiller/i.test(vu.accueil)) note("accueil prof : « élèves à surveiller » est encore affiché");
+      if (await page.$(".tdb .kpis, .tdb .kpiok")) note("accueil prof : la rangée de cartes (copies, messages urgents, échéance) est encore affichée");
       ["Ma semaine", "Semaine", "Suivi des élèves"].forEach(m => { if (vu.menu.includes(m)) note("menu prof : « " + m + " » est encore affiché"); });
     }
     if (role === "eleve" && !vu.menu.includes("Ma semaine")) note("menu élève : « Ma semaine » a disparu");
+    /* 27/11/2026 : côté prof, Paramètres, « Mon téléphone est-il prêt ? » et Corbeille passent dans le menu du prénom, avant « Se déconnecter » */
+    if (role === "prof") {
+      if (vu.menu.some(m => /^(Paramètres|Corbeille et sauvegardes|Mon téléphone)/.test(m))) note("menu prof : Paramètres / téléphone / Corbeille sont encore dans le menu de gauche");
+      await page.click('[data-act="me"]').catch(() => note("menu du prénom : bouton introuvable")); await page.waitForTimeout(300);
+      const dd = await page.$$eval(".ddme .dd-menu a", e => e.map(x => x.getAttribute("href") + (x.dataset.act || "")));
+      const i = dd.indexOf("#/admin/profil");
+      if (i < 0 || dd[i + 1] !== "#/telephone" || dd[i + 2] !== "#/corbeille" || dd[i + 3] !== "#logout") note("menu du prénom : ordre inattendu " + JSON.stringify(dd));
+      await page.keyboard.press("Escape"); await page.evaluate(() => { S.me = false; render(); }).catch(() => {});
+    }
   }
   /* panneau « Élèves connectés » : deux groupes seulement, une ligne par élève, bouton Déconnecter */
   if (role === "prof") {

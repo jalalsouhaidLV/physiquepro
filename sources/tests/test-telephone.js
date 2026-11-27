@@ -483,8 +483,8 @@ async function testsCinquieme() {
   await ouvrir(page, "#/accueil");
   e = await page.evaluate(() => { const n = document.querySelector(".topbar .quick"), r = n.getBoundingClientRect().right, L = [...n.querySelectorAll("a")].filter(a => a.offsetWidth); return { n: L.length, entiers: L.every(a => a.getBoundingClientRect().right <= r + 0.5 && a.getBoundingClientRect().left >= n.getBoundingClientRect().left - 0.5) }; });
   verif("P Ordinateur 1024 px : les logos du haut visibles le sont en entier", e.n >= 3 && e.entiers, JSON.stringify(e));
-  e = await page.evaluate(() => ({ k: document.querySelector(".kpis .kpi")?.innerText.replace(/\s+/g, " "), h: document.querySelector(".recent h2")?.innerText, r: [...document.querySelectorAll(".recentrow .rrendus")].map(x => x.innerText) }));
-  verif("P Accueil du prof : la 1re tuile dit combien de copies sont à corriger", /cop(ie|ies) à corriger/.test(e.k || ""), e.k);
+  e = await page.evaluate(() => ({ ok: document.querySelector(".kpiok")?.innerText, k: document.querySelector(".kpis .kpi")?.innerText.replace(/\s+/g, " "), h: document.querySelector(".recent h2")?.innerText, r: [...document.querySelectorAll(".recentrow .rrendus")].map(x => x.innerText) }));
+  verif("P Accueil du prof : plus de rangée de cartes (retirée à la demande de Jalal le 27/11/2026)", !e.k && !e.ok, e.k || e.ok);
   verif("P « Travaux en cours » : rendus et copies à noter", e.h === "Travaux en cours" && e.r.some(x => /tout noté|à noter/.test(x)), e.r.join(" | "));
   await aller(page, "#/quiz/1", 800);
   e = await page.evaluate(() => [...document.querySelectorAll("td .pill")].map(p => p.innerText));

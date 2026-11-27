@@ -261,7 +261,7 @@ function topbar(r){
     <div class="dd ddplus"><button class="ib" data-act="dd" title="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-label="${S.prof ? "Créer un cours" : "Rejoindre un cours"}" aria-expanded="${S.dd}">${icon("plus")}</button>
       ${S.dd ? `<div class="dd-menu"><a href="#" data-act="${S.prof ? "newclass" : "join"}">${icon("plus")} ${S.prof ? "Créer un cours" : "Rejoindre un cours"}</a></div>` : ""}</div>
     <div class="dd ddme"><button class="avatar" data-act="me" title="${esc(S.nom)}" style="border:0;cursor:pointer">${initials(S.nom)}</button>
-      ${S.me ? `<div class="dd-menu"><div style="padding:8px 10px"><b>${esc(S.nom)}</b><br><small class="muted">${esc(moi())}</small></div>${menuApparence()}${lienInstall()}<a href="#" data-act="logout">${icon("logout")} Se déconnecter</a></div>` : ""}</div>
+      ${S.me ? `<div class="dd-menu"><div style="padding:8px 10px"><b>${esc(S.nom)}</b><br><small class="muted">${esc(moi())}</small></div>${menuApparence()}${lienInstall()}${S.prof ? `<a href="#/admin/profil">${icon("gear")} Paramètres</a><a href="#/telephone">${icon("phone")} Mon téléphone est-il prêt ?</a><a href="#/corbeille">${icon("trash")} Corbeille et sauvegardes</a>` : ""}<a href="#" data-act="logout">${icon("logout")} Se déconnecter</a></div>` : ""}</div>
   </header>`;
 }
 function drawer(r){
@@ -286,9 +286,8 @@ function drawer(r){
     <a class="it" href="#/physique" ${cur("physique")}>${icon("ruler")}<span class="lbl" title="Outils Scientifiques Importants">Outils Scientifiques</span></a>
     <a class="it" href="#/outils" ${cur("outils")}>${icon("tools")}<span class="lbl">Boîte à outils</span></a>
     <a class="it" href="#" data-act="azerty">${icon("clavier")}<span class="lbl">Raccourcis AZERTY</span></a>
-    <hr><a class="it" href="#/admin/profil" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>
-    <a class="it" href="#/telephone" ${cur("telephone")}>${icon("phone")}<span class="lbl">Mon téléphone est-il prêt ?</span></a>
-    ${S.prof ? `<a class="it" href="#/corbeille" ${cur("corbeille")}>${icon("trash")}<span class="lbl">Corbeille et sauvegardes</span></a>` : ""}
+    ${S.prof ? "" : `<hr><a class="it" href="#/admin/profil" ${cur("admin")}>${icon("gear")}<span class="lbl">Paramètres</span></a>
+    <a class="it" href="#/telephone" ${cur("telephone")}>${icon("phone")}<span class="lbl">Mon téléphone est-il prêt ?</span></a>`}
   </nav>${S.drawer && window.innerWidth < 1100 ? `<div class="scrim" data-act="drawer"></div>` : ""}`;
 }
 /* élève : liens de ses cours, regroupés dans le menu sous « Liens utiles pour toi » */
@@ -3942,7 +3941,7 @@ function blocTableauDeBord(){
   }
   return `<section class="tdb"><div class="tdbhead"><div><h1>${salut()} ${esc(premierPrenom())}</h1><p>${esc(fmtD(t).replace(/^./, m => m.toUpperCase()))}</p></div>
       <button class="tdbsearch" data-act="recherche">${icon("search")}<span>Rechercher un cours, un devoir${S.prof ? ", un élève" : ""}…</span><kbd>Ctrl K</kbd></button></div>
-    ${tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
+    ${S.prof ? "" : tuiles ? `<div class="kpis">${tuiles}</div>` : `<div class="kpiok">${icon("check")}<span><b>Tout est à jour</b><small>${S.prof ? "Aucune copie à corriger, aucun message urgent." : "Rien à rendre cette semaine, aucun retard."}</small></span></div>`}</section>`;
 }
 
 /* ---------- #7 Recherche universelle (Ctrl+K) ---------- */
