@@ -404,7 +404,7 @@ async function testsTroisieme() {
   await ctx.close();
   ({ ctx, page } = await contexte(null, { vue: { width: 1366, height: 768 }, role: "prof" }));
   await ouvrir(page, "#/accueil");
-  verif("K Prof : le questionnaire de « À rendre récemment » a son compteur de rendus", await page.evaluate(() => [...document.querySelectorAll(".recentrow")].some(a => /\/quiz\//.test(a.getAttribute("href")) && /rendus? sur/.test(a.innerText))));
+  verif("K Prof : la liste des travaux n'est plus sur l'accueil (27/11/2026)", await page.evaluate(() => !document.querySelector(".recentrow")));
   await ctx.close();
 }
 
@@ -485,7 +485,7 @@ async function testsCinquieme() {
   verif("P Ordinateur 1024 px : les logos du haut visibles le sont en entier", e.n >= 3 && e.entiers, JSON.stringify(e));
   e = await page.evaluate(() => ({ ok: document.querySelector(".kpiok")?.innerText, k: document.querySelector(".kpis .kpi")?.innerText.replace(/\s+/g, " "), h: document.querySelector(".recent h2")?.innerText, r: [...document.querySelectorAll(".recentrow .rrendus")].map(x => x.innerText) }));
   verif("P Accueil du prof : plus de rangée de cartes (retirée à la demande de Jalal le 27/11/2026)", !e.k && !e.ok, e.k || e.ok);
-  verif("P « Travaux en cours » : rendus et copies à noter", e.h === "Travaux en cours" && e.r.some(x => /tout noté|à noter/.test(x)), e.r.join(" | "));
+  verif("P Accueil du prof : plus de bloc « Travaux en cours » (retiré à la demande de Jalal le 27/11/2026)", e.h !== "Travaux en cours", e.h || "");
   await aller(page, "#/quiz/1", 800);
   e = await page.evaluate(() => [...document.querySelectorAll("td .pill")].map(p => p.innerText));
   verif("P Questionnaire (prof) : « À faire » avant l'échéance, pas « Non fait »", e.length && e.every(x => x === "À faire"), e.join(","));

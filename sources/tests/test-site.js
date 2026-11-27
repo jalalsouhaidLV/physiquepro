@@ -84,6 +84,7 @@ async function testerRole(navigateur, base, role) {
       menu: [...document.querySelectorAll("nav.drawer .lbl, nav.navbas span")].map(e => e.textContent.trim()) }));
     if (role === "prof") {
       if (/à surveiller/i.test(vu.accueil)) note("accueil prof : « élèves à surveiller » est encore affiché");
+      if (/Travaux en cours/.test(vu.accueil)) note("accueil prof : « Travaux en cours » est encore affiché");
       if (await page.$(".tdb .kpis, .tdb .kpiok")) note("accueil prof : la rangée de cartes (copies, messages urgents, échéance) est encore affichée");
       ["Ma semaine", "Semaine", "Suivi des élèves"].forEach(m => { if (vu.menu.includes(m)) note("menu prof : « " + m + " » est encore affiché"); });
     }
